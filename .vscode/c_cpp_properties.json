@@ -1,0 +1,27 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/prodefi/LegarmrobotCOI/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/opt/openrobots/include/**",
+        "/home/prodefi/github/sensor_ws/src/force_torque_publisher/include/**",
+        "/home/prodefi/github/demo_ws/src/joint_state_publisher_cpp/include/**",
+        "/home/prodefi/catkin_jy901/src/my_minimal_nodes/include/**",
+        "/home/prodefi/github/robot_ws/src/robot_common/include/**",
+        "/home/prodefi/github/demo_ws/src/robot_control/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
