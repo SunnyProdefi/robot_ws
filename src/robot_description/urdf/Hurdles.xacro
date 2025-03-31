@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="legarm_robot_description" xmlns:xacro="http://www.ros.org/wiki/xacro">
+<!--all model*******************************************************************************************-->
+  <link
+    name="truss_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="10000" />
+      <inertia ixx="218" ixy="0" ixz="0" iyy="438" iyz="0" izz="219" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/truss_link.STL" /> </geometry>
+      <material name=""> <color rgba="0 0 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/truss_link.STL" /> </geometry>
+    </collision>
+  </link>
+
+<!--gazebo*******************************************************************************************-->
+
+
+</robot>

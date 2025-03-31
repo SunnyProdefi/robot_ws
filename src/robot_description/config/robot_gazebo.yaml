@@ -1,0 +1,124 @@
+robot_gazebo:
+
+  # Publish all joint states -----------------------------------#
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 1000
+
+
+  # Position Controllers ---------------------------------------#
+  Joint_controller:
+     type: effort_controllers/JointGroupEffortController
+     joints: 
+          - Joint1_1
+          - Joint1_2
+          - Joint1_3
+          - Joint1_4
+          - Joint1_5
+          - Joint1_6
+
+          - Joint2_1
+          - Joint2_2
+          - Joint2_3
+          - Joint2_4
+          - Joint2_5
+          - Joint2_6
+
+          - Joint3_1
+          - Joint3_2
+          - Joint3_3
+          - Joint3_4
+          - Joint3_5
+          - Joint3_6
+
+          - Joint4_1
+          - Joint4_2
+          - Joint4_3
+          - Joint4_4
+          - Joint4_5
+          - Joint4_6
+
+  gripper_controller1:
+    type: effort_controllers/GripperActionController
+    gains: {p: 10,  d: 0.1, i: 1, i_clamp: 1}
+    joint: Link1_finger_joint 
+    action_monitor_rate: 20
+    goal_tolerance: 0.002
+    max_effort: 100
+    stall_velocity_threshold: 0.001
+    stall_timeout: 1.0
+  gripper_controller2:
+    type: effort_controllers/GripperActionController
+    gains: {p: 10,  d: 0.1, i: 1, i_clamp: 1}
+    joint: Link2_finger_joint 
+    action_monitor_rate: 20
+    goal_tolerance: 0.002
+    max_effort: 100
+    stall_velocity_threshold: 0.001
+    stall_timeout: 1.0
+  gripper_controller3:
+    type: effort_controllers/GripperActionController
+    gains: {p: 10,  d: 0.1, i: 1, i_clamp: 1}
+    joint: Link3_finger_joint 
+    action_monitor_rate: 20
+    goal_tolerance: 0.002
+    max_effort: 100
+    stall_velocity_threshold: 0.001
+    stall_timeout: 1.0
+  gripper_controller4:
+    type: effort_controllers/GripperActionController
+    gains: {p: 10,  d: 0.1, i: 1, i_clamp: 1}
+    joint: Link4_finger_joint 
+    action_monitor_rate: 20
+    goal_tolerance: 0.002
+    max_effort: 100
+    stall_velocity_threshold: 0.001
+    stall_timeout: 1.0  
+
+robot_gazebo/Joint_controller:
+          Joint1_1/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint1_2/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint1_3/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint1_4/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint1_5/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint1_6/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+
+          Joint2_1/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint2_2/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint2_3/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint2_4/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint2_5/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint2_6/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+
+          Joint3_1/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint3_2/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint3_3/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint3_4/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint3_5/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint3_6/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+
+          Joint4_1/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint4_2/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint4_3/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint4_4/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint4_5/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}
+          Joint4_6/pid: {p: 100.0, i: 10.0, d: 0.00001, i_clamp_max: 1000, i_clamp_min: -1000}      
+
+          Max_T: 300.0
+
+robot_gazebo/gripper_controller1/gains/Link1_finger_joint/p: 10
+robot_gazebo/gripper_controller1/gains/Link1_finger_joint/i: 0.1
+robot_gazebo/gripper_controller1/gains/Link1_finger_joint/d: 0.001
+
+robot_gazebo/gripper_controller2/gains/Link2_finger_joint/p: 10
+robot_gazebo/gripper_controller2/gains/Link2_finger_joint/i: 0.1
+robot_gazebo/gripper_controller2/gains/Link2_finger_joint/d: 0.001
+
+robot_gazebo/gripper_controller3/gains/Link3_finger_joint/p: 10
+robot_gazebo/gripper_controller3/gains/Link3_finger_joint/i: 0.1
+robot_gazebo/gripper_controller3/gains/Link3_finger_joint/d: 0.001
+
+robot_gazebo/gripper_controller4/gains/Link4_finger_joint/p: 10
+robot_gazebo/gripper_controller4/gains/Link4_finger_joint/i: 0.1
+robot_gazebo/gripper_controller4/gains/Link4_finger_joint/d: 0.001
+

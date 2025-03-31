@@ -1,0 +1,12 @@
+<launch>
+  <arg name="model" />
+  <arg name="gui" default="true" />
+  <param name="robot_description" command="$(find xacro)/xacro $(find robot_description)/urdf/float_space_robot.xacro"/>
+  <param name="use_gui" value="$(arg gui)" />
+  <!-- <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" /> -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find robot_description)/urdf.rviz" />
+  <node name="animation_cs" pkg="joint_state_publisher_cpp" type="animation_cs"/>
+  <!-- <node name="coordinate_transform_node" pkg="coordinate_transform" type="coordinate_transform_node" /> -->
+  <node name="record_rosbag_animation" pkg="rosbag" type="record" output="screen" args="-O /home/prodefi/rosbags/animation_data.bag -a"/>
+</launch>
