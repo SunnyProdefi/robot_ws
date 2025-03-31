@@ -1,0 +1,9 @@
+<launch>
+  <!-- 启动 robot_control_node -->
+  <node name="robot_control_node" pkg="robot_control" type="robot_control_node" output="screen">
+  </node>
+
+  <!-- 启动 gripper_control -->
+  <node name="gripper_control" pkg="robot_control" type="gripper_control" output="screen">
+  </node>
+</launch>
