@@ -234,3 +234,9 @@ target_link_libraries(gripper_control
   ${catkin_LIBRARIES}
   canusb        # 添加这个！
 )
+
+add_executable(joint_angle_publisher src/joint_angle_publisher.cpp)
+
+target_link_libraries(joint_angle_publisher
+   ${catkin_LIBRARIES}
+)
