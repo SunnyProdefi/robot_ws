@@ -1,17 +1,37 @@
 #include <ros/ros.h>
 #include "motor_driver.h"
-#include "Gripper_Driver.h"
-
-extern double q_send[BRANCHN_N][MOTOR_BRANCHN_N];
-extern double q_recv[BRANCHN_N][MOTOR_BRANCHN_N];
-extern double q_init[BRANCHN_N][MOTOR_BRANCHN_N];
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "robot_control");
     ros::NodeHandle nh;
 
-    // 电机初始化
+    // Motor initialization
+    if (Inital_Motor_Connect() == true)
+    {
+        cout << "Motor initialization successful" << endl;
+    }
+    else
+    {
+        cout << "Motor initialization failed" << endl;
+        return 0;
+    }
+
+    // Enable all motors
+    Set_Motor_ALL_Enable(1);
+    if (isEnable == true)
+    {
+        cout << "Motors enabled successfully" << endl;
+    }
+    else
+    {
+        cout << "Motor enabling failed" << endl;
+        return 0;
+    }
+
+    // Set motor mode (position mode)
+    Motor_Set_Func_ALL(MOTORCOMMAND_POSITION);
+    cout << "Motor configuration completed" << endl;
 
     // 夹爪初始化
 

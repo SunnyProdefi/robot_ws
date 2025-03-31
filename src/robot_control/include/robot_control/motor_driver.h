@@ -11,11 +11,13 @@
 // 电机模式
 #define MOTORCOMMAND_POSITION 1
 
-double q_send[BRANCHN_N][MOTOR_BRANCHN_N] = {{0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}};
+extern std::vector<ActuatorController::UnifiedID> connectedActuators;
+extern std::vector<int> connectedActuatorsID;
+extern bool isEnable;
 
-double q_recv[BRANCHN_N][MOTOR_BRANCHN_N] = {{0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}};
-
-double q_init[BRANCHN_N][MOTOR_BRANCHN_N] = {{0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}};
+extern double q_send[BRANCHN_N][MOTOR_BRANCHN_N];
+extern double q_recv[BRANCHN_N][MOTOR_BRANCHN_N];
+extern double q_init[BRANCHN_N][MOTOR_BRANCHN_N];
 
 int Inital_Motor_Connect();
 

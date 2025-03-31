@@ -1,4 +1,4 @@
-#include "Gripper_Driver.h"
+#include "gripper_driver.h"
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
@@ -36,7 +36,7 @@ int GripperDriver::Init()
 int GripperDriver::getBranchID()
 {
     // 定义 CAN ID 与 curBranch 的映射关系
-    std::unordered_map<std::string, int> id_to_branch = {{"07", 0}, {"14", 1}, {"21", 2}, {"28", 3}};
+    std::unordered_map<std::string, int> id_to_branch = {{"01", 0}, {"02", 1}, {"03", 2}, {"04", 3}};
 
     // 查找 send_id_ 对应的 branch ID
     auto it = id_to_branch.find(send_id_);
@@ -92,42 +92,31 @@ void GripperDriver::send_recv_frame(const unsigned char *send_data)
     }
 }
 
-void GripperDriver::parseStatusFrame()
+double GripperDriver::parseStatusFrame()
 {
     if (recv_data_[0] == 0)
     {
         std::cerr << "Invalid frame" << std::endl;
-        return;
+        return -1.0;
     }
 
     unsigned char can_node_id = recv_data_[2];
-    unsigned char fault_code = recv_data_[3];
-    unsigned char state = recv_data_[4];
-    unsigned char pos = recv_data_[5];
-    unsigned char vel = recv_data_[6];
-    unsigned char force = recv_data_[7];
+    unsigned char fault_code = recv_data_[4];
+    unsigned char state = recv_data_[5];
+    unsigned char pos = recv_data_[6];
+    unsigned char vel = recv_data_[7];
+    unsigned char force = recv_data_[8];
 
     int curBranch = getBranchID();  // 通过 CAN ID 获取 curBranch
     int curBody = 6;                // 固定 Body 索引
 
-    q_recv[curBranch][curBody] = pos;
-
-    std::cout << "Updated UserMotorReal[" << curBranch << "][" << curBody << "]"
-              << " -> Angle: " << pos << ", Velocity: " << vel << std::endl;
-
-    std::cout << "Parsed Status Frame:" << std::endl;
-    std::cout << "CAN Node ID: " << static_cast<int>(can_node_id) << std::endl;
-    std::cout << "Fault Code: " << static_cast<int>(fault_code) << std::endl;
-    std::cout << "State: " << static_cast<int>(state) << std::endl;
-    std::cout << "Position: " << static_cast<int>(pos) << std::endl;
-    std::cout << "Velocity: " << static_cast<int>(vel) << std::endl;
-    std::cout << "Force: " << static_cast<int>(force) << std::endl;
+    return static_cast<double>(pos) / 255.0;  // 归一化到 [0,1]
 }
 
-void GripperDriver::gripper_control(double pos, double vel, double force, double acc, double dec)
+double GripperDriver::gripper_control(double pos, double vel, double force, double acc, double dec)
 {
     unsigned char can_msg[8];
     generateCANMessage(pos, vel, force, acc, dec, can_msg);
     send_recv_frame(can_msg);
-    parseStatusFrame();
+    return parseStatusFrame();
 }

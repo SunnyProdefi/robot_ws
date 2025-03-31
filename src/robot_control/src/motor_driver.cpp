@@ -15,6 +15,12 @@ const int User_Motor_Sign[BRANCHN_N][MOTOR_BRANCHN_N] = {{1, 1, -1, -1, -1, -1, 
 // 电机控制偏置
 const double User_Motor_Offset[BRANCHN_N][MOTOR_BRANCHN_N] = {{0, 0, 0, -9, 0, 0, 0}, {0, 0, 0, -9, 0, 0, 0}, {0, 0, 0, -9, 0, 0, 0}, {0, 0, 0, -9, 0, 0, 0}};
 
+double q_send[BRANCHN_N][MOTOR_BRANCHN_N] = {{0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}};
+
+double q_recv[BRANCHN_N][MOTOR_BRANCHN_N] = {{0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}};
+
+double q_init[BRANCHN_N][MOTOR_BRANCHN_N] = {{0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0}};
+
 // 分支ID Map函数
 bool GetMotorBranchRange(int branchi, int& startIdx, int& endIdx)
 {

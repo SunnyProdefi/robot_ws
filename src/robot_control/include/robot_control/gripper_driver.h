@@ -6,12 +6,6 @@
 #include <iostream>
 #include <vector>
 
-extern double q_send[BRANCHN_N][MOTOR_BRANCHN_N];
-
-extern double q_recv[BRANCHN_N][MOTOR_BRANCHN_N];
-
-extern double q_init[BRANCHN_N][MOTOR_BRANCHN_N];
-
 class GripperDriver
 {
 public:
@@ -20,7 +14,7 @@ public:
     ~GripperDriver();
 
     int Init();
-    void gripper_control(double pos, double vel, double force, double acc, double dec);
+    double gripper_control(double pos, double vel, double force, double acc, double dec);
 
     int getBranchID();  // 添加获取 branch ID 的方法
 
@@ -34,7 +28,7 @@ private:
 
     void generateCANMessage(double pos, double vel, double force, double acc, double dec, unsigned char *can_msg);
     void send_recv_frame(const unsigned char *send_data);
-    void parseStatusFrame();
+    double parseStatusFrame();
 };
 
 #endif  // GRIPPER_DRIVER_H

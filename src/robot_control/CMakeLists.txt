@@ -213,11 +213,24 @@ link_directories(
 )
 
 ## 可执行文件（主程序）
-add_executable(robot_control_node src/robot_control.cpp)
+add_executable(robot_control_node 
+  src/robot_control.cpp
+  src/motor_driver.cpp
+)
 
 ## 链接库
 target_link_libraries(robot_control_node
   ${catkin_LIBRARIES}
   ActuatorController  # 来自 libActuatorController.so
   canusb              # 来自 libcanusb.so
+)
+
+add_executable(gripper_control
+  src/gripper_control.cpp
+  src/gripper_driver.cpp  # 🔧 添加这一行
+)
+
+target_link_libraries(gripper_control
+  ${catkin_LIBRARIES}
+  canusb        # 添加这个！
 )
