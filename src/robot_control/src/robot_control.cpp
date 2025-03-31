@@ -23,6 +23,13 @@ bool Gripper_connect_flag = true;
 // robot control flag
 int control_flag = 0;
 
+// 插值相关变量
+std::vector<std::vector<double>> q_temp;  // 插值起点
+bool start_interp = true;
+int interp_step = 0;
+
+bool isSimulation = false;  // 是否为仿真模式
+
 /**********************************************IMU接受数据**************************************************************/
 void imuCallback(const sensor_msgs::Imu::ConstPtr &imu)
 {
@@ -93,33 +100,38 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "robot_control");
     ros::NodeHandle nh;
+    ros::NodeHandle nh_private("~");
+    ros::NodeHandle nh_param("robot_control");
 
-    // Motor initialization
-    if (Inital_Motor_Connect() == true)
+    if (!isSimulation)
     {
-        cout << "Motor initialization successful" << endl;
-    }
-    else
-    {
-        cout << "Motor initialization failed" << endl;
-        return 0;
-    }
+        // Motor initialization
+        if (Inital_Motor_Connect() == true)
+        {
+            cout << "Motor initialization successful" << endl;
+        }
+        else
+        {
+            cout << "Motor initialization failed" << endl;
+            return 0;
+        }
 
-    // Enable all motors
-    Set_Motor_ALL_Enable(1);
-    if (isEnable == true)
-    {
-        cout << "Motors enabled successfully" << endl;
-    }
-    else
-    {
-        cout << "Motor enabling failed" << endl;
-        return 0;
-    }
+        // Enable all motors
+        Set_Motor_ALL_Enable(1);
+        if (isEnable == true)
+        {
+            cout << "Motors enabled successfully" << endl;
+        }
+        else
+        {
+            cout << "Motor enabling failed" << endl;
+            return 0;
+        }
 
-    // Set motor mode (position mode)
-    Motor_Set_Func_ALL(MOTORCOMMAND_POSITION);
-    cout << "Motor configuration completed" << endl;
+        // Set motor mode (position mode)
+        Motor_Set_Func_ALL(MOTORCOMMAND_POSITION);
+        cout << "Motor configuration completed" << endl;
+    }
 
     // 电机位置发布者
     ros::Publisher motor_state_pub = nh.advertise<std_msgs::Float64MultiArray>("/motor_state", 10);
@@ -148,24 +160,23 @@ int main(int argc, char **argv)
 
     ros::Rate loop_rate(200);  // 200Hz
 
-    // 插值相关变量（放在主函数前，或声明为 static 保留状态）
-    static bool start_interp = true;
-    static double initial_val = 0.0;
-    static int interp_step = 0;
-    const int total_steps = 2000;  // 10s @200Hz
-
     while (ros::ok())
     {
         if (control_flag == 0)
         {
-            // 读取上电状态
-            Motor_Rec_Func_ALL();
+            if (!isSimulation)
+            {
+                // 读取上电状态
+                Motor_Rec_Func_ALL();
 
-            // 发布夹爪指令
-            std_msgs::Float64MultiArray gripper_command;
-            gripper_command.data = {0.0, 0.0, 0.0, 0.0};
-            gripper_pub.publish(gripper_command);
+                // 发布夹爪指令
+                std_msgs::Float64MultiArray gripper_command;
+                gripper_command.data = {0.0, 0.0, 0.0, 0.0};
+                gripper_pub.publish(gripper_command);
 
+                // 保存初始状态
+                // q_init = q_recv;
+            }
             // 发布电机位置状态
             std_msgs::Float64MultiArray motor_state;
             motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -179,35 +190,53 @@ int main(int argc, char **argv)
             }
 
             motor_state_pub.publish(motor_state);
-
-            // 保存初始状态
-            q_init = q_recv;
         }
         else if (control_flag == 1)
         {
-            // 每次都复制目标初始状态
-            q_send = q_init;
-
-            // 匀速插值控制 q_send[1][5]
             if (start_interp)
             {
-                initial_val = q_init[1][5];  // 初始值
+                q_temp.resize(BRANCHN_N, std::vector<double>(MOTOR_BRANCHN_N, 0.0));
+                q_temp = q_recv;  // 保存当前位置作为插值起点
                 interp_step = 0;
                 start_interp = false;
             }
 
-            double step_val = initial_val / total_steps;
-            q_send[1][5] = initial_val - interp_step * step_val;
+            const int total_steps = 2000;  // 10秒，200Hz
+            double ratio = static_cast<double>(interp_step) / total_steps;
+
+            // 插值计算 q_send = q_temp + ratio * (q_init - q_temp)
+            for (int i = 0; i < BRANCHN_N; ++i)
+            {
+                for (int j = 0; j < MOTOR_BRANCHN_N; ++j)
+                {
+                    double start_val = q_temp[i][j];
+                    double target_val = q_init[i][j];
+                    q_send[i][j] = start_val + ratio * (target_val - start_val);
+                }
+            }
+            if (!isSimulation)
+            {
+                Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+            }
 
             if (++interp_step >= total_steps)
             {
-                q_send[1][5] = 0.0;
-                control_flag = 2;  // 插值完成后切换模式（可选）
-                start_interp = true;
+                q_send = q_init;            // 最后一步强制对齐
+                interp_step = total_steps;  // 防止溢出
             }
-            cout << "q_send[1][5]: " << q_send[1][5] << endl;
+            // 发布电机位置状态
+            std_msgs::Float64MultiArray motor_state;
+            motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
 
-            Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+            for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+            {
+                for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                {
+                    motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_send[branchi][motorj];
+                }
+            }
+
+            motor_state_pub.publish(motor_state);
         }
         else if (control_flag == 2)
         {
