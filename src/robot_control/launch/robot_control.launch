@@ -9,6 +9,6 @@
   <node name="rosbag_robot" pkg="rosbag" type="record" output="screen"
         args="-a -O /home/prodefi/rosbags/robot_log.bag" />
 
-  <!-- <include file="$(find robot_description)/launch/robot_display.launch" /> -->
+  <include file="$(find robot_description)/launch/robot_display.launch" />
 </launch>
 
