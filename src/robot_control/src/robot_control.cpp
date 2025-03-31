@@ -147,6 +147,13 @@ int main(int argc, char **argv)
     // control_flag = 2 抓取演示
 
     ros::Rate loop_rate(200);  // 200Hz
+
+    // 插值相关变量（放在主函数前，或声明为 static 保留状态）
+    static bool start_interp = true;
+    static double initial_val = 0.0;
+    static int interp_step = 0;
+    const int total_steps = 2000;  // 10s @200Hz
+
     while (ros::ok())
     {
         if (control_flag == 0)
@@ -178,30 +185,29 @@ int main(int argc, char **argv)
         }
         else if (control_flag == 1)
         {
-            // 运动到初始状态
+            // 每次都复制目标初始状态
             q_send = q_init;
 
-            q_send[1][5] = 0.0;
-
-            std::cout << "q_send[1]: ";
-            for (double val : q_send[1])
+            // 匀速插值控制 q_send[1][5]
+            if (start_interp)
             {
-                std::cout << val << " ";
-            }
-            std::cout << std::endl;
-
-            std::cout << "q_send 全部: " << std::endl;
-            for (int i = 0; i < BRANCHN_N; ++i)
-            {
-                std::cout << "  Branch " << i << ": ";
-                for (int j = 0; j < MOTOR_BRANCHN_N; ++j)
-                {
-                    std::cout << q_send[i][j] << " ";
-                }
-                std::cout << std::endl;
+                initial_val = q_init[1][5];  // 初始值
+                interp_step = 0;
+                start_interp = false;
             }
 
-            // Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+            double step_val = initial_val / total_steps;
+            q_send[1][5] = initial_val - interp_step * step_val;
+
+            if (++interp_step >= total_steps)
+            {
+                q_send[1][5] = 0.0;
+                control_flag = 2;  // 插值完成后切换模式（可选）
+                start_interp = true;
+            }
+            cout << "q_send[1][5]: " << q_send[1][5] << endl;
+
+            Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
         }
         else if (control_flag == 2)
         {

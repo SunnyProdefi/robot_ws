@@ -242,6 +242,7 @@ int Motor_SendRec_One(const uint8_t& id, const double& set_value, const string& 
 
     // 传入q_recv
     q_recv[curBranch][curBody] = curPosition;
+    cout << "Motor ID: " << static_cast<int>(id) << ", Position: " << curPosition << endl;
     return true;
 }
 
@@ -280,7 +281,7 @@ int Motor_Rec_One(const uint8_t& id, const string& ipAddress)
     const double curPosition = User_Motor_Sign[curBranch][curBody] * ((actuatorPosition - User_Motor_Offset[curBranch][curBody]) / reductionRatio) * M_PI * 2;
 
     //  根据体节正负号调整角度
-    cout << "Motor ID: " << static_cast<int>(id) << ", Position: " << curPosition << endl;
+    // cout << "Motor ID: " << static_cast<int>(id) << ", Position: " << curPosition << endl;
     q_recv[curBranch][curBody] = curPosition;
     return true;
 }
@@ -331,6 +332,7 @@ int Motor_SendRec_Func_OneBranch(int branchi, int type)
                 set_value = position;
             }
             // 调用发送和接收方法
+            cout << "Motor_SendRec_Func_OneBranch branchi: " << branchi << ", id: " << static_cast<int>(id) << ", set_value: " << set_value << endl;
             Motor_SendRec_One(id, set_value, ipAddress, type);
         }
     }
@@ -346,6 +348,7 @@ void Motor_SendRec_Func_ALL(int type)
     }
     for (int branchi = 0; branchi < BRANCHN_N; branchi++)
     {
+        cout << "Motor_SendRec_Func_ALL branchi: " << branchi << endl;
         Motor_SendRec_Func_OneBranch(branchi, type);
     }
 }
