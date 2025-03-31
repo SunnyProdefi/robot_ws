@@ -110,6 +110,9 @@ int main(int argc, char **argv)
     Motor_Set_Func_ALL(MOTORCOMMAND_POSITION);
     cout << "Motor configuration completed" << endl;
 
+    // 电机位置发布者
+    ros::Publisher motor_state_pub = nh.advertise<std_msgs::Float64MultiArray>("/motor_state", 10);
+
     // 夹爪控制指令发布者
     ros::Publisher gripper_pub = nh.advertise<std_msgs::Float64MultiArray>("/gripper_command", 10);
 
@@ -145,14 +148,20 @@ int main(int argc, char **argv)
             gripper_command.data[2] = 0.0;  // 夹爪3
             gripper_command.data[3] = 0.0;  // 夹爪4
             gripper_pub.publish(gripper_command);
-            // 打印电机状态
+
+            // 发布电机位置状态
+            std_msgs::Float64MultiArray motor_state;
+            motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);  // 4 × 7 = 28
+
             for (int branchi = 0; branchi < BRANCHN_N; branchi++)
             {
-                for (int bodyi = 0; bodyi < MOTOR_BRANCHN_N; bodyi++)
+                for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
                 {
-                    std::cout << "Branch " << branchi << ", Body " << bodyi << ": " << q_recv[branchi][bodyi] << std::endl;
+                    motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
                 }
             }
+
+            motor_state_pub.publish(motor_state);
         }
         else if (control_flag == 1)
         {

@@ -1,9 +1,12 @@
 <launch>
   <!-- 启动 robot_control_node -->
-  <node name="robot_control_node" pkg="robot_control" type="robot_control_node" output="screen">
-  </node>
+  <node name="robot_control_node" pkg="robot_control" type="robot_control_node" output="screen" />
 
   <!-- 启动 gripper_control -->
-  <node name="gripper_control" pkg="robot_control" type="gripper_control" output="screen">
-  </node>
+  <node name="gripper_control" pkg="robot_control" type="gripper_control" output="screen" />
+
+  <!-- 启动 rosbag，录制所有话题 -->
+  <node name="rosbag_robot" pkg="rosbag" type="record" output="screen"
+        args="-a -O /home/prodefi/rosbags/robot_log.bag" />
 </launch>
+
