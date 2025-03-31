@@ -188,9 +188,9 @@ int main(int argc, char** argv)
     joint_msg.position[JOINT1_1] = 1.597727;
     joint_msg.position[JOINT1_2] = 0.295055;
     joint_msg.position[JOINT1_3] = 2.156446;
-    joint_msg.position[JOINT1_4] = 3.101495;
-    joint_msg.position[JOINT1_5] = -0.494894;
-    joint_msg.position[JOINT1_6] = -0.016370;
+    joint_msg.position[JOINT1_4] = 0.040097;
+    joint_msg.position[JOINT1_5] = 0.494959;
+    joint_msg.position[JOINT1_6] = 3.125349;
 
     joint_msg.position[JOINT4_1] = -1.597727;
     joint_msg.position[JOINT4_2] = 0.295055;

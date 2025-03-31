@@ -5,5 +5,5 @@
   <param name="use_gui" value="$(arg gui)" />
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen"/>
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find robot_description)/urdf.rviz" />
-  <node name="joint_angle_publisher" pkg="joint_state_publisher_cpp" type="joint_angle_publisher"/>
+  <node name="joint_angle_publisher" pkg="robot_control" type="joint_angle_publisher"/>
 </launch>
