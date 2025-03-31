@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/Int32.h>
 #include <geometry_msgs/Wrench.h>
 #include <sensor_msgs/Imu.h>
 #include "motor_driver.h"
@@ -18,6 +19,9 @@ bool Force_connect_flag = false;
 // Gripper state storage
 std_msgs::Float64MultiArray gripper_state_data;
 bool Gripper_connect_flag = true;
+
+// robot control flag
+int control_flag = 0;
 
 /**********************************************IMU接受数据**************************************************************/
 void imuCallback(const sensor_msgs::Imu::ConstPtr &imu)
@@ -78,6 +82,13 @@ void gripperCallback(const std_msgs::Float64MultiArray::ConstPtr &msg)
     }
 }
 
+/******************************************controlFlagCallback*******************************************************/
+void controlFlagCallback(const std_msgs::Int32::ConstPtr &msg)
+{
+    control_flag = msg->data;
+    ROS_INFO("Received control_flag: %d", control_flag);
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "robot_control");
@@ -128,10 +139,12 @@ int main(int argc, char **argv)
     ros::Subscriber force_torque_sub_3 = nh.subscribe<geometry_msgs::Wrench>("/force_torque_data_3", 10, forceTorqueCallback3);
     ros::Subscriber force_torque_sub_4 = nh.subscribe<geometry_msgs::Wrench>("/force_torque_data_4", 10, forceTorqueCallback4);
 
+    // 订阅控制指令
+    ros::Subscriber control_flag_sub = nh.subscribe<std_msgs::Int32>("/control_flag", 10, controlFlagCallback);
+
     // control_flag = 0 读取上电状态
     // control_flag = 1 运动到初始状态
     // control_flag = 2 抓取演示
-    int control_flag = 0;  // 上电状态
 
     ros::Rate loop_rate(200);  // 200Hz
     while (ros::ok())
@@ -140,18 +153,15 @@ int main(int argc, char **argv)
         {
             // 读取上电状态
             Motor_Rec_Func_ALL();
+
             // 发布夹爪指令
             std_msgs::Float64MultiArray gripper_command;
-            gripper_command.data.resize(4);
-            gripper_command.data[0] = 0.0;  // 夹爪1
-            gripper_command.data[1] = 0.0;  // 夹爪2
-            gripper_command.data[2] = 0.0;  // 夹爪3
-            gripper_command.data[3] = 0.0;  // 夹爪4
+            gripper_command.data = {0.0, 0.0, 0.0, 0.0};
             gripper_pub.publish(gripper_command);
 
             // 发布电机位置状态
             std_msgs::Float64MultiArray motor_state;
-            motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);  // 4 × 7 = 28
+            motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
 
             for (int branchi = 0; branchi < BRANCHN_N; branchi++)
             {
@@ -162,13 +172,42 @@ int main(int argc, char **argv)
             }
 
             motor_state_pub.publish(motor_state);
+
+            // 保存初始状态
+            q_init = q_recv;
         }
         else if (control_flag == 1)
         {
+            // 运动到初始状态
+            q_send = q_init;
+
+            q_send[1][5] = 0.0;
+
+            std::cout << "q_send[1]: ";
+            for (double val : q_send[1])
+            {
+                std::cout << val << " ";
+            }
+            std::cout << std::endl;
+
+            std::cout << "q_send 全部: " << std::endl;
+            for (int i = 0; i < BRANCHN_N; ++i)
+            {
+                std::cout << "  Branch " << i << ": ";
+                for (int j = 0; j < MOTOR_BRANCHN_N; ++j)
+                {
+                    std::cout << q_send[i][j] << " ";
+                }
+                std::cout << std::endl;
+            }
+
+            // Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
         }
         else if (control_flag == 2)
         {
+            // 抓取演示逻辑可以继续在这里实现
         }
+
         ros::spinOnce();
         loop_rate.sleep();
     }

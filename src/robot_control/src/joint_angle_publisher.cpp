@@ -126,7 +126,7 @@ void motorStateCallback(const std_msgs::Float64MultiArray::ConstPtr& msg)
     joint_msg.position[JOINT1_5] = msg->data[4];
     joint_msg.position[JOINT1_6] = msg->data[5];
     // 分支1的夹爪
-    joint_msg.position[LINK1_FINGER] = msg->data[6];
+    joint_msg.position[LINK1_FINGER] = 1.0 - msg->data[6];
 
     // 分支2
     joint_msg.position[JOINT2_1] = msg->data[7];
@@ -136,7 +136,7 @@ void motorStateCallback(const std_msgs::Float64MultiArray::ConstPtr& msg)
     joint_msg.position[JOINT2_5] = msg->data[11];
     joint_msg.position[JOINT2_6] = msg->data[12];
     // 分支2的夹爪
-    joint_msg.position[LINK2_FINGER] = msg->data[13];
+    joint_msg.position[LINK2_FINGER] = 1.0 - msg->data[13];
 
     // 分支3
     joint_msg.position[JOINT3_1] = msg->data[14];
@@ -146,7 +146,7 @@ void motorStateCallback(const std_msgs::Float64MultiArray::ConstPtr& msg)
     joint_msg.position[JOINT3_5] = msg->data[18];
     joint_msg.position[JOINT3_6] = msg->data[19];
     // 分支3的夹爪
-    joint_msg.position[LINK3_FINGER] = msg->data[20];
+    joint_msg.position[LINK3_FINGER] = 1.0 - msg->data[20];
 
     // 分支4
     joint_msg.position[JOINT4_1] = msg->data[21];
@@ -156,7 +156,7 @@ void motorStateCallback(const std_msgs::Float64MultiArray::ConstPtr& msg)
     joint_msg.position[JOINT4_5] = msg->data[25];
     joint_msg.position[JOINT4_6] = msg->data[26];
     // 分支4的夹爪
-    joint_msg.position[LINK4_FINGER] = msg->data[27];
+    joint_msg.position[LINK4_FINGER] = 1.0 - msg->data[27];
 }
 
 int main(int argc, char** argv)
@@ -185,34 +185,6 @@ int main(int argc, char** argv)
     joint_msg.position[JOINT3_0] = 1.5708;  // Body_displace
     joint_msg.position[JOINT4_0] = 1.5708;  // Body_displace
 
-    joint_msg.position[JOINT1_1] = 1.597727;
-    joint_msg.position[JOINT1_2] = 0.295055;
-    joint_msg.position[JOINT1_3] = 2.156446;
-    joint_msg.position[JOINT1_4] = 0.040097;
-    joint_msg.position[JOINT1_5] = 0.494959;
-    joint_msg.position[JOINT1_6] = 3.125349;
-
-    joint_msg.position[JOINT4_1] = -1.597727;
-    joint_msg.position[JOINT4_2] = 0.295055;
-    joint_msg.position[JOINT4_3] = 2.156446;
-    joint_msg.position[JOINT4_4] = -0.040097;
-    joint_msg.position[JOINT4_5] = 0.494959;
-    joint_msg.position[JOINT4_6] = 0.016244;
-
-    joint_msg.position[JOINT2_1] = 2.041711;
-    joint_msg.position[JOINT2_2] = -0.616538;
-    joint_msg.position[JOINT2_3] = 2.032447;
-    joint_msg.position[JOINT2_4] = -1.33452;
-    joint_msg.position[JOINT2_5] = 1.159544;
-    joint_msg.position[JOINT2_6] = -2.898303;
-
-    joint_msg.position[JOINT3_1] = -2.041711;
-    joint_msg.position[JOINT3_2] = -0.616538;
-    joint_msg.position[JOINT3_3] = 2.032447;
-    joint_msg.position[JOINT3_4] = 1.33452;
-    joint_msg.position[JOINT3_5] = 1.159544;
-    joint_msg.position[JOINT3_6] = -0.24329;
-
     joint_msg.position[JOINT1_PLATLINK] = -0.847454;
     joint_msg.position[JOINT1_PLATLINK2] = -2.41825;
     joint_msg.position[JOINT2_PLATLINK] = -0.847454;
@@ -221,11 +193,6 @@ int main(int argc, char** argv)
     joint_msg.position[JOINT3_PLATLINK2] = -2.41825;
     joint_msg.position[JOINT4_PLATLINK] = -0.847454;
     joint_msg.position[JOINT4_PLATLINK2] = -2.41825;
-
-    joint_msg.position[LINK1_FINGER] = 0.5;
-    joint_msg.position[LINK2_FINGER] = 0.0;
-    joint_msg.position[LINK3_FINGER] = 0.0;
-    joint_msg.position[LINK4_FINGER] = 0.5;
 
     joint_msg.position[JOINT_PLATFORM] = 0.077888;
 

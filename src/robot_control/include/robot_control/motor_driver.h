@@ -15,9 +15,9 @@ extern std::vector<ActuatorController::UnifiedID> connectedActuators;
 extern std::vector<int> connectedActuatorsID;
 extern bool isEnable;
 
-extern double q_send[BRANCHN_N][MOTOR_BRANCHN_N];
-extern double q_recv[BRANCHN_N][MOTOR_BRANCHN_N];
-extern double q_init[BRANCHN_N][MOTOR_BRANCHN_N];
+extern std::vector<std::vector<double>> q_send;
+extern std::vector<std::vector<double>> q_recv;
+extern std::vector<std::vector<double>> q_init;
 
 int Inital_Motor_Connect();
 
