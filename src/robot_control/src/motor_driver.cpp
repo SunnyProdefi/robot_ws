@@ -16,9 +16,12 @@ const int User_Motor_Sign[BRANCHN_N][MOTOR_BRANCHN_N] = {{1, 1, -1, -1, -1, -1, 
 const double User_Motor_Offset[BRANCHN_N][MOTOR_BRANCHN_N] = {{0, 0, 0, -9, 0, -9, 0}, {0, 0, 0, -9, 0, -9, 0}, {0, 0, 0, -9, 0, -9, 0}, {0, 0, 0, -9, 0, -9, 0}};
 
 // 初始化为 0 的二维 vector
-std::vector<std::vector<double>> q_send(BRANCHN_N, std::vector<double>(MOTOR_BRANCHN_N, 0.0));
-std::vector<std::vector<double>> q_recv(BRANCHN_N, std::vector<double>(MOTOR_BRANCHN_N, 0.0));
-std::vector<std::vector<double>> q_init(BRANCHN_N, std::vector<double>(MOTOR_BRANCHN_N, 0.0));
+std::vector<std::vector<double>> q_send = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+
+std::vector<std::vector<double>> q_recv = {{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+
+std::vector<std::vector<double>> q_init = {
+    {1.597743, 0.2950242, 2.156446, 3.101645, -0.4948243, -0.01648967, 1.0}, {2.041711, -0.616538, 2.032447, -1.33452, 1.159544, -2.898303, 1.0}, {-2.041711, -0.616538, 2.032447, 1.33452, 1.159544, -0.24329, 1.0}, {-1.597743, 0.295025, 2.156445, -0.04025241, 0.4948952, 0.01637039, 1.0}};
 
 // 分支ID Map函数
 bool GetMotorBranchRange(int branchi, int& startIdx, int& endIdx)
