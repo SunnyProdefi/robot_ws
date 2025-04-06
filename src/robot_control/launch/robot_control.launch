@@ -4,7 +4,7 @@
   <rosparam command="load" file="$(find robot_control)/config/robot_control_config.yaml" ns="robot_control"/>
 
   <!-- Launch robot control node -->
-  <node pkg="robot_control" type="robot_control" name="robot_control" output="screen"/>
+  <node pkg="robot_control" type="robot_control_node" name="robot_control_node" output="screen"/>
 
   <!-- 启动 gripper_control -->
   <node name="gripper_control" pkg="robot_control" type="gripper_control" output="screen" />

@@ -32,7 +32,18 @@ void gripperCallback(const std_msgs::Float64MultiArray::ConstPtr& msg)
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "gripper_controller_node");
-    ros::NodeHandle nh;
+    ros::NodeHandle nh("~");  // 私有命名空间
+
+    bool gripper_enabled = true;
+    ros::NodeHandle nh_global;
+    nh_global.param("/robot_control/gripper_connect", gripper_enabled, true);
+
+    if (!gripper_enabled)
+    {
+        ROS_WARN("gripper_connect is false. Shutting down gripper_control node.");
+        return 0;
+    }
+
     gripper_state_pub = nh.advertise<std_msgs::Float64MultiArray>("/gripper_state", 10);
     // 初始化夹爪
     for (size_t i = 0; i < grippers.size(); ++i)

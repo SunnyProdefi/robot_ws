@@ -2,8 +2,8 @@
 
 # Connection flags
 imu_connect: false
-gripper_connect: true
+gripper_connect: false
 force_connect: false
 
 # Operation mode
-simulation_mode: false 
+simulation_mode: true 
