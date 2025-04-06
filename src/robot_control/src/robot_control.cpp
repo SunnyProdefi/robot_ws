@@ -7,18 +7,18 @@
 
 // IMU data storage
 sensor_msgs::Imu imu_data;
-bool IMU_connect_flag = false;
+bool IMU_connect_flag;
 
 // Force-torque data storage for 4 sensors
 geometry_msgs::Wrench force_data_1;
 geometry_msgs::Wrench force_data_2;
 geometry_msgs::Wrench force_data_3;
 geometry_msgs::Wrench force_data_4;
-bool Force_connect_flag = false;
+bool Force_connect_flag;
 
 // Gripper state storage
 std_msgs::Float64MultiArray gripper_state_data;
-bool Gripper_connect_flag = true;
+bool Gripper_connect_flag;
 
 // robot control flag
 int control_flag = 0;
@@ -28,7 +28,7 @@ std::vector<std::vector<double>> q_temp;  // 插值起点
 bool start_interp = true;
 int interp_step = 0;
 
-bool isSimulation = false;  // 是否为仿真模式
+bool isSimulation;  // 是否为仿真模式
 
 /**********************************************IMU接受数据**************************************************************/
 void imuCallback(const sensor_msgs::Imu::ConstPtr &imu)
@@ -102,6 +102,18 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
     ros::NodeHandle nh_param("robot_control");
+
+    // 从参数服务器读取配置参数
+    nh_param.param<bool>("imu_connect", IMU_connect_flag, false);
+    nh_param.param<bool>("gripper_connect", Gripper_connect_flag, true);
+    nh_param.param<bool>("force_connect", Force_connect_flag, false);
+    nh_param.param<bool>("simulation_mode", isSimulation, false);
+
+    ROS_INFO("Configuration loaded - IMU: %s, Gripper: %s, Force: %s, Simulation: %s",
+             IMU_connect_flag ? "true" : "false",
+             Gripper_connect_flag ? "true" : "false",
+             Force_connect_flag ? "true" : "false",
+             isSimulation ? "true" : "false");
 
     if (!isSimulation)
     {
