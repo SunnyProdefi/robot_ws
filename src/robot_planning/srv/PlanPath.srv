@@ -1,0 +1,4 @@
+# 空请求，触发规划
+---
+bool success
+string message

@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot name="robot_3dros"  xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:arg name="transmission_hw_interface" default = "hardware_interface/EffortJointInterface"/>
+  <xacro:include filename = "$(find robotiq_2f_85_gripper_gazebo)/urdf/robotiq_arg2f_85_macro.xacro"/>
+  <xacro:include filename="robot_parameter.xacro" />
+<!--body*********************************************************************************************************-->
+  <link name="world"/>
+
+  <joint name="world_joint" type="fixed">
+    <parent link="world"/>
+    <child  link="dummy_link"/>
+    <origin xyz="0 0 0.5" rpy="0 1.5708 0"/>
+  </joint>
+
+  <link name="dummy_link"></link>
+
+  <joint name="dummy_joint" type="fixed">
+      <parent link="dummy_link"/>
+      <child  link="base_link"/> 
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="world_to_truss_link" type="fixed">
+    <parent link="world"/>
+    <child link="truss_link"/>
+    <!-- 如果需要在世界坐标系中给 truss_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
+    <origin xyz="1.0 0 0" rpy="1.5708 0 3.1415"/>
+  </joint>
+
+  <link name="truss_link">
+    <inertial>
+      <origin
+        xyz="0.36747875296263 -0.0267703008644749 2.17639122268576E-06"
+        rpy="0 0 0" />
+      <mass
+        value="21.7746312239973" />
+      <inertia
+        ixx="6.13854571738268"
+        ixy="0.0126716758688149"
+        ixz="-0.000126373819517297"
+        iyy="16.7375552194284"
+        iyz="-1.43555608026521E-06"
+        izz="10.6624119014708" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://truss/meshes/truss_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://truss/meshes/truss_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="truss_link_to_point1" type="fixed">
+    <parent link="truss_link"/>
+    <child link="dummy_point1"/>
+    <!-- 如果需要在 truss_link 坐标系中给 base_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
+    <origin xyz="0.53 0 0.53" rpy="1.5708 0 0"/>
+  </joint>
+
+  <link name="dummy_point1"></link>
+
+  <joint name="truss_link_to_point2" type="fixed">
+    <parent link="truss_link"/>
+    <child link="dummy_point2"/>
+    <!-- 如果需要在 truss_link 坐标系中给 base_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
+    <origin xyz="0.53 0 -0.53" rpy="1.5708 0 0"/>
+  </joint>
+
+  <link name="dummy_point2"></link>
+
+  <joint name="truss_link_to_point3" type="fixed">
+    <parent link="truss_link"/>
+    <child link="dummy_point3"/>
+    <!-- 如果需要在 truss_link 坐标系中给 base_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
+    <origin xyz="0.53 0 0.4" rpy="1.5708 0 0"/>
+  </joint>
+
+  <link name="dummy_point3"></link>
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 0.042" rpy="0 0 0" />
+      <mass value="1.492" />
+      <inertia ixx="0.004886486" ixy="-0.000017397" ixz="-0.000263075" iyy="0.004100237" iyz="0" izz="0.003937989" />
+    </inertial>
+<!--重心:(毫米)	X = -0.880	Y = -0.663	Z = 42.409
+    惯性张量: (千克*平方毫米)由重心决定，并且对齐输出的坐标系。Lxx = 4886.486 Lxy = -17.397 Lxz = -263.075 Lyy = 4100.238 Lyz = 0.709 Lzz = 3937.989-->
+     <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/base_link.STL" /> </geometry>
+      <material name=""> <color rgba="0.75294 0.75294 0.75294 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.04" rpy="0 0 0" />
+      <geometry> <box size="0.10 0.10 0.14" /> </geometry>
+      <!--geometry> <mesh filename="package://robot_3dros/meshes/base_link.STL" /> </geometry-->
+      <surface>
+        <friction>
+          <torsional>
+            <coefficient>5.0</coefficient>
+            <surface_radius>0.10</surface_radius>
+            <use_patch_radius>false</use_patch_radius>
+          </torsional>
+        </friction>
+      </surface>
+    </collision>
+  </link> 
+  <link name="Link_platform">
+    <inertial>
+      <origin xyz="0 0 0.011605" rpy="0 0 0" />
+      <mass value="0.218" />
+      <inertia ixx="0.000745872" ixy="0" ixz="0" iyy="0.000792081" iyz="0" izz="0.001494320" />
+    </inertial>
+<!--重心:(毫米)	X = 0.000	Y = 0.000	Z = 11.605
+    惯性张量: (千克* 平方毫米)由重心决定，并且对齐输出的坐标系。Lxx = 745.872	Lxy = 0.000	Lxz = 0.000	Lyy = 792.081	Lyz = 0.000	Lzz = 1494.320-->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_platform.STL" /> </geometry>
+      <material name=""> <color rgba="0.75294 0.75294 0.75294 1" /> </material>
+    </visual>
+    <!--collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_platform.STL" /> </geometry>
+    </collision-->
+  </link>
+  <joint name="Joint_platform" type="prismatic">
+    <origin xyz="0 0 0.043397" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="Link_platform" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="negative_dynamics_parameter"/>
+    <limit
+      lower="0"
+      upper="0.5"
+      effort="1000"
+      velocity="10" />
+  </joint>
+<!--leg*********************************************************************************************************-->  
+<xacro:macro name="Leg_Model" params="number bodyX bodyY body_yaw">  
+  <link name="Link${number}_0">
+    <inertial>
+      <origin xyz="0.085427 -0.025518 0" rpy="0 0 0" />
+      <mass value="0.960" />
+      <inertia ixx="0.000648473" ixy="-0.001018876" ixz="0.000012959" iyy="0.002674366" iyz="0" izz="0.003031056" />
+    </inertial>
+<!--重心:(毫米)	X = 85.427 Y = -25.518 Z = -0.131
+    惯性张量: (千克*平方毫米)由重心决定，并且对齐输出的坐标系。Lxx = 648.473	Lxy = -1018.876	Lxz = 12.959 Lyy = 2674.366	Lyz = 0.781	Lzz = 3031.056-->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_0.STL" /> </geometry>
+      <material name=""> <color rgba="0 1 1 1" /> </material>
+    </visual>
+    <!--collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_0.STL" /> </geometry>
+    </collision-->
+  </link>
+  <joint name="Joint${number}_0" type="revolute">
+    <origin xyz="${bodyX*0.072125} ${bodyY*0.072125} 0.018" rpy="${pi/2} 0 ${body_yaw*pi/4}" />
+    <parent link="base_link" />
+    <child link="Link${number}_0" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="0"
+      upper="${pi/2}"
+      effort="1000"
+      velocity="10" />
+  </joint>
+  <link name="Link${number}_1">
+    <inertial>
+      <origin xyz="0.052469 -0.009040 0.002060" rpy="0 0 0" />
+      <mass value="0.914" />
+      <inertia ixx="0.000671687" ixy="-0.000084224" ixz="-0.000107815" iyy="0.000786758" iyz="0.000017298" izz="0.000958254" />
+    </inertial>
+<!--重心:(毫米)	X = 52.469 Y = -9.040	Z = 2.060
+    惯性张量:(千克*平方毫米)由重心决定，并且对齐输出的坐标系。Lxx = 671.687	Lxy = -84.224	Lxz = -107.815 Lyy = 786.758 Lyz = 17.298	Lzz = 958.254-->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_1.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <!--collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_1.STL" /> </geometry>
+    </collision-->
+  </link>
+  <joint name="Joint${number}_1" type="revolute">
+    <origin xyz="0.12 -0.117 0" rpy="${-pi/2} 0 0" />
+    <parent link="Link${number}_0" />
+    <child link="Link${number}_1" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-3*pi/4}"
+      upper="${3*pi/2}"
+      effort="300"
+      velocity="10" />
+  </joint>
+  <link name="Link${number}_2">
+    <inertial>
+      <origin xyz="0.273270 0.000006 0.007530" rpy="0 0 0" />
+      <mass value="1.144" />
+      <inertia ixx="0.000909959" ixy="0" ixz="0.000569994" iyy="0.018834040" iyz="0" izz="0.018336908" />
+    </inertial>
+<!--重心:(毫米)	X = 273.270	Y = 0.006	Z = 7.530
+    惯性张量:(千克*平方毫米)由重心决定，并且对齐输出的坐标系。Lxx = 909.959	Lxy = 0.824	Lxz = 569.994	Lyy = 18834.040	Lyz = 0.056	Lzz = 18336.908-->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_2.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0.155 0 0" rpy="0 ${pi/2} 0" />
+      <geometry><cylinder length="0.3" radius="0.02" /></geometry>
+      <!--geometry> <mesh filename="package://robot_3dros/meshes/Link_2.STL" /> </geometry-->
+    </collision>
+  </link>
+  <joint name="Joint${number}_2" type="revolute">
+    <origin xyz="0.0625 -0.0025 0" rpy="${pi/2} 0 0" />
+    <parent link="Link${number}_1" />
+    <child link="Link${number}_2" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-2*pi/3}"
+      upper="${pi/2}"
+      effort="300"
+      velocity="10" />
+  </joint>
+  <link name="Link${number}_3">
+    <inertial>
+      <origin xyz="0.081336 -0.0003 -0.000693" rpy="0 0 0" />
+      <mass value="0.395" />
+      <inertia ixx="0.000576423" ixy="0" ixz="0.000031283" iyy="0.001662107" iyz="0" izz="0.001334389" />
+    </inertial>
+<!--重心:(毫米)	X = 81.336 Y = -0.003	Z = -0.693
+    惯性张量:(千克*平方毫米)由重心决定，并且对齐输出的坐标系。Lxx = 576.423	Lxy = -0.053 Lxz = 31.283 Lyy = 1662.107	Lyz = -0.009 Lzz = 1334.389-->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_3.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0.16 0 0" rpy="0 ${pi/2} 0" />
+      <geometry><cylinder length="0.2" radius="0.02" /></geometry> 
+      <!--geometry> <mesh filename="package://robot_3dros/meshes/Link_3.STL" /> </geometry-->
+    </collision>
+  </link>
+  <joint name="Joint${number}_3" type="revolute">
+    <origin xyz="0.35 0.0002 0" rpy="${-pi} 0 0" />
+    <parent link="Link${number}_2" />
+    <child link="Link${number}_3" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-29*pi/36}"
+      upper="${29*pi/36}"
+      effort="300"
+      velocity="10" />
+  </joint>
+  <link name="Link${number}_4">
+    <inertial>
+      <origin xyz="0.005438 0.000120 0.134002" rpy="0 0 0" />
+      <mass value="0.376" />
+      <inertia ixx="0.0001484574" ixy="0" ixz="0.000099045" iyy="0.001658464" iyz="-0.000002871" izz="0.000360737" />
+    </inertial>
+<!--重心:(毫米)	X = 5.438	Y = 0.120	Z = 134.002
+    惯性张量:(千克*平方毫米)由重心决定，并且对齐输出的坐标系。Lxx = 1484.574	Lxy = -0.250 Lxz = 99.045 Lyy = 1658.464 Lyz = -2.871 Lzz = 360.737-->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_4.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <!--collision>
+      <origin xyz="0 0 0.08" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_4.STL" /> </geometry>
+    </collision-->
+  </link>
+  <joint name="Joint${number}_4" type="revolute">
+    <origin xyz="0.1745 0 0" rpy="0 ${-pi/2} ${-pi}" />
+    <parent link="Link${number}_3" />
+    <child link="Link${number}_4" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-pi}"
+      upper="${pi}"
+      effort="100"
+      velocity="10" />
+  </joint>
+  <link name="Link${number}_5">
+    <inertial>
+      <origin xyz="0.058277 0 -0.001068" rpy="0 0 0" />
+      <mass value="0.327" />
+      <inertia ixx="0.000412080" ixy="0" ixz="0.000002889" iyy="0.000943104" iyz="0" izz="0.000708641" />
+    </inertial>
+    <!--重心:(毫米)	X = 58.277 Y = 0.004 Z = -1.068
+        惯性张量:(千克*平方毫米)由重心决定，并且对齐输出的坐标系。Lxx = 412.080	Lxy = 0.032	Lxz = 2.889	Lyy = 943.104	Lyz = -0.003 Lzz = 708.641-->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_5.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <!--collision>
+      <origin xyz="0.08 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_5.STL" /> </geometry>
+    </collision-->
+  </link>
+  <joint name="Joint${number}_5" type="revolute">
+    <origin xyz="0 0 0.1795" rpy="${pi} ${-pi/2} 0" />
+    <parent link="Link${number}_4" />
+    <child link="Link${number}_5" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-11*pi/18}"
+      upper="${11*pi/18}"
+      effort="100"
+      velocity="10" />
+  </joint>
+  <link name="Link${number}_6">
+    <inertial>
+      <origin xyz="-0.000076 -0.001467 0.088450" rpy="0 0 0" />
+      <mass value="0.366" />
+      <inertia ixx="0.000945510" ixy="-0.000011196" ixz="0" iyy="0.000811306" iyz="-0.000011704" izz="0.000402389" />
+    </inertial>
+<!--重心:(毫米)	X = -0.094 Y = -1.809 Z = 70.443
+    惯性张量:(千克*平方毫米)由重心决定，并且对齐输出的坐标系。Lxx = 945.510	Lxy = -11.196	Lxz = -0.115	Lyy = 811.306	Lyz = -11.704	Lzz = 402.389-->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_6.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.06" rpy="0 0 0" />
+      <geometry><cylinder length="0.1" radius="0.02" /></geometry> 
+      <!--geometry> <mesh filename="package://robot_3dros/meshes/Link_6.STL" /> </geometry-->
+    </collision>
+  </link>
+  <joint name="Joint${number}_6" type="revolute">
+    <origin xyz="0.141 0 0" rpy="${pi} ${-pi/2} 0" />
+    <parent link="Link${number}_5" />
+    <child link="Link${number}_6" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-pi}"
+      upper="${pi}"
+      effort="100"
+      velocity="10" />
+  </joint>
+  
+  <!--定义fixed关节，将robotiq_arg2f_base_link连接到机械臂末端的tool0-->
+  <joint name ="Joint${number}_hand" type = "fixed">
+      <parent link="Link${number}_6"/>
+      <child link="Link${number}_robotiq_arg2f_base_link"/>
+      <origin xyz="0 0 0.0385" rpy="0 0 0"/>
+  </joint>
+
+  <!--调用robotiq_arg2f_85，加入夹爪的link和joint-->
+  <xacro:robotiq_arg2f_85_gazebo 
+      prefix = "Link${number}_"
+      transmission_hw_interface = "$(arg transmission_hw_interface)"
+  />
+
+</xacro:macro> 
+  
+<!--ALL Parallel Set*******************************************************************************************-->  
+<xacro:macro name="Parallel_Model" params="number bodyX bodyY body_yaw">  
+  <link name="Link${number}_platlink">
+    <inertial>
+      <origin xyz="0.02891563 -0.01184461 0.0004999" rpy="0 0 0" />
+      <mass value="0.0110" />
+      <inertia ixx="2.3755012E-06" ixy="4.9413420E-06" ixz="0" iyy="1.2414435E-05" iyz="0" izz="1.46210848E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_platlink.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <!--collision>
+      <origin xyz="0 0 0" rpy="0 0 0" /> 
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_platlink.STL" /> </geometry>
+    </collision-->
+  </link>
+  <joint name="Joint${number}_platlink" type="revolute">
+    <origin xyz="${bodyX*0.056569} ${bodyY*0.056569} 0" rpy="${pi/2} 0 ${body_yaw*pi/4}" />
+    <parent link="Link_platform" />
+    <child link="Link${number}_platlink" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="negative_dynamics_parameter"/>
+    <limit
+      lower="${-pi/2}"
+      upper="0"
+      effort="1000"
+      velocity="10" />
+  </joint>
+    <link
+    name="Link${number}_platlink2">
+    <inertial>
+      <origin xyz="-0.033084 0.0135522 0.00049999" rpy="0 0 0" />
+      <mass value="0.0110" />
+      <inertia ixx="2.3755012E-06" ixy="4.9413420E-06" ixz="0" iyy="1.2414435E-05" iyz="0" izz="1.4621084E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_platlink2.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <!--collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_3dros/meshes/Link_platlink2.STL" /> </geometry>
+    </collision-->
+  </link>
+  <joint name="Joint${number}_platlink2" type="revolute">
+    <origin xyz="0.04 0 0" rpy="0 0 0" />
+    <parent link="Link${number}_0" />
+    <child link="Link${number}_platlink2" />
+    <axis xyz="0 0 1" />
+    <!--xacro:insert_block name="dynamics_parameter"/-->
+    <limit
+      lower="-${pi/2}"
+      upper="0"
+      effort="1000"
+      velocity="10" />
+  </joint>
+    <gazebo>
+    <joint name="joint${number}_connect" type="fixed">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>Link${number}_platlink</parent>
+      <child>Link${number}_platlink2</child>
+    </joint>
+  </gazebo>
+</xacro:macro> 
+  
+<!--ALL Leg Set*******************************************************************************************-->
+<xacro:Leg_Model number="1" bodyX="1" bodyY="1" body_yaw="1"></xacro:Leg_Model>
+<xacro:Leg_Model number="2" bodyX="-1" bodyY="1" body_yaw="3"></xacro:Leg_Model>
+<xacro:Leg_Model number="3" bodyX="-1" bodyY="-1" body_yaw="5"></xacro:Leg_Model>
+<xacro:Leg_Model number="4" bodyX="1" bodyY="-1" body_yaw="7"></xacro:Leg_Model>
+<xacro:Parallel_Model number="1" bodyX="1" bodyY="1" body_yaw="1"></xacro:Parallel_Model>
+<xacro:Parallel_Model number="2" bodyX="-1" bodyY="1" body_yaw="3"></xacro:Parallel_Model>
+<xacro:Parallel_Model number="3" bodyX="-1" bodyY="-1" body_yaw="5"></xacro:Parallel_Model>
+<xacro:Parallel_Model number="4" bodyX="1" bodyY="-1" body_yaw="7"></xacro:Parallel_Model>
+
+</robot>
