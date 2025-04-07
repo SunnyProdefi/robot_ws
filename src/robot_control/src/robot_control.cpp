@@ -8,6 +8,8 @@
 #include <fstream>
 #include "motor_driver.h"
 #include <ros/package.h>
+#include <geometry_msgs/Pose.h>
+#include <std_msgs/Header.h>
 
 // IMU data storage
 sensor_msgs::Imu imu_data;
@@ -155,6 +157,9 @@ int main(int argc, char **argv)
 
     // 电机位置发布者
     ros::Publisher motor_state_pub = nh.advertise<std_msgs::Float64MultiArray>("/motor_state", 10);
+
+    // floatb_base位置发布者
+    ros::Publisher float_base_pub = nh.advertise<geometry_msgs::Pose>("/floating_base_state", 10);
 
     // 夹爪控制指令发布者
     ros::Publisher gripper_pub = nh.advertise<std_msgs::Float64MultiArray>("/gripper_command", 10);
@@ -362,6 +367,17 @@ int main(int argc, char **argv)
                     }
                 }
                 motor_state_pub.publish(motor_state);
+
+                // 发布浮动基座位置
+                geometry_msgs::Pose float_base_pose;
+                float_base_pose.position.x = floating_base_sequence[trajectory_index][0];
+                float_base_pose.position.y = floating_base_sequence[trajectory_index][1];
+                float_base_pose.position.z = floating_base_sequence[trajectory_index][2];
+                float_base_pose.orientation.x = floating_base_sequence[trajectory_index][3];
+                float_base_pose.orientation.y = floating_base_sequence[trajectory_index][4];
+                float_base_pose.orientation.z = floating_base_sequence[trajectory_index][5];
+                float_base_pose.orientation.w = floating_base_sequence[trajectory_index][6];
+                float_base_pub.publish(float_base_pose);
 
                 trajectory_index++;
             }

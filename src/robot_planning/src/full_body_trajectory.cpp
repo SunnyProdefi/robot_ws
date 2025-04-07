@@ -248,10 +248,10 @@ namespace robot_planning
             baseNode.push_back(T.x());
             baseNode.push_back(T.y());
             baseNode.push_back(T.z());
-            baseNode.push_back(q.w());
             baseNode.push_back(q.x());
             baseNode.push_back(q.y());
             baseNode.push_back(q.z());
+            baseNode.push_back(q.w());
 
             floating_base_seq.push_back(baseNode);
         }

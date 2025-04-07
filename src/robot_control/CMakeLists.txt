@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   robot_planning
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -108,7 +109,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   # INCLUDE_DIRS include
   # LIBRARIES actuator_sdk gripper_sdk
-  CATKIN_DEPENDS roscpp std_msgs robot_planning
+  CATKIN_DEPENDS roscpp std_msgs robot_planning tf
 )
 
 ###########

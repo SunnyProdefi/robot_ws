@@ -3,6 +3,10 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <string>
 #include <array>
+#include <geometry_msgs/Pose.h>
+#include <std_msgs/Header.h>
+#include <tf/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
 
 // 用枚举来给 41 个关节分配索引 ID，方便快速访问
 enum JointID : int
@@ -159,10 +163,22 @@ void motorStateCallback(const std_msgs::Float64MultiArray::ConstPtr& msg)
     joint_msg.position[LINK4_FINGER] = 1.0 - msg->data[27];
 }
 
+geometry_msgs::Pose latest_base_pose;
+bool base_pose_received = false;
+
+void floatBaseStateCallback(const geometry_msgs::Pose::ConstPtr& msg)
+{
+    latest_base_pose = *msg;
+    base_pose_received = true;
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "joint_angle_publisher_idmap");
     ros::NodeHandle nh;
+
+    // 初始化 TF 广播器
+    static tf::TransformBroadcaster tf_broadcaster;
 
     // 创建发布器
     ros::Publisher joint_pub = nh.advertise<sensor_msgs::JointState>("/joint_states", 10);
@@ -170,20 +186,21 @@ int main(int argc, char** argv)
     // 订阅motor_state话题
     ros::Subscriber motor_state_sub = nh.subscribe<std_msgs::Float64MultiArray>("/motor_state", 10, motorStateCallback);
 
+    // 订阅floating_base_state话题
+    ros::Subscriber floating_base_state_sub = nh.subscribe<geometry_msgs::Pose>("/floating_base_state", 10, floatBaseStateCallback);
+
     joint_msg.name.resize(JOINT_COUNT);
     joint_msg.position.resize(JOINT_COUNT);
-
-    // 将关节名一次性拷贝过去
     for (int i = 0; i < JOINT_COUNT; i++)
     {
         joint_msg.name[i] = JOINT_NAMES[i];
-        joint_msg.position[i] = 0.0;  // 初始设为 0
+        joint_msg.position[i] = 0.0;
     }
 
-    joint_msg.position[JOINT1_0] = 1.5708;  // Body_displace
-    joint_msg.position[JOINT2_0] = 1.5708;  // Body_displace
-    joint_msg.position[JOINT3_0] = 1.5708;  // Body_displace
-    joint_msg.position[JOINT4_0] = 1.5708;  // Body_displace
+    joint_msg.position[JOINT1_0] = 1.5708;
+    joint_msg.position[JOINT2_0] = 1.5708;
+    joint_msg.position[JOINT3_0] = 1.5708;
+    joint_msg.position[JOINT4_0] = 1.5708;
 
     joint_msg.position[JOINT1_PLATLINK] = -0.847454;
     joint_msg.position[JOINT1_PLATLINK2] = -2.41825;
@@ -197,14 +214,41 @@ int main(int argc, char** argv)
     joint_msg.position[JOINT_PLATFORM] = 0.077888;
 
     ros::Rate loop_rate(10);  // 10Hz
-    double phase = 0.0;
 
     while (ros::ok())
     {
         joint_msg.header.stamp = ros::Time::now();
         joint_pub.publish(joint_msg);
+
+        // 发布 TF
+        if (base_pose_received)
+        {
+            tf::Vector3 translation(latest_base_pose.position.x, latest_base_pose.position.y, latest_base_pose.position.z);
+
+            tf::Quaternion rotation(latest_base_pose.orientation.x, latest_base_pose.orientation.y, latest_base_pose.orientation.z, latest_base_pose.orientation.w);
+
+            tf::Transform transform;
+            transform.setOrigin(translation);
+            transform.setRotation(rotation);
+
+            geometry_msgs::TransformStamped t;
+            t.header.stamp = ros::Time::now();
+            t.header.frame_id = "world";
+            t.child_frame_id = "base_link";
+            t.transform.translation.x = translation.x();
+            t.transform.translation.y = translation.y();
+            t.transform.translation.z = translation.z();
+            t.transform.rotation.x = rotation.x();
+            t.transform.rotation.y = rotation.y();
+            t.transform.rotation.z = rotation.z();
+            t.transform.rotation.w = rotation.w();
+
+            tf_broadcaster.sendTransform(t);
+        }
+
         ros::spinOnce();
         loop_rate.sleep();
     }
+
     return 0;
 }
