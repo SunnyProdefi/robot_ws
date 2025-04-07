@@ -7,11 +7,14 @@ project(robot_control)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+set(yaml-cpp_DIR "/usr/lib/x86_64-linux-gnu/cmake/yaml-cpp")
+find_package(yaml-cpp REQUIRED CONFIG)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
   rospy
   std_msgs
+  robot_planning
 )
 
 ## System dependencies are found with CMake's conventions
@@ -105,7 +108,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   # INCLUDE_DIRS include
   # LIBRARIES actuator_sdk gripper_sdk
-  # CATKIN_DEPENDS roscpp std_msgs
+  CATKIN_DEPENDS roscpp std_msgs robot_planning
 )
 
 ###########
@@ -223,6 +226,7 @@ target_link_libraries(robot_control_node
   ${catkin_LIBRARIES}
   ActuatorController  # 来自 libActuatorController.so
   canusb              # 来自 libcanusb.so
+  yaml-cpp
 )
 
 add_executable(gripper_control

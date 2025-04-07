@@ -1,15 +1,20 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.0.2)
 project(robot_planning)
 
 # -------------------- Compile Options --------------------
-add_compile_options(-std=c++17)
+add_compile_options(-std=c++11)
 
 # -------------------- Find catkin and message packages --------------------
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rospy
   std_msgs
+  roslib
   message_generation
 )
+
+find_package(yaml-cpp REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # -------------------- Service Definition --------------------
 add_service_files(
@@ -24,13 +29,15 @@ generate_messages(
 
 # -------------------- catkin Package --------------------
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs roslib message_runtime
 )
 
 # -------------------- Include Directories --------------------
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${YAML_CPP_INCLUDE_DIR}
+  ${EIGEN3_INCLUDE_DIR}
   third_party/eigen3
   third_party/glfw
   third_party/jsoncpp
