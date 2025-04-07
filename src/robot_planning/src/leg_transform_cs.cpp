@@ -1,27 +1,9 @@
 #include "robot_planning/leg_transform_cs.h"
+#include "robot_planning/yaml_common.h"
 #include <fstream>
 #include <ros/package.h>
 
 namespace robot_planning {
-
-YAML::Node loadYAML(const std::string& filename)
-{
-    try
-    {
-        return YAML::LoadFile(filename);
-    }
-    catch (const std::exception& e)
-    {
-        ROS_ERROR_STREAM("Failed to load YAML file: " << filename << ". Error: " << e.what());
-        return YAML::Node();
-    }
-}
-
-Eigen::Matrix3f quaternionToRotationMatrix(float x, float y, float z, float w)
-{
-    Eigen::Quaternionf q(w, x, y, z);
-    return q.toRotationMatrix();
-}
 
 Eigen::Matrix4f parseTransformMatrix(const YAML::Node& node)
 {

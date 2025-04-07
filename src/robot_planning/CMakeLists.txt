@@ -85,6 +85,8 @@ set(CORE_SRC
   src/leg_ik_cs.cpp
   src/ikfast_single_arm.cpp
   src/ikfast_wrapper_single_arm.cpp
+  src/full_body_trajectory.cpp
+  src/yaml_common.cpp
 )
 
 # -------------------- Core Library --------------------

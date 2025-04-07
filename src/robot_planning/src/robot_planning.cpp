@@ -3,6 +3,7 @@
 #include "robot_planning/ik_solver.h"
 #include "robot_planning/leg_transform_cs.h"
 #include "robot_planning/leg_ik_cs.h"
+#include "robot_planning/full_body_trajectory.h"
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 #include <Eigen/Dense>
@@ -123,37 +124,50 @@ bool planCallback(robot_planning::PlanPath::Request& req, robot_planning::PlanPa
     // 调用计算函数
     bool success = robot_planning::computeLegTransforms(init_floating_base_file, gold_floating_base_file, tf_using_file, output_file);
 
-    if (success)
-    {
-        // 调用腿的逆运动学求解
-        auto leg_ik_result = robot_planning::solveLegIK(
-            output_file,
-            package_path + "/config/result_cs.yaml",
-            "tf_mat_link1_0_flan1",
-            "tf_mat_link4_0_flan4"
-        );
-
-        if (leg_ik_result.success)
-        {
-            ROS_INFO("Leg IK computation completed successfully!");
-            res.success = true;
-            res.message = "Planning completed successfully!";
-        }
-        else
-        {
-            res.success = false;
-            res.message = "Failed to compute leg IK: " + leg_ik_result.message;
-            ROS_ERROR("Failed to compute leg IK: %s", leg_ik_result.message.c_str());
-            return true;
-        }
-    }
-    else
+    if (!success)
     {
         res.success = false;
         res.message = "Failed to compute leg transforms!";
         ROS_ERROR("Failed to compute leg transforms!");
         return true;
     }
+
+    // 调用腿的逆运动学求解
+    auto leg_ik_result = robot_planning::solveLegIK(output_file, package_path + "/config/result_cs.yaml", "tf_mat_link1_0_flan1", "tf_mat_link4_0_flan4");
+
+    if (leg_ik_result.success)
+    {
+        ROS_INFO("Leg IK computation completed successfully!");
+    }
+    else
+    {
+        res.success = false;
+        res.message = "Failed to compute leg IK: " + leg_ik_result.message;
+        ROS_ERROR("Failed to compute leg IK: %s", leg_ik_result.message.c_str());
+        return true;
+    }
+
+    std::string result_cs_file = package_path + "/config/result_cs.yaml";
+
+    // 整合4个分支与float_base的结果
+    std::vector<std::vector<double>> joint_angles(1000, std::vector<double>(24, 0.0));
+    // 例如 1000 帧，每帧有 TOTAL_JOINT_NUM 个关节
+
+    robot_planning::loadJointAngles(init_floating_base_file, gold_floating_base_file, result_cs_file, joint_angles);
+
+    // 插值floating base
+    std::vector<Eigen::Matrix4f> base_sequence = robot_planning::interpolateFloatingBase(init_floating_base_file, gold_floating_base_file, 250);
+
+    std::string planning_result_file = package_path + "/config/planning_result.yaml";
+    // 将结果写出
+    robot_planning::saveFullBodyTrajectoryToYAML(planning_result_file, joint_angles, base_sequence);
+
+    // 设置响应
+    res.success = true;
+    res.message = "Path planning completed successfully!";
+    ROS_INFO("Path planning completed successfully!");
+    // 这里可以返回一些有用的信息，比如路径长度、规划时间等
+
     return true;
 }
 
