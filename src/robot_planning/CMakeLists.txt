@@ -78,6 +78,7 @@ set(sim_libs
 # -------------------- Collect Core Source Files --------------------
 file(GLOB_RECURSE CORE_SRC
   math/*.cpp
+  src/ik_solver.cpp
 )
 
 # -------------------- Core Library --------------------
@@ -88,13 +89,6 @@ target_link_libraries(core ${core_libs} pthread)
 add_executable(robot_planning_node src/robot_planning.cpp)
 add_dependencies(robot_planning_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(robot_planning_node
-  ${catkin_LIBRARIES}
-  core
-  ${sim_libs}
-)
-
-add_executable(ik_urdf_double_arm_float src/ik_urdf_double_arm_float.cpp)
-target_link_libraries(ik_urdf_double_arm_float
   ${catkin_LIBRARIES}
   core
   ${sim_libs}
