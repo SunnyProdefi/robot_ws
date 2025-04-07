@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(robot_planning)
 
 # -------------------- Compile Options --------------------
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
 
 # -------------------- Find catkin and message packages --------------------
 find_package(catkin REQUIRED COMPONENTS
@@ -78,10 +78,13 @@ set(sim_libs
 )
 
 # -------------------- Collect Core Source Files --------------------
-file(GLOB_RECURSE CORE_SRC
-  math/*.cpp
+set(CORE_SRC
+  # math/*.cpp
   src/ik_solver.cpp
   src/leg_transform_cs.cpp
+  src/leg_ik_cs.cpp
+  src/ikfast_single_arm.cpp
+  src/ikfast_wrapper_single_arm.cpp
 )
 
 # -------------------- Core Library --------------------

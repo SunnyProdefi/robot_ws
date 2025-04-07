@@ -2,6 +2,7 @@
 #include "robot_planning/PlanPath.h"
 #include "robot_planning/ik_solver.h"
 #include "robot_planning/leg_transform_cs.h"
+#include "robot_planning/leg_ik_cs.h"
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 #include <Eigen/Dense>
@@ -124,9 +125,27 @@ bool planCallback(robot_planning::PlanPath::Request& req, robot_planning::PlanPa
 
     if (success)
     {
-        ROS_INFO("Leg transform computation completed successfully!");
-        res.success = true;
-        res.message = "Planning completed successfully!";
+        // 调用腿的逆运动学求解
+        auto leg_ik_result = robot_planning::solveLegIK(
+            output_file,
+            package_path + "/config/result_cs.yaml",
+            "tf_mat_link1_0_flan1",
+            "tf_mat_link4_0_flan4"
+        );
+
+        if (leg_ik_result.success)
+        {
+            ROS_INFO("Leg IK computation completed successfully!");
+            res.success = true;
+            res.message = "Planning completed successfully!";
+        }
+        else
+        {
+            res.success = false;
+            res.message = "Failed to compute leg IK: " + leg_ik_result.message;
+            ROS_ERROR("Failed to compute leg IK: %s", leg_ik_result.message.c_str());
+            return true;
+        }
     }
     else
     {
