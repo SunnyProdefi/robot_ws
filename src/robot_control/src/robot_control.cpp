@@ -7,6 +7,7 @@
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 #include "motor_driver.h"
+#include <ros/package.h>
 
 // IMU data storage
 sensor_msgs::Imu imu_data;
@@ -36,7 +37,8 @@ bool isSimulation;  // 是否为仿真模式
 // 运动规划相关变量
 bool planning_requested = false;
 bool planning_completed = false;
-std::vector<std::vector<double>> planned_trajectory;
+std::vector<std::vector<double>> planned_joint_trajectory;
+std::vector<std::vector<double>> floating_base_sequence;
 int trajectory_index = 0;
 ros::ServiceClient planning_client;
 
@@ -286,43 +288,66 @@ int main(int argc, char **argv)
             }
             else if (!planning_completed)
             {
+                // 使用 ros::package::getPath() 获取路径
+                std::string robot_planning_path = ros::package::getPath("robot_planning");
+                std::string planning_result_path = robot_planning_path + "/config/planning_result.yaml";
+
                 // 检查规划结果文件是否存在
-                std::ifstream file("/home/prodefi/github/robot_ws/src/robot_planning/config/planned_trajectory.yaml");
+                std::ifstream file(planning_result_path);
                 if (file.good())
                 {
-                    // 读取规划结果
-                    YAML::Node config = YAML::LoadFile("/home/prodefi/github/robot_ws/src/robot_planning/config/planned_trajectory.yaml");
-                    if (config["joint_trajectory"])
+                    YAML::Node config = YAML::LoadFile(planning_result_path);
+
+                    // 读取 joint_angle_sequence
+                    if (config["joint_angle_sequence"])
                     {
-                        planned_trajectory.clear();
-                        for (const auto &point : config["joint_trajectory"])
+                        planned_joint_trajectory.clear();
+                        for (const auto &point : config["joint_angle_sequence"])
                         {
-                            std::vector<double> joint_angles;
+                            std::vector<double> angles;
                             for (const auto &angle : point)
                             {
-                                joint_angles.push_back(angle.as<double>());
+                                angles.push_back(angle.as<double>());
                             }
-                            planned_trajectory.push_back(joint_angles);
+                            planned_joint_trajectory.push_back(angles);
                         }
-                        planning_completed = true;
-                        trajectory_index = 0;
-                        ROS_INFO("Trajectory loaded with %zu points", planned_trajectory.size());
+                        ROS_INFO("Loaded %zu joint angle points", planned_joint_trajectory.size());
                     }
+
+                    // 读取 floating_base_sequence
+                    if (config["floating_base_sequence"])
+                    {
+                        floating_base_sequence.clear();
+                        for (const auto &pose : config["floating_base_sequence"])
+                        {
+                            std::vector<double> base_state;
+                            for (const auto &val : pose)
+                            {
+                                base_state.push_back(val.as<double>());
+                            }
+                            floating_base_sequence.push_back(base_state);
+                        }
+                        ROS_INFO("Loaded %zu floating base poses", floating_base_sequence.size());
+                    }
+
+                    // 成功标志
+                    planning_completed = true;
+                    trajectory_index = 0;
                 }
             }
-            else if (trajectory_index < planned_trajectory.size())
+            else if (trajectory_index < planned_joint_trajectory.size())
             {
+                // 设置目标关节角度
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                    {
+                        q_send[branchi][motorj] = planned_joint_trajectory[trajectory_index][branchi * (MOTOR_BRANCHN_N - 1) + motorj];
+                    }
+                }
                 // 执行规划轨迹
                 if (!isSimulation)
                 {
-                    // 设置目标关节角度
-                    for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                    {
-                        for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                        {
-                            q_send[branchi][motorj] = planned_trajectory[trajectory_index][branchi * MOTOR_BRANCHN_N + motorj];
-                        }
-                    }
                     Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
                 }
 
@@ -344,7 +369,7 @@ int main(int argc, char **argv)
             {
                 // 轨迹执行完成
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;  // 回到初始状态
+                // control_flag = 0;  // 回到初始状态
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
