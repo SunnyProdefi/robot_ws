@@ -194,14 +194,14 @@ namespace robot_planning
             throw std::runtime_error("Failed to open file: " + filename);
         }
 
-        output_file << "floating_base: [";
+        output_file << "gold_floating_base: [";
         for (int i = 0; i < 7; ++i)
         {
             output_file << qIk[i] << (i < 6 ? ", " : "");
         }
         output_file << "]\n";
 
-        output_file << "joint_angles: [";
+        output_file << "gold_joint_angles: [";
         for (int i = 7; i < model_.nq; ++i)
         {
             output_file << qIk[i] << (i < model_.nq - 1 ? ", " : "");

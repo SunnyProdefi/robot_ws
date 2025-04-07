@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include "robot_planning/PlanPath.h"
 #include "robot_planning/ik_solver.h"
+#include "robot_planning/leg_transform_cs.h"
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 #include <Eigen/Dense>
@@ -10,110 +11,130 @@ bool planCallback(robot_planning::PlanPath::Request& req, robot_planning::PlanPa
 {
     ROS_INFO("Received planning request...");
 
-    try {
-        // 获取包路径
-        std::string package_path = ros::package::getPath("robot_planning");
-        ROS_INFO("Package path: %s", package_path.c_str());
+    // 获取包路径
+    std::string package_path = ros::package::getPath("robot_planning");
+    ROS_INFO("Package path: %s", package_path.c_str());
 
-        // 构建文件路径
-        std::string urdf_path = package_path + "/models/double_arms_description.urdf";
-        std::string joint_limits_path = package_path + "/config/joint_limits.yaml";
-        std::string init_config_path = package_path + "/config/ik_urdf_double_arm_float.yaml";
+    // 构建文件路径
+    std::string urdf_path = package_path + "/models/double_arms_description.urdf";
+    std::string joint_limits_path = package_path + "/config/joint_limits.yaml";
+    std::string init_config_path = package_path + "/config/ik_urdf_double_arm_float.yaml";
 
-        // 检查文件是否存在
-        std::ifstream urdf_file(urdf_path);
-        if (!urdf_file.good()) {
-            ROS_ERROR("URDF file not found: %s", urdf_path.c_str());
-            res.success = false;
-            res.message = "URDF file not found: " + urdf_path;
-            return true;
-        }
-        urdf_file.close();
-
-        std::ifstream joint_limits_file(joint_limits_path);
-        if (!joint_limits_file.good()) {
-            ROS_ERROR("Joint limits file not found: %s", joint_limits_path.c_str());
-            res.success = false;
-            res.message = "Joint limits file not found: " + joint_limits_path;
-            return true;
-        }
-        joint_limits_file.close();
-
-        std::ifstream init_config_file(init_config_path);
-        if (!init_config_file.good()) {
-            ROS_ERROR("Initial config file not found: %s", init_config_path.c_str());
-            res.success = false;
-            res.message = "Initial config file not found: " + init_config_path;
-            return true;
-        }
-        init_config_file.close();
-
-        // 配置IK求解器
-        robot_planning::IKSolverConfig ik_config;
-        ik_config.urdf_path = urdf_path;
-        ik_config.joint_limits_path = joint_limits_path;
-        ik_config.init_config_path = init_config_path;
-
-        robot_planning::IKSolver ik_solver(ik_config);
-
-        // 从YAML文件读取目标位姿
-        YAML::Node yaml_config;
-        try {
-            yaml_config = YAML::LoadFile(init_config_path);
-        } catch (const YAML::Exception& e) {
-            ROS_ERROR("Failed to load YAML file: %s", e.what());
-            res.success = false;
-            res.message = "Failed to load YAML file: " + std::string(e.what());
-            return true;
-        }
-
-        // 读取右臂目标位姿
-        Eigen::Vector3d target_pos_R(yaml_config["target_pose_R"]["position"][0].as<double>(), yaml_config["target_pose_R"]["position"][1].as<double>(), yaml_config["target_pose_R"]["position"][2].as<double>());
-
-        Eigen::Matrix3d target_ori_R;
-        for (int i = 0; i < 3; ++i)
-        {
-            for (int j = 0; j < 3; ++j)
-            {
-                target_ori_R(i, j) = yaml_config["target_pose_R"]["orientation"][i][j].as<double>();
-            }
-        }
-
-        // 读取左臂目标位姿
-        Eigen::Vector3d target_pos_L(yaml_config["target_pose_L"]["position"][0].as<double>(), yaml_config["target_pose_L"]["position"][1].as<double>(), yaml_config["target_pose_L"]["position"][2].as<double>());
-
-        Eigen::Matrix3d target_ori_L;
-        for (int i = 0; i < 3; ++i)
-        {
-            for (int j = 0; j < 3; ++j)
-            {
-                target_ori_L(i, j) = yaml_config["target_pose_L"]["orientation"][i][j].as<double>();
-            }
-        }
-
-        // 求解逆运动学
-        auto result = ik_solver.solveIK(target_pos_R, target_ori_R, target_pos_L, target_ori_L);
-
-        if (result.success)
-        {
-            // 保存结果到YAML文件
-            std::string output_path = package_path + "/config/planned_trajectory.yaml";
-            ik_solver.saveResult(output_path, result.joint_angles);
-
-            res.success = true;
-            res.message = "Trajectory saved to " + output_path;
-        }
-        else
-        {
-            res.success = false;
-            res.message = "IK solver failed: " + result.message;
-        }
-    } catch (const std::exception& e) {
-        ROS_ERROR("Exception in planCallback: %s", e.what());
+    // 检查文件是否存在
+    std::ifstream urdf_file(urdf_path);
+    if (!urdf_file.good())
+    {
+        ROS_ERROR("URDF file not found: %s", urdf_path.c_str());
         res.success = false;
-        res.message = "Exception: " + std::string(e.what());
+        res.message = "URDF file not found: " + urdf_path;
+        return true;
+    }
+    urdf_file.close();
+
+    std::ifstream joint_limits_file(joint_limits_path);
+    if (!joint_limits_file.good())
+    {
+        ROS_ERROR("Joint limits file not found: %s", joint_limits_path.c_str());
+        res.success = false;
+        res.message = "Joint limits file not found: " + joint_limits_path;
+        return true;
+    }
+    joint_limits_file.close();
+
+    std::ifstream init_config_file(init_config_path);
+    if (!init_config_file.good())
+    {
+        ROS_ERROR("Initial config file not found: %s", init_config_path.c_str());
+        res.success = false;
+        res.message = "Initial config file not found: " + init_config_path;
+        return true;
+    }
+    init_config_file.close();
+
+    // 配置IK求解器
+    robot_planning::IKSolverConfig ik_config;
+    ik_config.urdf_path = urdf_path;
+    ik_config.joint_limits_path = joint_limits_path;
+    ik_config.init_config_path = init_config_path;
+
+    robot_planning::IKSolver ik_solver(ik_config);
+
+    // 从YAML文件读取目标位姿
+    YAML::Node yaml_config;
+    try
+    {
+        yaml_config = YAML::LoadFile(init_config_path);
+    }
+    catch (const YAML::Exception& e)
+    {
+        ROS_ERROR("Failed to load YAML file: %s", e.what());
+        res.success = false;
+        res.message = "Failed to load YAML file: " + std::string(e.what());
+        return true;
     }
 
+    // 读取右臂目标位姿
+    Eigen::Vector3d target_pos_R(yaml_config["target_pose_R"]["position"][0].as<double>(), yaml_config["target_pose_R"]["position"][1].as<double>(), yaml_config["target_pose_R"]["position"][2].as<double>());
+
+    Eigen::Matrix3d target_ori_R;
+    for (int i = 0; i < 3; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            target_ori_R(i, j) = yaml_config["target_pose_R"]["orientation"][i][j].as<double>();
+        }
+    }
+
+    // 读取左臂目标位姿
+    Eigen::Vector3d target_pos_L(yaml_config["target_pose_L"]["position"][0].as<double>(), yaml_config["target_pose_L"]["position"][1].as<double>(), yaml_config["target_pose_L"]["position"][2].as<double>());
+
+    Eigen::Matrix3d target_ori_L;
+    for (int i = 0; i < 3; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            target_ori_L(i, j) = yaml_config["target_pose_L"]["orientation"][i][j].as<double>();
+        }
+    }
+
+    // 求解逆运动学
+    auto result = ik_solver.solveIK(target_pos_R, target_ori_R, target_pos_L, target_ori_L);
+
+    if (result.success)
+    {
+        // 保存结果到YAML文件
+        std::string output_path = package_path + "/config/planned_trajectory.yaml";
+        ik_solver.saveResult(output_path, result.joint_angles);
+    }
+    else
+    {
+        res.success = false;
+        res.message = "IK solver failed: " + result.message;
+        return true;
+    }
+
+    // 设置文件路径
+    std::string init_floating_base_file = package_path + "/config/ik_urdf_double_arm_float.yaml";
+    std::string gold_floating_base_file = package_path + "/config/planned_trajectory.yaml";
+    std::string tf_using_file = package_path + "/config/tf_using.yaml";
+    std::string output_file = package_path + "/config/leg_ik_cs.yaml";
+
+    // 调用计算函数
+    bool success = robot_planning::computeLegTransforms(init_floating_base_file, gold_floating_base_file, tf_using_file, output_file);
+
+    if (success)
+    {
+        ROS_INFO("Leg transform computation completed successfully!");
+        res.success = true;
+        res.message = "Planning completed successfully!";
+    }
+    else
+    {
+        res.success = false;
+        res.message = "Failed to compute leg transforms!";
+        ROS_ERROR("Failed to compute leg transforms!");
+        return true;
+    }
     return true;
 }
 

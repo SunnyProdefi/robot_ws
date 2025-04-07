@@ -13,9 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
-find_package(yaml-cpp REQUIRED)
-find_package(Eigen3 REQUIRED)
-
 # -------------------- Service Definition --------------------
 add_service_files(
   FILES
@@ -30,14 +27,13 @@ generate_messages(
 # -------------------- catkin Package --------------------
 catkin_package(
   CATKIN_DEPENDS roscpp rospy std_msgs roslib message_runtime
+  INCLUDE_DIRS include
 )
 
 # -------------------- Include Directories --------------------
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${YAML_CPP_INCLUDE_DIR}
-  ${EIGEN3_INCLUDE_DIR}
   third_party/eigen3
   third_party/glfw
   third_party/jsoncpp
@@ -81,11 +77,11 @@ set(sim_libs
   dl
 )
 
-
 # -------------------- Collect Core Source Files --------------------
 file(GLOB_RECURSE CORE_SRC
   math/*.cpp
   src/ik_solver.cpp
+  src/leg_transform_cs.cpp
 )
 
 # -------------------- Core Library --------------------
@@ -96,6 +92,15 @@ target_link_libraries(core ${core_libs} pthread)
 add_executable(robot_planning_node src/robot_planning.cpp)
 add_dependencies(robot_planning_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(robot_planning_node
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
+# -------------------- Example Executable --------------------
+add_executable(example_leg_transform src/example_leg_transform.cpp)
+add_dependencies(example_leg_transform ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(example_leg_transform
   ${catkin_LIBRARIES}
   core
   ${sim_libs}
