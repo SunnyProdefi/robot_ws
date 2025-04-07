@@ -119,4 +119,12 @@ target_link_libraries(get_base_link_pose
   ${sim_libs}
 )
 
+add_executable(get_base_link_pose_test src/get_base_link_pose_test.cpp)
+add_dependencies(get_base_link_pose_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(get_base_link_pose_test
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
 # -------------------- End --------------------

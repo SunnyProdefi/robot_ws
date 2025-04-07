@@ -40,7 +40,9 @@ Eigen::Matrix4f parseTransformMatrix(const YAML::Node &node)
 
 bool calculateBaseLinkPose(robot_control::GetBaseLinkPose::Request &req, robot_control::GetBaseLinkPose::Response &res)
 {
-    // 3. 正向运动学求解（link1_0 → flan1）
+    robots::Kinematics kinematics;
+
+    // 1. 计算 branch1 的正向运动学
     std::vector<float> joint_config_1;
     for (double val : req.joint_angles_branch1) joint_config_1.push_back(static_cast<float>(val));
 
@@ -58,7 +60,7 @@ bool calculateBaseLinkPose(robot_control::GetBaseLinkPose::Request &req, robot_c
     T_link1_0_flan1(1, 3) = ee_pose_1[10];
     T_link1_0_flan1(2, 3) = ee_pose_1[11];
 
-    // 4. 正向运动学求解（link4_0 → flan4）
+    // 2. 计算 branch4 的正向运动学
     std::vector<float> joint_config_4;
     for (double val : req.joint_angles_branch4) joint_config_4.push_back(static_cast<float>(val));
 
@@ -76,11 +78,11 @@ bool calculateBaseLinkPose(robot_control::GetBaseLinkPose::Request &req, robot_c
     T_link4_0_flan4(1, 3) = ee_pose_4[10];
     T_link4_0_flan4(2, 3) = ee_pose_4[11];
 
-    // 5. 计算 base_link → world（两种方式）
+    // 3. 计算 base_link → world（两种方式）
     Eigen::Matrix4f T_world_base1 = T_world_flan1 * (T_base_link1_0 * T_link1_0_flan1).inverse();
     Eigen::Matrix4f T_world_base4 = T_world_flan4 * (T_base_link4_0 * T_link4_0_flan4).inverse();
 
-    // 6. 平均位置与旋转（位置平均 + 旋转Slerp或取一方）
+    // 4. 平均位置与旋转（位置平均 + 旋转Slerp或取一方）
     Eigen::Vector3f pos1 = T_world_base1.block<3, 1>(0, 3);
     Eigen::Vector3f pos4 = T_world_base4.block<3, 1>(0, 3);
     Eigen::Vector3f avg_pos = 0.5 * (pos1 + pos4);
@@ -91,15 +93,17 @@ bool calculateBaseLinkPose(robot_control::GetBaseLinkPose::Request &req, robot_c
     Eigen::Quaternionf q4(rot4);
     Eigen::Quaternionf avg_q = q1.slerp(0.5, q4);  // 球形插值
 
-    // 7. 填充响应
-    res.base_link_pose.position.x = avg_pos.x();
-    res.base_link_pose.position.y = avg_pos.y();
-    res.base_link_pose.position.z = avg_pos.z();
+    q1.normalize();  // 确保四元数单位化
 
-    res.base_link_pose.orientation.x = avg_q.x();
-    res.base_link_pose.orientation.y = avg_q.y();
-    res.base_link_pose.orientation.z = avg_q.z();
-    res.base_link_pose.orientation.w = avg_q.w();
+    // 5. 填充响应
+    res.base_link_pose.position.x = pos1.x();
+    res.base_link_pose.position.y = pos1.y();
+    res.base_link_pose.position.z = pos1.z();
+
+    res.base_link_pose.orientation.x = q1.x();
+    res.base_link_pose.orientation.y = q1.y();
+    res.base_link_pose.orientation.z = q1.z();
+    res.base_link_pose.orientation.w = q1.w();
 
     ROS_INFO("Computed world → base_link transform using dual-branch kinematics.");
 
