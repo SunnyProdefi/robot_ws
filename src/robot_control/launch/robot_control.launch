@@ -16,6 +16,8 @@
     <param name="init_config_path" value="$(find robot_planning)/config/ik_urdf_double_arm_float.yaml"/>
   </node>
 
+  <node pkg="robot_planning" type="get_base_link_pose" name="get_base_link_pose" output="screen" />
+
   <!-- 启动 rosbag，录制所有话题 -->
   <node name="rosbag_robot" pkg="rosbag" type="record" output="screen"
         args="-a -O /home/prodefi/rosbags/robot_log.bag" />

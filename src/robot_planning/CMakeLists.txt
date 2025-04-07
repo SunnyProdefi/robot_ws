@@ -111,4 +111,12 @@ target_link_libraries(example_leg_transform
   ${sim_libs}
 )
 
+add_executable(get_base_link_pose src/get_base_link_pose.cpp)
+add_dependencies(get_base_link_pose ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(get_base_link_pose
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
 # -------------------- End --------------------

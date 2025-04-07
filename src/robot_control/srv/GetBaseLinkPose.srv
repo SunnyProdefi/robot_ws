@@ -1,0 +1,7 @@
+# Request: 电机角度 (分支 1 和 4)
+float64[] joint_angles_branch1
+float64[] joint_angles_branch4
+
+---
+# Response: 位姿
+geometry_msgs/Pose base_link_pose
