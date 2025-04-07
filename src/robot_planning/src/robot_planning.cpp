@@ -17,24 +17,36 @@ bool planCallback(robot_planning::PlanPath::Request& req, robot_planning::PlanPa
     
     robot_planning::IKSolver ik_solver(config);
 
-    // 设置目标位姿
-    Eigen::Vector3d target_pos_R(req.target_pose_R.position.x, 
-                                req.target_pose_R.position.y, 
-                                req.target_pose_R.position.z);
-    
-    Eigen::Matrix3d target_ori_R;
-    target_ori_R << req.target_pose_R.orientation[0], req.target_pose_R.orientation[1], req.target_pose_R.orientation[2],
-                    req.target_pose_R.orientation[3], req.target_pose_R.orientation[4], req.target_pose_R.orientation[5],
-                    req.target_pose_R.orientation[6], req.target_pose_R.orientation[7], req.target_pose_R.orientation[8];
+    // 从YAML文件读取目标位姿
+    YAML::Node config = YAML::LoadFile("../config/ik_urdf_double_arm_float.yaml");
 
-    Eigen::Vector3d target_pos_L(req.target_pose_L.position.x, 
-                                req.target_pose_L.position.y, 
-                                req.target_pose_L.position.z);
-    
+    // 读取右臂目标位姿
+    Eigen::Vector3d target_pos_R(
+        config["target_pose_R"]["position"][0].as<double>(),
+        config["target_pose_R"]["position"][1].as<double>(),
+        config["target_pose_R"]["position"][2].as<double>()
+    );
+
+    Eigen::Matrix3d target_ori_R;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            target_ori_R(i, j) = config["target_pose_R"]["orientation"][i][j].as<double>();
+        }
+    }
+
+    // 读取左臂目标位姿
+    Eigen::Vector3d target_pos_L(
+        config["target_pose_L"]["position"][0].as<double>(),
+        config["target_pose_L"]["position"][1].as<double>(),
+        config["target_pose_L"]["position"][2].as<double>()
+    );
+
     Eigen::Matrix3d target_ori_L;
-    target_ori_L << req.target_pose_L.orientation[0], req.target_pose_L.orientation[1], req.target_pose_L.orientation[2],
-                    req.target_pose_L.orientation[3], req.target_pose_L.orientation[4], req.target_pose_L.orientation[5],
-                    req.target_pose_L.orientation[6], req.target_pose_L.orientation[7], req.target_pose_L.orientation[8];
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            target_ori_L(i, j) = config["target_pose_L"]["orientation"][i][j].as<double>();
+        }
+    }
 
     // 求解逆运动学
     auto result = ik_solver.solveIK(target_pos_R, target_ori_R, target_pos_L, target_ori_L);
