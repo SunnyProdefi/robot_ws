@@ -55,9 +55,9 @@ bool calculateBaseLinkPose(robot_control::GetBaseLinkPose::Request &req, robot_c
     }
 
     Eigen::Matrix4f T_link1_0_flan1 = Eigen::Matrix4f::Identity();
-    T_link1_0_flan1.block<3, 3>(0, 0) << ee_pose_1[0], ee_pose_1[1], ee_pose_1[2], ee_pose_1[3], ee_pose_1[4], ee_pose_1[5], ee_pose_1[6], ee_pose_1[7], ee_pose_1[8];
-    T_link1_0_flan1(0, 3) = ee_pose_1[9];
-    T_link1_0_flan1(1, 3) = ee_pose_1[10];
+    T_link1_0_flan1.block<3, 3>(0, 0) << ee_pose_1[0], ee_pose_1[1], ee_pose_1[2], ee_pose_1[4], ee_pose_1[5], ee_pose_1[6], ee_pose_1[8], ee_pose_1[9], ee_pose_1[10];
+    T_link1_0_flan1(0, 3) = ee_pose_1[3];
+    T_link1_0_flan1(1, 3) = ee_pose_1[7];
     T_link1_0_flan1(2, 3) = ee_pose_1[11];
 
     // 2. 计算 branch4 的正向运动学

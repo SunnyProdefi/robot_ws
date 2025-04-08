@@ -66,14 +66,21 @@ int main(int argc, char **argv)
 
     // 这里有问题
     Eigen::Matrix4f T_link1_0_flan1 = Eigen::Matrix4f::Identity();
-    T_link1_0_flan1.block<3, 3>(0, 0) << ee_pose_1[0], ee_pose_1[1], ee_pose_1[2], ee_pose_1[3], ee_pose_1[4], ee_pose_1[5], ee_pose_1[6], ee_pose_1[7], ee_pose_1[8];
-    T_link1_0_flan1(0, 3) = ee_pose_1[9];
-    T_link1_0_flan1(1, 3) = ee_pose_1[10];
+    T_link1_0_flan1.block<3, 3>(0, 0) << ee_pose_1[0], ee_pose_1[1], ee_pose_1[2], ee_pose_1[4], ee_pose_1[5], ee_pose_1[6], ee_pose_1[8], ee_pose_1[9], ee_pose_1[10];
+    T_link1_0_flan1(0, 3) = ee_pose_1[3];
+    T_link1_0_flan1(1, 3) = ee_pose_1[7];
     T_link1_0_flan1(2, 3) = ee_pose_1[11];
 
     // 打印T_link1_0_flan1
     std::cout << "T_link1_0_flan1:" << std::endl;
     std::cout << T_link1_0_flan1 << std::endl;
+
+    // 计算T_link1_0_flan1姿态的四元素
+    Eigen::Matrix3f rot = T_link1_0_flan1.block<3, 3>(0, 0);
+    Eigen::Quaternionf q(rot);
+    q.normalize();  // 确保四元数单位化
+    std::cout << "T_link1_0_flan1姿态的四元素:" << std::endl;
+    std::cout << q.coeffs() << std::endl;
 
     // 3. 计算 base_link → world（两种方式）
     Eigen::Matrix4f T_world_base1 = T_world_flan1 * (T_base_link1_0 * T_link1_0_flan1).inverse();
