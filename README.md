@@ -61,3 +61,8 @@ rostopic pub /control_flag std_msgs/Int32 "data: 1" -1
 ---
 
 希望这个 `README.md` 文件更清晰地解释了如何连接到机器人主控、启动控制系统并发布控制信号。如果你有更多问题或需要进一步的说明，随时联系我！
+
+Tips:
+export ROSBAG_PATH=/home/robot/rosbags/
+<node name="rosbag_robot" pkg="rosbag" type="record" output="screen"
+      args="-a -O $(env ROSBAG_PATH)robot_log.bag" />
