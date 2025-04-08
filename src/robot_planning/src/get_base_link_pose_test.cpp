@@ -64,6 +64,7 @@ int main(int argc, char **argv)
         return false;
     }
 
+    // 这里有问题
     Eigen::Matrix4f T_link1_0_flan1 = Eigen::Matrix4f::Identity();
     T_link1_0_flan1.block<3, 3>(0, 0) << ee_pose_1[0], ee_pose_1[1], ee_pose_1[2], ee_pose_1[3], ee_pose_1[4], ee_pose_1[5], ee_pose_1[6], ee_pose_1[7], ee_pose_1[8];
     T_link1_0_flan1(0, 3) = ee_pose_1[9];

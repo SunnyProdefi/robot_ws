@@ -20,7 +20,8 @@
                 "${workspaceFolder}/src/robot_planning/include",
                 "${workspaceFolder}/src/robot_planning/third_party/eigen3",
                 "${workspaceFolder}/src/robot_planning/src",
-                "${workspaceFolder}/devel/include"
+                "${workspaceFolder}/devel/include",
+                "${workspaceFolder}/src/robot_planning/third_party/pinocchio"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",
