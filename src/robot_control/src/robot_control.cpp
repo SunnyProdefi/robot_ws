@@ -35,6 +35,9 @@ std::vector<std::vector<double>> q_temp;  // 插值起点
 bool start_interp = true;
 int interp_step = 0;
 
+bool start_interp_end = true;
+int interp_step_end = 0;
+
 bool isSimulation;  // 是否为仿真模式
 
 // 运动规划相关变量
@@ -439,6 +442,104 @@ int main(int argc, char **argv)
                     // {
                     //     ROS_ERROR("Failed to call service get_base_link_pose");
                     // }
+                }
+
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+
+                trajectory_index++;
+            }
+            else
+            {
+                ROS_INFO("Trajectory execution completed");
+                control_flag = 0;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+        else if (control_flag == 3)
+        {
+            cout << "Control flag 3 received" << endl;
+            cout << "完成抓取" << endl;
+        }
+        else if (control_flag == 4)
+        {
+            cout << "Control flag 4 received" << endl;
+            cout << "完成取出" << endl;
+        }
+        else if (control_flag == 5)
+        {
+            cout << "Control flag 5 received" << endl;
+            cout << "完成交接" << endl;
+        }
+        else if (control_flag == 6)
+        {
+            cout << "Control flag 6 received" << endl;
+            cout << "完成放置" << endl;
+        }
+        else if (control_flag == 9)
+        {
+            if (trajectory_index < planned_joint_trajectory.size())
+            {
+                // 设置目标关节角度
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                    {
+                        q_send[branchi][motorj] = planned_joint_trajectory[planned_joint_trajectory.size() - trajectory_index - 1][branchi * (MOTOR_BRANCHN_N - 1) + motorj];
+                    }
+                }
+
+                // 执行规划轨迹
+                if (!isSimulation)
+                {
+                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+                }
+                else
+                {
+                    // 仿真模式直接使用 q_send
+                    for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                    {
+                        for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                        {
+                            q_recv[branchi][motorj] = q_send[branchi][motorj];
+                        }
+                    }
+                    // ==== 请求 base_link 位姿 ====
+                    robot_control::GetBaseLinkPose srv;
+
+                    // 提取 JOINT1_1 ~ JOINT1_6 和 JOINT4_1 ~ JOINT4_6
+                    for (int j = 0; j < 6; ++j)
+                    {
+                        // 分支1：JOINT1_1 ~ JOINT1_6 在 planned_joint_trajectory 中的索引是 0~5
+                        srv.request.joint_angles_branch1.push_back(planned_joint_trajectory[planned_joint_trajectory.size() - trajectory_index - 1][j]);
+
+                        // 分支4：JOINT4_1 ~ JOINT4_6 在 planned_joint_trajectory 中的索引是 18~23（共24个角）
+                        srv.request.joint_angles_branch4.push_back(planned_joint_trajectory[planned_joint_trajectory.size() - trajectory_index - 1][18 + j]);
+                    }
+
+                    if (client.call(srv))
+                    {
+                        ROS_INFO("Base link pose calculated: Position (x: %f, y: %f, z: %f), Orientation (x: %f, y: %f, z: %f, w: %f)", srv.response.base_link_pose.position.x, srv.response.base_link_pose.position.y, srv.response.base_link_pose.position.z, srv.response.base_link_pose.orientation.x,
+                                 srv.response.base_link_pose.orientation.y, srv.response.base_link_pose.orientation.z, srv.response.base_link_pose.orientation.w);
+
+                        // 可选：你可以将此 Pose 发布给 RViz 或浮动基座控制模块
+                        float_base_pub.publish(srv.response.base_link_pose);
+                    }
+                    else
+                    {
+                        ROS_ERROR("Failed to call service get_base_link_pose");
+                    }
                 }
 
                 // 发布电机位置状态

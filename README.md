@@ -69,3 +69,15 @@ export ROSBAG_PATH=/home/robot/rosbags/
 
 roslaunch robot_description robot_display.launch 
 rosrun robot_common listen_tf
+
+control_flag == 0 只接受当前实际位姿
+control_flag == 1 从当前位姿运动到初始位姿
+control_flag == 2 从初始位姿运动到目标位姿
+control_flag == 3 完成抓取
+control_flag == 4 完成取出
+control_flag == 5 完成交接
+control_flag == 6 完成放置
+control_flag == 9 归位
+
+control_flag == 101 gripper_command.data = {1.0, 1.0, 1.0, 1.0};
+control_flag == 102 gripper_command.data = {0.0, 0.5, 0.5, 0.0};

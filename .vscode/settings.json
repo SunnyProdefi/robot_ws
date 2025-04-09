@@ -100,5 +100,6 @@
         "variant": "cpp",
         "semaphore": "cpp",
         "filesystem": "cpp"
-    }
+    },
+    "commentTranslate.hover.enabled": true
 }
