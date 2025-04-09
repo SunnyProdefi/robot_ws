@@ -61,7 +61,7 @@ joint_limits:
 
 floating_joint:
   position:  # 位置限制 (x, y, z)
-    min: [0, -0.3, 0.24]
+    min: [0, -0.3, 0.3]
     max: [0.8, 0.3, 0.6]
   rotation:
     euler_min: [-45, 90, 0]  # 对应 (X, Y, Z) 轴最小角度
