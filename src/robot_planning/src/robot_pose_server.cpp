@@ -54,7 +54,7 @@ private:
         transform(2, 3) = pose[2];
 
         // 提取四元数并转换为旋转矩阵
-        double qw = pose[3], qx = pose[4], qy = pose[5], qz = pose[6];
+        double qw = pose[6], qx = pose[3], qy = pose[4], qz = pose[5];
         double n = 1.0 / std::sqrt(qx * qx + qy * qy + qz * qz + qw * qw);
         qw *= n;
         qx *= n;

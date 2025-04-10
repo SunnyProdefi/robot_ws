@@ -267,7 +267,7 @@ int main(int argc, char **argv)
     planning_client = nh.serviceClient<robot_planning::PlanPath>("/plan_path");
 
     // 创建 service client
-    ros::ServiceClient pose_client = nh.serviceClient<robot_planning::RobotPose>("/get_relative_pose");
+    ros::ServiceClient pose_client = nh.serviceClient<robot_planning::RobotPose>("/robot_pose");
 
     // control_flag = 0 读取上电状态
     // control_flag = 1 运动到初始状态
@@ -623,7 +623,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                std::cerr << "Failed to call service /get_relative_pose" << std::endl;
+                std::cerr << "Failed to call service /robot_pose" << std::endl;
             }
         }
         else if (control_flag == 4)
