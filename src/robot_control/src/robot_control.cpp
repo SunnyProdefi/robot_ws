@@ -50,6 +50,9 @@ std::vector<std::vector<double>> floating_base_sequence;
 int trajectory_index = 0;
 ros::ServiceClient planning_client;
 
+// 在外部定义一个静态变量来计数
+static int control_flag_3_counter = 0;
+
 // float_base位置
 std::vector<double> float_base_position(7, 0.0);
 
@@ -566,64 +569,128 @@ int main(int argc, char **argv)
         }
         else if (control_flag == 3)
         {
-            cout << "Control flag 3 received" << endl;
-            cout << "完成抓取" << endl;
-
-            // 读取YAML中的世界→物体，base→link2_0 变换
-            Eigen::Matrix4d tf_mat_world_obj = loadTransformFromYAML(common_tf_path, "tf_mat_world_obj");
-            std::cout << "tf_mat_world_obj:\n" << tf_mat_world_obj << std::endl;
-            Eigen::Matrix4d tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
-            std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link2_0 << std::endl;
-            // 构造世界→base
-            Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
-            Eigen::Quaterniond quat_base(float_base_position[6],  // qw
-                                         float_base_position[3],  // qx
-                                         float_base_position[4],  // qy
-                                         float_base_position[5]   // qz
-            );
-            Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
-
-            Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
-            tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
-            tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
-
-            // base → obj
-            Eigen::Matrix4d tf_mat_base_obj = tf_mat_world_base.inverse() * tf_mat_world_obj;
-
-            // link2_0 → obj
-            Eigen::Matrix4d tf_mat_link2_0_obj = tf_mat_base_link2_0.inverse() * tf_mat_base_obj;
-
-            std::cout << "tf_mat_world_base:\n" << tf_mat_world_base << std::endl;
-            std::cout << "tf_mat_base_obj:\n" << tf_mat_base_obj << std::endl;
-            std::cout << "tf_mat_link2_0_obj:\n" << tf_mat_link2_0_obj << std::endl;
-
-            // 请求获取分支2末端的位姿（相对于link2_0)）
-            // 准备请求
-            robot_planning::RobotPose srv;
-            srv.request.float_base_pose = float_base_position;  // [x, y, z, qx, qy, qz, qw]
-            srv.request.branch2_joints = q_recv[1];             // [joint1, joint2, joint3, joint4, joint5, joint6]
-            srv.request.branch3_joints = q_recv[2];             // [joint1, joint2, joint3, joint4, joint5, joint6]
-            srv.request.source_frame = "link2_0";
-            srv.request.target_frame = "branch2_end";
-
-            // 调用服务
-            if (pose_client.call(srv))
+            if (control_flag_3_counter >= 10)
             {
-                if (srv.response.success)
-                {
-                    std::vector<double> transform = srv.response.transform;
-                    std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
-                    std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
-                    std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
-                }
-                else
-                {
-                    std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                }
+                control_flag = 0;
+                std::cout << "control_flag == 3 已执行10次，已重置 control_flag = 0" << std::endl;
             }
             else
             {
-                std::cerr << "Failed to call service /robot_pose" << std::endl;
+                std::cout << "Control flag 3 received" << std::endl;
+                std::cout << "完成抓取" << std::endl;
+
+                // 读取YAML中的世界→物体，base→link2_0 变换
+                Eigen::Matrix4d tf_mat_world_obj = loadTransformFromYAML(common_tf_path, "tf_mat_world_obj");
+                std::cout << "tf_mat_world_obj:\n" << tf_mat_world_obj << std::endl;
+                Eigen::Matrix4d tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
+                std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link2_0 << std::endl;
+
+                // 构造世界→base
+                Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
+                Eigen::Quaterniond quat_base(float_base_position[6],  // qw
+                                             float_base_position[3],  // qx
+                                             float_base_position[4],  // qy
+                                             float_base_position[5]   // qz
+                );
+                Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
+                Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
+                tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
+                tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
+
+                // base → obj
+                Eigen::Matrix4d tf_mat_base_obj = tf_mat_world_base.inverse() * tf_mat_world_obj;
+
+                // link2_0 → obj
+                Eigen::Matrix4d tf_mat_link2_0_obj = tf_mat_base_link2_0.inverse() * tf_mat_base_obj;
+
+                std::cout << "tf_mat_world_base:\n" << tf_mat_world_base << std::endl;
+                std::cout << "tf_mat_base_obj:\n" << tf_mat_base_obj << std::endl;
+                std::cout << "tf_mat_link2_0_obj:\n" << tf_mat_link2_0_obj << std::endl;
+
+                // // 请求获取分支2末端的位姿（相对于link2_0)）
+                // robot_planning::RobotPose srv;
+                // srv.request.float_base_pose = float_base_position;
+                // srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                // srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+                // srv.request.source_frame = "link2_0";
+                // srv.request.target_frame = "branch2_end";
+
+                // Eigen::Matrix4d tf_mat_link2_0_flan2;
+
+                // if (pose_client.call(srv))
+                // {
+                //     if (srv.response.success)
+                //     {
+                //         std::vector<double> transform = srv.response.transform;
+                //         std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                //         std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                //         std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+
+                //         // 用 position 和 quaternion 构造 Eigen::Isometry3d
+                //         Eigen::Vector3d position(transform[0], transform[1], transform[2]);
+                //         Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
+                //         quat.normalize();                                                                 // 防止精度误差
+
+                //         Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
+                //         tf_iso.linear() = quat.toRotationMatrix();
+                //         tf_iso.translation() = position;
+
+                //         // 转换为 Matrix4d 显示
+                //         Eigen::Matrix4d tf_mat_link2_0_flan2 = tf_iso.matrix();
+                //         std::cout << "tf_mat_link2_0_flan2:\n" << tf_mat_link2_0_flan2 << std::endl;
+                //     }
+                //     else
+                //     {
+                //         std::cerr << "Service call failed: " << srv.response.message << std::endl;
+                //     }
+                // }
+                // else
+                // {
+                //     std::cerr << "Failed to call service /robot_pose" << std::endl;
+                // }
+                // 请求获取分支2末端的位姿（相对于 world）
+                robot_planning::RobotPose srv;
+                srv.request.float_base_pose = float_base_position;
+                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+                srv.request.source_frame = "world";  // ← 修改这里
+                srv.request.target_frame = "branch2_end";
+
+                Eigen::Matrix4d tf_mat_world_branch2;
+
+                if (pose_client.call(srv))
+                {
+                    if (srv.response.success)
+                    {
+                        std::vector<double> transform = srv.response.transform;
+                        std::cout << "[world → branch2_end] Transform (xyz + quat):\n";
+                        std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+
+                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
+                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
+                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
+                        quat.normalize();
+
+                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
+                        tf_iso.linear() = quat.toRotationMatrix();
+                        tf_iso.translation() = position;
+
+                        tf_mat_world_branch2 = tf_iso.matrix();  // 保存最终矩阵
+                        std::cout << "tf_mat_world_branch2:\n" << tf_mat_world_branch2 << std::endl;
+                    }
+                    else
+                    {
+                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
+                    }
+                }
+                else
+                {
+                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                }
+
+                // 执行次数加1
+                control_flag_3_counter++;
             }
         }
         else if (control_flag == 4)

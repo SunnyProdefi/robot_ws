@@ -99,7 +99,9 @@
         "valarray": "cpp",
         "variant": "cpp",
         "semaphore": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "alignedvector3": "cpp",
+        "ranges": "cpp"
     },
     "commentTranslate.hover.enabled": true
 }
