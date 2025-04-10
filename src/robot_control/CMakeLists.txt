@@ -216,6 +216,9 @@ link_directories(
   ${CMAKE_SOURCE_DIR}/robot_control/lib/gripper_sdk
 )
 
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
 ## 可执行文件（主程序）
 add_executable(robot_control_node 
   src/robot_control.cpp

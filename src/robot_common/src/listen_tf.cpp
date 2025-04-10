@@ -13,7 +13,7 @@ std::string yaml_path = package_path + "/config/transform.yaml";
 std::string path_tf_using = package_path + "/config/tf_using.yaml";
 
 std::string robot_common_path = ros::package::getPath("robot_control");
-std::string path_tf_obj = package_path + "/config/common_tf.yaml";
+std::string path_tf_obj = robot_common_path + "/config/common_tf.yaml";
 
 void saveTransformToYAML(const std::string& filename, const Eigen::Matrix4f& transform_matrix_L, const Eigen::Matrix4f& transform_matrix_R)
 {
@@ -246,6 +246,8 @@ int main(int argc, char** argv)
             saveTFToYAML(path_tf_using, tf_mat_base_link3_0, "tf_mat_base_link3_0");
 
             saveTFToYAML(path_tf_obj, tf_mat_base_link1_0, "tf_mat_base_link1_0");
+            saveTFToYAML(path_tf_obj, tf_mat_base_link2_0, "tf_mat_base_link2_0");
+            saveTFToYAML(path_tf_obj, tf_mat_base_link3_0, "tf_mat_base_link3_0");
             saveTFToYAML(path_tf_obj, tf_mat_base_link4_0, "tf_mat_base_link4_0");
             saveTFToYAML(path_tf_obj, tf_mat_world_obj, "tf_mat_world_obj");
         }

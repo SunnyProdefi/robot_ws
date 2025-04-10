@@ -130,53 +130,66 @@ private:
 
     bool handlePoseRequest(robot_planning::RobotPose::Request& req, robot_planning::RobotPose::Response& res)
     {
-        // 加载预定义的变换矩阵
-        Matrix4d tf_base_link2_0 = loadTransformFromYAML("tf_using.yaml", "tf_mat_base_link2_0");
-        Matrix4d tf_base_link3_0 = loadTransformFromYAML("tf_using.yaml", "tf_mat_base_link3_0");
+        try
+        {
+            // ---------- 读取变换矩阵 ----------
+            const Matrix4d tf_base_link2_0 = loadTransformFromYAML("tf_using.yaml", "tf_mat_base_link2_0");
+            const Matrix4d tf_base_link3_0 = loadTransformFromYAML("tf_using.yaml", "tf_mat_base_link3_0");
 
-        // 获取float_base的变换矩阵
-        Matrix4d tf_world_float_base = poseToTransform(req.float_base_pose);
+            // ---------- 获取 float_base 的世界变换 ----------
+            const Matrix4d tf_world_float_base = poseToTransform(req.float_base_pose);
 
-        // 将double类型的关节角转换为float类型
-        std::vector<float> branch2_joints_float(req.branch2_joints.begin(), req.branch2_joints.end());
-        std::vector<float> branch3_joints_float(req.branch3_joints.begin(), req.branch3_joints.end());
+            // ---------- 正向运动学：计算每个分支末端在各自 link0 下的位置 ----------
+            const std::vector<float> branch2_joints_float(req.branch2_joints.begin(), req.branch2_joints.end());
+            const std::vector<float> branch3_joints_float(req.branch3_joints.begin(), req.branch3_joints.end());
 
-        // 计算分支2和分支3的末端位姿
-        std::vector<float> branch2_pose = kinematics_branch2_.forward(branch2_joints_float);
-        std::vector<float> branch3_pose = kinematics_branch3_.forward(branch3_joints_float);
+            const std::vector<float> branch2_pose = kinematics_branch2_.forward(branch2_joints_float);
+            const std::vector<float> branch3_pose = kinematics_branch3_.forward(branch3_joints_float);
 
-        Matrix4d tf_link0_branch2 = poseToTransform(std::vector<double>(branch2_pose.begin(), branch2_pose.end()));
-        Matrix4d tf_link0_branch3 = poseToTransform(std::vector<double>(branch3_pose.begin(), branch3_pose.end()));
+            const Matrix4d tf_link0_branch2 = poseToTransform(std::vector<double>(branch2_pose.begin(), branch2_pose.end()));
+            const Matrix4d tf_link0_branch3 = poseToTransform(std::vector<double>(branch3_pose.begin(), branch3_pose.end()));
 
-        // 构建完整的变换链
-        Matrix4d tf_world_branch2 = tf_world_float_base * tf_base_link2_0 * tf_link0_branch2;
-        Matrix4d tf_world_branch3 = tf_world_float_base * tf_base_link3_0 * tf_link0_branch3;
+            // ---------- 构建完整的世界 → 分支末端 变换链 ----------
+            const Matrix4d tf_world_branch2 = tf_world_float_base * tf_base_link2_0 * tf_link0_branch2;
+            const Matrix4d tf_world_branch3 = tf_world_float_base * tf_base_link3_0 * tf_link0_branch3;
 
-        // 根据请求的坐标系计算变换
-        Matrix4d tf_source_target;
-        if (req.source_frame == "world" && req.target_frame == "branch2_end")
-            tf_source_target = tf_world_branch2;
-        else if (req.source_frame == "world" && req.target_frame == "branch3_end")
-            tf_source_target = tf_world_branch3;
-        else if (req.source_frame == "branch2_end" && req.target_frame == "world")
-            tf_source_target = tf_world_branch2.inverse();
-        else if (req.source_frame == "branch3_end" && req.target_frame == "world")
-            tf_source_target = tf_world_branch3.inverse();
-        else if (req.source_frame == "branch2_end" && req.target_frame == "branch3_end")
-            tf_source_target = tf_world_branch2.inverse() * tf_world_branch3;
-        else if (req.source_frame == "branch3_end" && req.target_frame == "branch2_end")
-            tf_source_target = tf_world_branch3.inverse() * tf_world_branch2;
-        else
+            // ---------- link2_0 → branch2_end 变换（相对 base）----------
+            const Matrix4d tf_link2_0_branch2 = tf_base_link2_0.inverse() * tf_link0_branch2;
+            const Matrix4d tf_link3_0_branch3 = tf_base_link3_0.inverse() * tf_link0_branch3;
+
+            // ---------- 构建帧变换表 ----------
+            std::map<std::pair<std::string, std::string>, Matrix4d> frame_transforms = {{{"world", "branch2_end"}, tf_world_branch2},
+                                                                                        {{"world", "branch3_end"}, tf_world_branch3},
+                                                                                        {{"branch2_end", "world"}, tf_world_branch2.inverse()},
+                                                                                        {{"branch3_end", "world"}, tf_world_branch3.inverse()},
+
+                                                                                        {{"branch2_end", "branch3_end"}, tf_world_branch2.inverse() * tf_world_branch3},
+                                                                                        {{"branch3_end", "branch2_end"}, tf_world_branch3.inverse() * tf_world_branch2},
+
+                                                                                        {{"link2_0", "branch2_end"}, tf_link2_0_branch2},
+                                                                                        {{"branch2_end", "link2_0"}, tf_link2_0_branch2.inverse()},
+
+                                                                                        {{"link3_0", "branch3_end"}, tf_link3_0_branch3},
+                                                                                        {{"branch3_end", "link3_0"}, tf_link3_0_branch3.inverse()}};
+
+            const auto key = std::make_pair(req.source_frame, req.target_frame);
+            if (frame_transforms.find(key) != frame_transforms.end())
+            {
+                res.transform = transformToPose(frame_transforms[key]);
+                res.success = true;
+                res.message = "Successfully computed transform";
+            }
+            else
+            {
+                res.success = false;
+                res.message = "Unsupported frame pair: " + req.source_frame + " -> " + req.target_frame;
+            }
+        }
+        catch (const std::exception& e)
         {
             res.success = false;
-            res.message = "Unsupported frame pair";
-            return true;
+            res.message = std::string("Exception occurred: ") + e.what();
         }
-
-        // 转换回位姿表示
-        res.transform = transformToPose(tf_source_target);
-        res.success = true;
-        res.message = "Successfully computed transform";
 
         return true;
     }

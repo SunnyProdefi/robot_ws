@@ -4,6 +4,7 @@
 #include <geometry_msgs/Wrench.h>
 #include <sensor_msgs/Imu.h>
 #include <robot_planning/PlanPath.h>
+#include <robot_planning/RobotPose.h>
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 #include "motor_driver.h"
@@ -11,6 +12,7 @@
 #include <geometry_msgs/Pose.h>
 #include <std_msgs/Header.h>
 #include "robot_control/GetBaseLinkPose.h"
+#include <Eigen/Dense>
 
 // IMU data storage
 sensor_msgs::Imu imu_data;
@@ -50,6 +52,78 @@ ros::ServiceClient planning_client;
 
 // float_base位置
 std::vector<double> float_base_position(7, 0.0);
+
+// yaml路径
+std::string common_tf_path = ros::package::getPath("robot_control") + "/config/common_tf.yaml";
+
+// 从YAML文件加载变换矩阵
+Eigen::Matrix4d loadTransformFromYAML(const std::string &file_path, const std::string &transform_name)
+{
+    Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
+
+    try
+    {
+        YAML::Node config = YAML::LoadFile(file_path);
+        if (config[transform_name])
+        {
+            YAML::Node target_pose = config[transform_name]["target_pose"];
+            if (target_pose)
+            {
+                // 读取位置
+                YAML::Node position = target_pose["position"];
+                if (position && position.size() == 3)
+                {
+                    transform(0, 3) = position[0].as<double>();
+                    transform(1, 3) = position[1].as<double>();
+                    transform(2, 3) = position[2].as<double>();
+                }
+                else
+                {
+                    ROS_WARN("Position data is missing or not of size 3 in %s", transform_name.c_str());
+                }
+
+                // 读取方向（3x3 旋转矩阵）
+                YAML::Node orientation = target_pose["orientation"];
+                if (orientation && orientation.size() == 3)
+                {
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        YAML::Node row = orientation[i];
+                        if (row && row.size() == 3)
+                        {
+                            for (int j = 0; j < 3; ++j)
+                            {
+                                transform(i, j) = row[j].as<double>();
+                            }
+                        }
+                        else
+                        {
+                            ROS_WARN("Orientation row %d in %s is not size 3", i, transform_name.c_str());
+                        }
+                    }
+                }
+                else
+                {
+                    ROS_WARN("Orientation data is missing or not size 3 in %s", transform_name.c_str());
+                }
+            }
+            else
+            {
+                ROS_WARN("No 'target_pose' field found under %s", transform_name.c_str());
+            }
+        }
+        else
+        {
+            ROS_WARN("Transform name '%s' not found in YAML file", transform_name.c_str());
+        }
+    }
+    catch (const YAML::Exception &e)
+    {
+        ROS_ERROR("Failed to load transform from YAML: %s", e.what());
+    }
+
+    return transform;
+}
 
 /**********************************************IMU接受数据**************************************************************/
 void imuCallback(const sensor_msgs::Imu::ConstPtr &imu)
@@ -191,6 +265,9 @@ int main(int argc, char **argv)
 
     // 创建运动规划服务客户端
     planning_client = nh.serviceClient<robot_planning::PlanPath>("/plan_path");
+
+    // 创建 service client
+    ros::ServiceClient pose_client = nh.serviceClient<robot_planning::RobotPose>("/get_relative_pose");
 
     // control_flag = 0 读取上电状态
     // control_flag = 1 运动到初始状态
@@ -453,6 +530,15 @@ int main(int argc, char **argv)
                     // {
                     //     ROS_ERROR("Failed to call service get_base_link_pose");
                     // }
+
+                    // 更新浮动基座位置
+                    float_base_position[0] = floating_base_sequence[trajectory_index][0];
+                    float_base_position[1] = floating_base_sequence[trajectory_index][1];
+                    float_base_position[2] = floating_base_sequence[trajectory_index][2];
+                    float_base_position[3] = floating_base_sequence[trajectory_index][3];
+                    float_base_position[4] = floating_base_sequence[trajectory_index][4];
+                    float_base_position[5] = floating_base_sequence[trajectory_index][5];
+                    float_base_position[6] = floating_base_sequence[trajectory_index][6];
                 }
 
                 // 发布电机位置状态
@@ -482,6 +568,63 @@ int main(int argc, char **argv)
         {
             cout << "Control flag 3 received" << endl;
             cout << "完成抓取" << endl;
+
+            // 读取YAML中的世界→物体，base→link2_0 变换
+            Eigen::Matrix4d tf_mat_world_obj = loadTransformFromYAML(common_tf_path, "tf_mat_world_obj");
+            std::cout << "tf_mat_world_obj:\n" << tf_mat_world_obj << std::endl;
+            Eigen::Matrix4d tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
+            std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link2_0 << std::endl;
+            // 构造世界→base
+            Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
+            Eigen::Quaterniond quat_base(float_base_position[6],  // qw
+                                         float_base_position[3],  // qx
+                                         float_base_position[4],  // qy
+                                         float_base_position[5]   // qz
+            );
+            Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
+
+            Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
+            tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
+            tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
+
+            // base → obj
+            Eigen::Matrix4d tf_mat_base_obj = tf_mat_world_base.inverse() * tf_mat_world_obj;
+
+            // link2_0 → obj
+            Eigen::Matrix4d tf_mat_link2_0_obj = tf_mat_base_link2_0.inverse() * tf_mat_base_obj;
+
+            std::cout << "tf_mat_world_base:\n" << tf_mat_world_base << std::endl;
+            std::cout << "tf_mat_base_obj:\n" << tf_mat_base_obj << std::endl;
+            std::cout << "tf_mat_link2_0_obj:\n" << tf_mat_link2_0_obj << std::endl;
+
+            // 请求获取分支2末端的位姿（相对于link2_0)）
+            // 准备请求
+            robot_planning::RobotPose srv;
+            srv.request.float_base_pose = float_base_position;  // [x, y, z, qx, qy, qz, qw]
+            srv.request.branch2_joints = q_recv[1];             // [joint1, joint2, joint3, joint4, joint5, joint6]
+            srv.request.branch3_joints = q_recv[2];             // [joint1, joint2, joint3, joint4, joint5, joint6]
+            srv.request.source_frame = "link2_0";
+            srv.request.target_frame = "branch2_end";
+
+            // 调用服务
+            if (pose_client.call(srv))
+            {
+                if (srv.response.success)
+                {
+                    std::vector<double> transform = srv.response.transform;
+                    std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                    std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                    std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+                }
+                else
+                {
+                    std::cerr << "Service call failed: " << srv.response.message << std::endl;
+                }
+            }
+            else
+            {
+                std::cerr << "Failed to call service /get_relative_pose" << std::endl;
+            }
         }
         else if (control_flag == 4)
         {
