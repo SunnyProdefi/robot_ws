@@ -67,7 +67,7 @@ export ROSBAG_PATH=/home/robot/rosbags/
 <node name="rosbag_robot" pkg="rosbag" type="record" output="screen"
       args="-a -O $(env ROSBAG_PATH)robot_log.bag" />
 
-roslaunch robot_description robot_display.launch 
+roslaunch robot_description init_robot_display.launch 
 rosrun robot_common listen_tf
 
 control_flag == 0 只接受当前实际位姿

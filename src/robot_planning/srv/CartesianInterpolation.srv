@@ -1,0 +1,9 @@
+int32 branch_id
+float64[] start_pose  # [x, y, z, qx, qy, qz, qw]
+float64[] goal_pose   # [x, y, z, qx, qy, qz, qw]
+float64 duration      # 运动时间(秒)
+float64 frequency     # 控制频率(Hz)
+---
+float64[] joint_trajectory  # Flattened array of joint configurations
+bool success
+string message 

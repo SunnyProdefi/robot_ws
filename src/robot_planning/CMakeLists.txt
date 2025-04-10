@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   PlanPath.srv
+  CartesianInterpolation.srv
+  RobotPose.srv
 )
 
 generate_messages(
@@ -97,6 +99,22 @@ target_link_libraries(core ${core_libs} pthread)
 add_executable(robot_planning_node src/robot_planning.cpp)
 add_dependencies(robot_planning_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(robot_planning_node
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
+add_executable(cartesian_interpolation_server src/cartesian_interpolation_server.cpp)
+add_dependencies(cartesian_interpolation_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(cartesian_interpolation_server
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
+add_executable(robot_pose_server src/robot_pose_server.cpp)
+add_dependencies(robot_pose_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(robot_pose_server
   ${catkin_LIBRARIES}
   core
   ${sim_libs}

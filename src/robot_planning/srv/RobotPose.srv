@@ -1,0 +1,9 @@
+float64[] float_base_pose  # [x, y, z, qx, qy, qz, qw] 相对于world坐标系的位姿
+float64[] branch2_joints   # 分支2的关节角
+float64[] branch3_joints   # 分支3的关节角
+string source_frame        # 源坐标系名称
+string target_frame        # 目标坐标系名称
+---
+float64[] transform       # [x, y, z, qx, qy, qz, qw] 源坐标系到目标坐标系的变换
+bool success
+string message 

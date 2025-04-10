@@ -48,6 +48,9 @@ std::vector<std::vector<double>> floating_base_sequence;
 int trajectory_index = 0;
 ros::ServiceClient planning_client;
 
+// float_base位置
+std::vector<double> float_base_position(7, 0.0);
+
 /**********************************************IMU接受数据**************************************************************/
 void imuCallback(const sensor_msgs::Imu::ConstPtr &imu)
 {
@@ -389,6 +392,14 @@ int main(int argc, char **argv)
 
                         // 可选：你可以将此 Pose 发布给 RViz 或浮动基座控制模块
                         float_base_pub.publish(srv.response.base_link_pose);
+                        // 更新浮动基座位置
+                        float_base_position[0] = srv.response.base_link_pose.position.x;
+                        float_base_position[1] = srv.response.base_link_pose.position.y;
+                        float_base_position[2] = srv.response.base_link_pose.position.z;
+                        float_base_position[3] = srv.response.base_link_pose.orientation.x;
+                        float_base_position[4] = srv.response.base_link_pose.orientation.y;
+                        float_base_position[5] = srv.response.base_link_pose.orientation.z;
+                        float_base_position[6] = srv.response.base_link_pose.orientation.w;
                     }
                     else
                     {
