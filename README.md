@@ -1,7 +1,3 @@
-以下是润色后的 `README.md` 内容。它提供了详细的说明，并改善了语法和格式，使得内容更加易懂和规范。
-
----
-
 # 机器人控制系统
 
 该项目使用 ROS（Robot Operating System）来控制机器人，具体步骤如下：
@@ -53,31 +49,69 @@ rostopic pub /control_flag std_msgs/Int32 "data: 1" -1
 
 ### 注意事项
 
-1. 确保机器人主控与 PC 主机在同一局域网内。
-2. 4个夹爪的USB接口需要连接到主控的 USB 接口上，接入顺序为 `4-1-2-3`。
-3. 如果无法连接到主控，请检查网络设置。
-4. 确保你有正确的 ROS 环境配置，并且所有依赖项已经安装。
+1. 请确保机器人主控设备与 PC 主机处于同一局域网内。
+2. 四个夹爪的 USB 接口必须依照顺序 `4-1-2-3` 接入主控的 USB 接口。
+3. 若无法连接至主控，请首先检查网络设置是否正确。
+4. 请确认 ROS 环境已正确配置，且所有所需依赖均已安装完毕。
 
 ---
 
-希望这个 `README.md` 文件更清晰地解释了如何连接到机器人主控、启动控制系统并发布控制信号。如果你有更多问题或需要进一步的说明，随时联系我！
+### Tips
 
-Tips:
+设置 ROS bag 存储路径：
+```bash
 export ROSBAG_PATH=/home/robot/rosbags/
+```
+
+在 launch 文件中启动 rosbag 录制节点：
+```xml
 <node name="rosbag_robot" pkg="rosbag" type="record" output="screen"
       args="-a -O $(env ROSBAG_PATH)robot_log.bag" />
+```
 
-roslaunch robot_description init_robot_display.launch 
+启动机器人模型显示：
+```bash
+roslaunch robot_description init_robot_display.launch
+```
+
+启动 TF 监听节点：
+```bash
 rosrun robot_common listen_tf
+```
 
-control_flag == 0 只接受当前实际位姿
-control_flag == 1 从当前位姿运动到初始位姿
-control_flag == 2 从初始位姿运动到目标位姿
-control_flag == 3 完成抓取
-control_flag == 4 完成取出
-control_flag == 5 完成交接
-control_flag == 6 完成放置
-control_flag == 9 归位
+---
 
-control_flag == 101 gripper_command.data = {1.0, 1.0, 1.0, 1.0};
-control_flag == 102 gripper_command.data = {0.0, 0.5, 0.5, 0.0};
+### 控制标志说明（control_flag）
+
+- `0`：仅接收当前实际位姿
+- `1`：从当前位姿运动至初始位姿
+- `2`：从初始位姿运动至目标位姿
+- `3`：执行抓取操作
+- `4`：完成取出操作
+- `5`：完成交接操作
+- `6`：完成放置操作
+- `9`：归位
+
+---
+
+### 夹爪控制命令（control_flag 特殊值）
+
+- `101`：全部夹爪闭合  
+  ```cpp
+  gripper_command.data = {1.0, 1.0, 1.0, 1.0};
+  ```
+- `102`：夹爪 2 与夹爪 3 半闭合，其余张开  
+  ```cpp
+  gripper_command.data = {0.0, 0.5, 0.5, 0.0};
+  ```
+
+**TODO：**
+
+1. 废弃原USB延长线，改为加长通信线缆  
+2. 接入六维力传感器线缆  
+3. 更换主控接口法兰（3D打印件）  
+4. 设计并安装夹爪与桁架连接卡扣（3D打印件）  
+5. 制作夹爪固定专用工装（机加工件）  
+
+> **进度计划**：  
+> 下周完成所有材料准备，下下周安排一天完成组装与调试。
