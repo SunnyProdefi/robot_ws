@@ -115,3 +115,5 @@ rosrun robot_common listen_tf
 
 > **进度计划**：  
 > 下周完成所有材料准备，下下周安排一天完成组装与调试。
+
+更改control_flag == 2的插值点是leg_transform_cs.cpp和robot_planning.cpp
