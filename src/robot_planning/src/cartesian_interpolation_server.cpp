@@ -4,6 +4,8 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <cmath>
+#include <yaml-cpp/yaml.h>
+#include <fstream>
 
 using namespace Eigen;
 
@@ -137,8 +139,8 @@ private:
         // 提取位置和四元数
         Vector3d start_pos(start_pose[0], start_pose[1], start_pose[2]);
         Vector3d goal_pos(goal_pose[0], goal_pose[1], goal_pose[2]);
-        Vector4d start_quat(start_pose[3], start_pose[4], start_pose[5], start_pose[6]);
-        Vector4d goal_quat(goal_pose[3], goal_pose[4], goal_pose[5], goal_pose[6]);
+        Vector4d start_quat(start_pose[6], start_pose[3], start_pose[4], start_pose[5]);
+        Vector4d goal_quat(goal_pose[6], goal_pose[3], goal_pose[4], goal_pose[5]);
 
         // 归一化四元数
         start_quat.normalize();
@@ -160,6 +162,9 @@ private:
             // 组合成完整的位姿
             std::vector<double> pose = {pos[0], pos[1], pos[2], quat[0], quat[1], quat[2], quat[3]};
 
+            // ROSINFO打印
+            // ROS_INFO("Interpolated pose %d: [%f, %f, %f, %f, %f, %f, %f]", i, pose[0], pose[1], pose[2], pose[3], pose[4], pose[5], pose[6]);
+
             cartesian_path.push_back(pose);
         }
 
@@ -168,24 +173,65 @@ private:
 
     bool handleInterpolationRequest(robot_planning::CartesianInterpolation::Request& req, robot_planning::CartesianInterpolation::Response& res)
     {
+        ROS_INFO("Starting Cartesian interpolation request...");
+
+        // 打印req
+        ROS_INFO("Branch ID: %d", req.branch_id);
+        ROS_INFO("Start pose: [%f, %f, %f, %f, %f, %f, %f]", req.start_pose[0], req.start_pose[1], req.start_pose[2], req.start_pose[3], req.start_pose[4], req.start_pose[5], req.start_pose[6]);
+        ROS_INFO("Goal pose: [%f, %f, %f, %f, %f, %f, %f]", req.goal_pose[0], req.goal_pose[1], req.goal_pose[2], req.goal_pose[3], req.goal_pose[4], req.goal_pose[5], req.goal_pose[6]);
+        ROS_INFO("Joint angles: [%f, %f, %f, %f, %f, %f]", req.joint_angles[0], req.joint_angles[1], req.joint_angles[2], req.joint_angles[3], req.joint_angles[4], req.joint_angles[5]);
+        ROS_INFO("Duration: %f", req.duration);
+        ROS_INFO("Frequency: %f", req.frequency);
+
         // 执行笛卡尔空间插值
         std::vector<std::vector<double>> cartesian_path;
         if (!interpolateCartesian(req.start_pose, req.goal_pose, req.duration, req.frequency, cartesian_path))
         {
             res.success = false;
             res.message = "Failed to interpolate Cartesian path";
+            ROS_ERROR("Failed to interpolate Cartesian path");
             return true;
         }
 
+        ROS_INFO("Successfully interpolated Cartesian path with %lu waypoints.", cartesian_path.size());
+
         // 初始关节角
         std::vector<float> q_init(req.joint_angles.begin(), req.joint_angles.end());
+        ROS_INFO("Initial joint angles set: [%f, %f, %f, %f, %f, %f]", q_init[0], q_init[1], q_init[2], q_init[3], q_init[4], q_init[5]);
 
         // 存储最终的关节轨迹
         std::vector<float> joint_trajectory;
 
-        for (const auto& pose : cartesian_path)
+        // 创建YAML文档
+        YAML::Node yaml_doc;
+        yaml_doc["waypoints"] = YAML::Node(YAML::NodeType::Sequence);
+
+        for (size_t i = 0; i < cartesian_path.size(); ++i)
         {
-            std::vector<float> ee_pose(pose.begin(), pose.end());
+            const auto& pose = cartesian_path[i];
+
+            // Convert 7-element pose (position + quaternion) to 12-element transformation matrix
+            Eigen::Vector3d pos(pose[0], pose[1], pose[2]);
+            Eigen::Quaterniond q(pose[3], pose[4], pose[5], pose[6]);  // (w, x, y, z)
+            q.normalize();
+
+            // Create 3x4 transformation matrix
+            std::vector<float> ee_pose(12);
+            Eigen::Matrix3d rot = q.toRotationMatrix();
+
+            // Fill rotation matrix
+            ee_pose[0] = rot(0, 0);
+            ee_pose[1] = rot(0, 1);
+            ee_pose[2] = rot(0, 2);
+            ee_pose[3] = pos[0];
+            ee_pose[4] = rot(1, 0);
+            ee_pose[5] = rot(1, 1);
+            ee_pose[6] = rot(1, 2);
+            ee_pose[7] = pos[1];
+            ee_pose[8] = rot(2, 0);
+            ee_pose[9] = rot(2, 1);
+            ee_pose[10] = rot(2, 2);
+            ee_pose[11] = pos[2];
 
             // 得到全部 IK 解（扁平向量）
             std::vector<float> ik_results = kinematics_.inverse(ee_pose);
@@ -194,6 +240,7 @@ private:
             {
                 res.success = false;
                 res.message = "Failed to find IK solution for intermediate pose";
+                ROS_ERROR("No IK solution found for intermediate pose at waypoint %lu", i);
                 return true;
             }
 
@@ -204,6 +251,7 @@ private:
             {
                 res.success = false;
                 res.message = "No valid IK solution after filtering";
+                ROS_ERROR("No valid IK solution after filtering for waypoint %lu", i);
                 return true;
             }
 
@@ -212,12 +260,47 @@ private:
 
             // 更新 q_init 为当前最优解，用于下一步的最优性参考
             q_init = best_solution;
+
+            // 将当前waypoint的解保存到YAML
+            YAML::Node waypoint_node;
+            waypoint_node["waypoint_index"] = i;
+
+            // 保存所有解
+            YAML::Node all_solutions_node;
+            for (const auto& solution : all_solutions)
+            {
+                YAML::Node solution_node;
+                for (size_t j = 0; j < solution.size(); ++j)
+                {
+                    solution_node.push_back(solution[j]);
+                }
+                all_solutions_node.push_back(solution_node);
+            }
+            waypoint_node["all_solutions"] = all_solutions_node;
+
+            // 保存最优解
+            YAML::Node best_solution_node;
+            for (size_t j = 0; j < best_solution.size(); ++j)
+            {
+                best_solution_node.push_back(best_solution[j]);
+            }
+            waypoint_node["best_solution"] = best_solution_node;
+
+            yaml_doc["waypoints"].push_back(waypoint_node);
         }
+
+        // 保存YAML文件
+        std::ofstream fout("/home/prodefi/robot/robot_ws/src/robot_planning/config/ik_solutions.yaml");
+        fout << yaml_doc;
+        fout.close();
+        ROS_INFO("IK solutions saved to ik_solutions.yaml");
 
         // 设置响应
         res.joint_trajectory.assign(joint_trajectory.begin(), joint_trajectory.end());
         res.success = true;
         res.message = "Successfully generated joint trajectory with optimal IK solutions";
+
+        ROS_INFO("Successfully generated joint trajectory with %lu joint positions.", joint_trajectory.size());
 
         return true;
     }

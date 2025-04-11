@@ -22,6 +22,8 @@
                 "${workspaceFolder}/src/robot_planning/src",
                 "${workspaceFolder}/devel/include",
                 "${workspaceFolder}/src/robot_planning/third_party/pinocchio",
+                "${workspaceFolder}/devel/include",
+                "${workspaceFolder}/devel/include",
                 "${workspaceFolder}/devel/include"
             ],
             "name": "ROS",

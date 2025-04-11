@@ -1,5 +1,5 @@
 int32 branch_id
-float64[] joint_angles  # [joint1, joint2, ..., jointN]
+float64[] joint_angles
 float64[] start_pose  # [x, y, z, qx, qy, qz, qw]
 float64[] goal_pose   # [x, y, z, qx, qy, qz, qw]
 float64 duration      # 运动时间(秒)

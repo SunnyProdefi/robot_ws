@@ -113,7 +113,7 @@
     <child link="object"/>
     <!-- 如果需要在 truss_link 坐标系中给 base_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
     <!-- 转换到joint2_6______0.1 -->
-    <origin xyz="0.1325 0.13 0.35" rpy="0 0 0"/>
+    <origin xyz="0.1325 0.03 0.35" rpy="1.5708 0 0"/>
   </joint>
 
   <link name="object"></link>

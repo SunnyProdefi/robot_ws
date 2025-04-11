@@ -28,8 +28,9 @@ generate_messages(
 
 # -------------------- catkin Package --------------------
 catkin_package(
-  CATKIN_DEPENDS roscpp rospy std_msgs roslib message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs roslib message_runtime geometry_msgs
   INCLUDE_DIRS include
+  DEPENDS message_generation
 )
 
 # -------------------- Include Directories --------------------

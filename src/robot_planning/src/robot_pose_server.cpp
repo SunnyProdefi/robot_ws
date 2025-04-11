@@ -122,8 +122,10 @@ public:
 
         // 分别获取关节角度的末端位姿
         std::vector<float> ee_pose_2 = kin2_.forward(j2);  // 应该返回长度为12的向量
+        // ROSINFO打印ee_pose_2
+        ROS_INFO_STREAM("ee_pose_2: " << Eigen::Map<Eigen::VectorXf>(ee_pose_2.data(), ee_pose_2.size()).transpose().format(fmt));
         std::vector<float> ee_pose_3 = kin3_.forward(j3);
-
+        ROS_INFO_STREAM("ee_pose_3: " << Eigen::Map<Eigen::VectorXf>(ee_pose_3.data(), ee_pose_3.size()).transpose().format(fmt));
         if (ee_pose_2.size() != 12 || ee_pose_3.size() != 12)
         {
             ROS_ERROR("Invalid FK result for branch2 or branch3");
@@ -159,10 +161,10 @@ public:
                                                                                    {{"branch3_end", "world"}, T_world_b3.inverse()},
                                                                                    {{"branch2_end", "branch3_end"}, T_world_b2.inverse() * T_world_b3},
                                                                                    {{"branch3_end", "branch2_end"}, T_world_b3.inverse() * T_world_b2},
-                                                                                   {{"link2_0", "branch2_end"}, T_base2.inverse() * T_l0_b2},
-                                                                                   {{"branch2_end", "link2_0"}, T_l0_b2.inverse() * T_base2},
-                                                                                   {{"link3_0", "branch3_end"}, T_base3.inverse() * T_l0_b3},
-                                                                                   {{"branch3_end", "link3_0"}, T_l0_b3.inverse() * T_base3}};
+                                                                                   {{"link2_0", "branch2_end"}, T_l0_b2},
+                                                                                   {{"branch2_end", "link2_0"}, T_l0_b2.inverse()},
+                                                                                   {{"link3_0", "branch3_end"}, T_l0_b3},
+                                                                                   {{"branch3_end", "link3_0"}, T_l0_b3.inverse()}};
 
         auto key = std::make_pair(req.source_frame, req.target_frame);
         if (tf_map.count(key))
