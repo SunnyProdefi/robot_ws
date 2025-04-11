@@ -118,6 +118,16 @@
 
   <link name="object"></link>
 
+  <joint name="truss_link_to_obj1" type="fixed">
+    <parent link="truss_link"/>
+    <child link="object1"/>
+    <!-- 如果需要在 truss_link 坐标系中给 base_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
+    <!-- 转换到joint2_6______0.1 -->
+    <origin xyz="0 0.215 0.3" rpy="0 3.1416 0"/>
+  </joint>
+
+  <link name="object1"></link>
+
   <link name="base_link">
     <inertial>
       <origin xyz="0 0 0.042" rpy="0 0 0" />
