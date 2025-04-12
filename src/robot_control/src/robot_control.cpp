@@ -732,12 +732,6 @@ int main(int argc, char **argv)
                                 }
                             }
 
-                            for (int i = 0; i < point.size(); ++i)
-                            {
-                                std::cout << point[i] << " ";
-                            }
-                            std::cout << std::endl;
-
                             planned_joint_trajectory.push_back(point);
                         }
                         planning_requested = true;
@@ -809,7 +803,6 @@ int main(int argc, char **argv)
 
         else if (control_flag == 4)
         {
-            cout << "Control flag 4 received" << endl;
             if (trajectory_index < planned_joint_trajectory.size())
             {
                 // 设置目标关节角度
@@ -1183,7 +1176,7 @@ int main(int argc, char **argv)
                 interp_srv.request.branch_id = 2;
 
                 // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                interp_srv.request.joint_angles.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
 
                 interp_srv.request.start_pose = start_pose;
                 interp_srv.request.goal_pose = goal_pose;
@@ -1630,7 +1623,7 @@ int main(int argc, char **argv)
                 interp_srv.request.branch_id = 2;
 
                 // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                interp_srv.request.joint_angles.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
 
                 interp_srv.request.start_pose = start_pose;
                 interp_srv.request.goal_pose = goal_pose;
@@ -1847,7 +1840,7 @@ int main(int argc, char **argv)
                 interp_srv.request.branch_id = 2;
 
                 // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                interp_srv.request.joint_angles.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
 
                 interp_srv.request.start_pose = start_pose;
                 interp_srv.request.goal_pose = goal_pose;

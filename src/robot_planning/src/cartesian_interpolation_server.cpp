@@ -26,36 +26,62 @@ private:
         std::vector<float> closest_solution;
         float min_distance = std::numeric_limits<float>::max();
 
+        // 定义关节限位
+        std::vector<std::pair<float, float>> joint_limits = {
+            {-2.3562, 4.7124},  // Joint2_1
+            {-2.0944, 1.5708},  // Joint2_2
+            {-2.5307, 2.5307},  // Joint2_3
+            {-3.1416, 3.1416},  // Joint2_4
+            {-1.9199, 1.9199},  // Joint2_5
+            {-3.1416, 3.1416}   // Joint2_6
+        };
+
         for (size_t i = 0; i < ik_results.size(); i += num_joints)
         {
             // 索引安全检查
             if (i + num_joints > ik_results.size())
                 break;
 
-            // 获取第4个关节角度（index = 3）
-            size_t joint4_index = i + 3;
-            if (joint4_index < ik_results.size())
-            {
-                float joint4_angle = ik_results[joint4_index];
+            // 构造当前解
+            std::vector<float> solution(ik_results.begin() + i, ik_results.begin() + i + num_joints);
 
-                // ✅ 判断是否接近 ±π，若是则归一化
-                if (std::abs(std::abs(joint4_angle) - static_cast<float>(M_PI)) < 1.0f)
+            // 检查所有关节是否在限位内
+            bool within_limits = true;
+            for (size_t j = 0; j < solution.size(); ++j)
+            {
+                if (solution[j] < joint_limits[j].first || solution[j] > joint_limits[j].second)
                 {
-                    float normalized = normalizeAngle(joint4_angle);
-                    ik_results[joint4_index] = normalized;
+                    within_limits = false;
+                    break;
                 }
             }
 
-            // 构造当前解
-            std::vector<float> solution(ik_results.begin() + i, ik_results.begin() + i + num_joints);
-            all_solutions.push_back(solution);
-
-            // 计算距离并判断是否为最优解
-            float distance = calculateDistance(initial_q, solution);
-            if (distance < min_distance)
+            // 如果关节角度在限位内，则进行第4个关节的归一化处理
+            if (within_limits)
             {
-                min_distance = distance;
-                closest_solution = solution;
+                // 获取第4个关节角度（index = 3）
+                size_t joint4_index = 3;
+                if (joint4_index < solution.size())
+                {
+                    float joint4_angle = solution[joint4_index];
+
+                    // ✅ 判断是否接近 ±π，若是则归一化
+                    if (std::abs(std::abs(joint4_angle) - static_cast<float>(M_PI)) < 1.0f)
+                    {
+                        float normalized = normalizeAngle(joint4_angle);
+                        solution[joint4_index] = normalized;
+                    }
+                }
+
+                all_solutions.push_back(solution);
+
+                // 计算距离并判断是否为最优解
+                float distance = calculateDistance(initial_q, solution);
+                if (distance < min_distance)
+                {
+                    min_distance = distance;
+                    closest_solution = solution;
+                }
             }
         }
 
@@ -204,7 +230,7 @@ private:
 
         // 创建YAML文档
         YAML::Node yaml_doc;
-        yaml_doc["waypoints"] = YAML::Node(YAML::NodeType::Sequence);
+        yaml_doc["waypoints"] = YAML::Node(YAML::NodeType::Sequence);  // 显式初始化为序列
 
         for (size_t i = 0; i < cartesian_path.size(); ++i)
         {
@@ -255,17 +281,78 @@ private:
                 return true;
             }
 
-            // 添加最优解到轨迹中
-            joint_trajectory.insert(joint_trajectory.end(), best_solution.begin(), best_solution.end());
+            // TODO:
+            // 添加每帧的执行时间戳；
+            // 改为速度规划（而不是固定频率）；
+            // 做角速度 / 加速度限制（更高阶插值如 B样条）；
 
-            // 更新 q_init 为当前最优解，用于下一步的最优性参考
+            if (i >= 0)
+            {
+                std::vector<float> prev_solution = q_init;
+
+                size_t dof = prev_solution.size();
+                float max_diff = 0.0f;
+
+                for (size_t j = 0; j < dof; ++j)
+                {
+                    float diff = std::abs(best_solution[j] - prev_solution[j]);
+                    max_diff = std::max(max_diff, diff);
+                }
+
+                float max_time_required = max_diff / 0.05f;                         // max_joint_velocity
+                int steps = static_cast<int>(std::ceil(max_time_required / 0.02));  // time_step
+
+                for (int k = 1; k <= steps; ++k)
+                {
+                    float t = static_cast<float>(k) / (steps + 1);
+                    std::vector<float> interpolated(dof);
+
+                    for (size_t j = 0; j < dof; ++j)
+                    {
+                        interpolated[j] = prev_solution[j] + t * (best_solution[j] - prev_solution[j]);
+                    }
+
+                    joint_trajectory.insert(joint_trajectory.end(), interpolated.begin(), interpolated.end());
+
+                    // 记录插值点到YAML
+                    YAML::Node interp_node;
+                    interp_node["waypoint_index"] = static_cast<double>(i) + k * 0.01;
+                    interp_node["type"] = "interpolated";
+                    interp_node["interpolated_from"].push_back(i - 1);
+                    interp_node["interpolated_from"].push_back(i);
+
+                    YAML::Node angle_node;
+                    for (float val : interpolated)
+                    {
+                        angle_node.push_back(val);
+                    }
+                    interp_node["joint_angles"] = angle_node;
+
+                    yaml_doc["waypoints"].push_back(interp_node);
+                }
+            }
+
+            // 插入当前最优解
+            joint_trajectory.insert(joint_trajectory.end(), best_solution.begin(), best_solution.end());
             q_init = best_solution;
 
-            // 将当前waypoint的解保存到YAML
+            // ==========================
+            // 保存当前最优解到 YAML
+            // ==========================
             YAML::Node waypoint_node;
-            waypoint_node["waypoint_index"] = i;
+            waypoint_node["waypoint_index"] = static_cast<int>(i);
+            waypoint_node["type"] = "original";
 
-            // 保存所有解
+            // 添加当前最优解角度
+            YAML::Node best_solution_node;
+            for (size_t j = 0; j < best_solution.size(); ++j)
+            {
+                best_solution_node.push_back(best_solution[j]);
+            }
+            waypoint_node["joint_angles"] = best_solution_node;
+            waypoint_node["best_solution"] = best_solution_node;
+
+            // 添加所有解（可选）
             YAML::Node all_solutions_node;
             for (const auto& solution : all_solutions)
             {
@@ -278,30 +365,27 @@ private:
             }
             waypoint_node["all_solutions"] = all_solutions_node;
 
-            // 保存最优解
-            YAML::Node best_solution_node;
-            for (size_t j = 0; j < best_solution.size(); ++j)
-            {
-                best_solution_node.push_back(best_solution[j]);
-            }
-            waypoint_node["best_solution"] = best_solution_node;
-
+            // 添加到主 YAML 结构
             yaml_doc["waypoints"].push_back(waypoint_node);
         }
 
-        // 保存YAML文件
-        std::ofstream fout("/home/prodefi/robot/robot_ws/src/robot_planning/config/ik_solutions.yaml");
+        // ==========================
+        // 保存 YAML 文件
+        // ==========================
+        std::string save_path = "/home/prodefi/github/robot_ws/src/robot_planning/config/ik_solutions.yaml";
+        std::ofstream fout(save_path);
         fout << yaml_doc;
         fout.close();
-        ROS_INFO("IK solutions saved to ik_solutions.yaml");
+        ROS_INFO_STREAM("IK solutions saved to: " << save_path);
 
-        // 设置响应
+        // ==========================
+        // 设置 ROS 服务响应
+        // ==========================
         res.joint_trajectory.assign(joint_trajectory.begin(), joint_trajectory.end());
         res.success = true;
         res.message = "Successfully generated joint trajectory with optimal IK solutions";
 
         ROS_INFO("Successfully generated joint trajectory with %lu joint positions.", joint_trajectory.size());
-
         return true;
     }
 
