@@ -24,7 +24,8 @@
                 "${workspaceFolder}/src/robot_planning/third_party/pinocchio",
                 "${workspaceFolder}/devel/include",
                 "${workspaceFolder}/devel/include",
-                "${workspaceFolder}/devel/include"
+                "${workspaceFolder}/devel/include",
+                "${workspaceFolder}/src/robot_planning/third_party/ompl/include"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",

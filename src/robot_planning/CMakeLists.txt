@@ -48,6 +48,8 @@ include_directories(
   third_party/quill/quill/bundled
   third_party/boost
   third_party/mujoco
+  third_party/ompl
+  third_party/hppfcl
   math
 )
 
@@ -60,6 +62,7 @@ link_directories(
   third_party/quill/lin_x64
   third_party/qpOASES/lin_x64
   third_party/yaml-cpp/lin_x64
+  third_party/ompl/lin_x64
 )
 
 # -------------------- Define Core Libraries --------------------
@@ -72,6 +75,9 @@ set(core_libs
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/quill/libquill_lin_x64.a
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/qpOASES/libqpOASES_lin_x64.a
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/yaml-cpp/libyaml-cpp_lin_x64.so
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ompl/lin_x64/libompl.so
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ompl/lin_x64/libompl_base.so
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/hppfcl/libhpp-fcl.so
 )
 
 set(sim_libs
@@ -90,6 +96,9 @@ set(CORE_SRC
   src/ikfast_wrapper_single_arm.cpp
   src/full_body_trajectory.cpp
   src/yaml_common.cpp
+  src/robot_model.cpp
+  src/dualArmRRT.cpp
+  src/BSplineInterpolator.cpp
 )
 
 # -------------------- Core Library --------------------
@@ -141,6 +150,15 @@ target_link_libraries(get_base_link_pose
 add_executable(get_base_link_pose_test src/get_base_link_pose_test.cpp)
 add_dependencies(get_base_link_pose_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(get_base_link_pose_test
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
+# -------------------- RRT Executable --------------------
+add_executable(rrt_planner src/dualArmRRT.cpp)
+add_dependencies(rrt_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(rrt_planner
   ${catkin_LIBRARIES}
   core
   ${sim_libs}
