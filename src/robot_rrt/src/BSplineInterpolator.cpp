@@ -1,4 +1,4 @@
-#include "robot_planning/BSplineInterpolator.h"
+#include "robot_rrt/BSplineInterpolator.h"
 #include <Eigen/Dense>
 #include <iostream>
 

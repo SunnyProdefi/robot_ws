@@ -1,5 +1,9 @@
+#include <ros/ros.h>
+#include <yaml-cpp/yaml.h>
+
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/State.h>
+#include <ompl/config.h>
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
@@ -11,8 +15,8 @@
 #include <pinocchio/multibody/model.hpp>
 #include <random>
 
-#include "robot_planning/BSplineInterpolator.h"
-#include "robot_planning/robot_model.h"
+#include "robot_rrt/BSplineInterpolator.h"
+#include "robot_rrt/robot_model.h"
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
@@ -26,34 +30,30 @@ Eigen::MatrixXd pathPoints;  // 全局矩阵，未初始化大小
 bool isStateValid(const ob::State *state)
 {
     const auto *realState = state->as<ob::RealVectorStateSpace::StateType>();
-    Eigen::VectorXd q_total(28);  // 机器人完整的自由度
+    Eigen::VectorXd q_total = q_init_;  // 初始化为初始位姿
 
-    // 将所有自由度设置为初始位置
-    q_total = q_init_;
-
-    // 更新活动自由度的值
-    // 假设前6个自由度和最后6个自由度是活动的
+    // 填充第15~20和22~27自由度
     for (size_t i = 15; i < 21; ++i)
     {
         q_total[i] = realState->values[i - 15];
     }
     for (size_t i = 22; i < 28; ++i)
     {
-        q_total[i] = realState->values[i - 16];  // 因为只有12个活动自由度
+        q_total[i] = realState->values[i - 16];  // 保证 offset 正确
     }
 
-    // 使用CollisionCheck进行碰撞检测
+    // 使用你自己的碰撞检测函数
     bool hasCollision = CollisionCheck(model, data, geom_model, geom_data, q_total, true);
 
     if (hasCollision)
     {
         std::cout << "Collision detected" << std::endl;
-        return false;  // 如果发生碰撞，则状态无效
+        return false;
     }
     else
     {
         std::cout << "No collision detected" << std::endl;
-        return true;  // 如果无碰撞，状态有效
+        return true;
     }
 }
 
@@ -174,11 +174,42 @@ void setQGoal(Eigen::VectorXd &q_goal, const Eigen::VectorXd &angles_degrees, co
     }
 }
 
+void saveMatrixToYAML(const Eigen::MatrixXd &matrix, const std::string &filename)
+{
+    YAML::Emitter out;
+    out << YAML::BeginSeq;
+    for (int i = 0; i < matrix.cols(); ++i)
+    {
+        out << YAML::Flow << YAML::BeginSeq;
+        for (int j = 0; j < matrix.rows(); ++j)
+        {
+            out << matrix(j, i);  // 注意是列为状态
+        }
+        out << YAML::EndSeq;
+    }
+    out << YAML::EndSeq;
+
+    std::ofstream fout(filename);
+    if (!fout.is_open())
+    {
+        ROS_ERROR_STREAM("Failed to open file: " << filename);
+        return;
+    }
+    fout << out.c_str();
+    fout.close();
+}
+
 int main(int argc, char **argv)
 {
-    setupAndSimulateRobot();  // Initialize robot model
+    ros::init(argc, argv, "robot_rrt_node");
+    ros::NodeHandle nh;
+    ROS_INFO("robot_rrt_node started.");
+
+    setupAndSimulateRobot();
+
     printGeometryIDs(geom_model);
     printGeometrySizes(geom_model);
+
     std::cout << "Robot model initialized" << std::endl;
     std::cout << "Robot model has " << model.nq << " DOF" << std::endl;
     // 关节角度上下限
@@ -216,87 +247,26 @@ int main(int argc, char **argv)
 
     std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
     planWithRRT(q_init, q_goal, lower_limits, upper_limits);
-    // 按列打印路径点
-    std::cout << "Path points:" << std::endl;
-    for (size_t i = 0; i < pathPoints.cols(); ++i)
-    {
-        std::cout << pathPoints.col(i).transpose() << std::endl;
-    }
-    std::cout << "Path points matrix size: " << pathPoints.rows() << " x " << pathPoints.cols() << std::endl;
-    // 将路径点写入pathPoints.csv文件
-    std::ofstream file("pathPoints.csv");
-    if (file.is_open())
-    {
-        // 每列开头为join1-joint12
-        for (size_t i = 0; i < 12; ++i)
-        {
-            file << "joint" << i + 1;
-            if (i < 11)
-            {
-                file << ",";
-            }
-        }
-        file << std::endl;
-        for (size_t i = 0; i < pathPoints.cols(); ++i)
-        {
-            for (size_t j = 0; j < pathPoints.rows(); ++j)
-            {
-                file << pathPoints(j, i);
-                if (j < pathPoints.rows() - 1)
-                {
-                    file << ",";
-                }
-            }
-            file << std::endl;
-        }
-        file.close();
-    }
-    else
-    {
-        std::cerr << "Unable to open file" << std::endl;
-    }
-    // 实例化BSplineInterpolator
+
+    // 保存路径点
+    saveMatrixToYAML(pathPoints, "pathPoints.yaml");
+    ROS_INFO("Path points saved to pathPoints.yaml");
+
+    // 插值
     BSplineInterpolator interpolator(pathPoints.rows(), 5);
-    // 生成插值点
     std::vector<Eigen::VectorXd> interpolated_points = interpolator.generatePoints(pathPoints, pathPoints.cols() * 5);
-    // 打印插值点
-    std::cout << "Interpolated points:" << interpolated_points.size() << std::endl;
-    // 按列打印插值点
+
+    // 转换插值点为矩阵
+    Eigen::MatrixXd interpMat(pathPoints.rows(), interpolated_points.size());
     for (size_t i = 0; i < interpolated_points.size(); ++i)
     {
-        std::cout << interpolated_points[i].transpose() << std::endl;
+        interpMat.col(i) = interpolated_points[i];
     }
-    // 将插值点写入interpolatedPoints.csv文件
-    std::ofstream file2("interpolatedPoints.csv");
-    if (file2.is_open())
-    {
-        // 每列开头为join1-joint12
-        for (size_t i = 0; i < 12; ++i)
-        {
-            file2 << "joint" << i + 1;
-            if (i < 11)
-            {
-                file2 << ",";
-            }
-        }
-        file2 << std::endl;
-        for (size_t i = 0; i < interpolated_points.size(); ++i)
-        {
-            for (size_t j = 0; j < interpolated_points[i].size(); ++j)
-            {
-                file2 << interpolated_points[i][j];
-                if (j < interpolated_points[i].size() - 1)
-                {
-                    file2 << ",";
-                }
-            }
-            file2 << std::endl;
-        }
-        file2.close();
-    }
-    else
-    {
-        std::cerr << "Unable to open file" << std::endl;
-    }
+
+    saveMatrixToYAML(interpMat, "interpolatedPoints.yaml");
+    ROS_INFO("Interpolated points saved to interpolatedPoints.yaml");
+
+    ros::spinOnce();  // 可选，如果后续要扩展订阅者
+
     return 0;
 }

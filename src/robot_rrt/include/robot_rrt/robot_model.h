@@ -14,12 +14,16 @@
 #include <pinocchio/multibody/geometry.hpp>
 #include <pinocchio/parsers/urdf.hpp>
 #include <pinocchio/parsers/srdf.hpp>
+#include "pinocchio/collision/collision.hpp"
+#include "pinocchio/collision/distance.hpp"
+
+#include <coal/shape/geometric_shapes.h>
 
 // 最后再加
 #include <boost/variant.hpp>
 
 #ifndef PINOCCHIO_MODEL_DIR
-#define PINOCCHIO_MODEL_DIR "/home/prodefi/robot/robot_ws/src/robot_planning/models/"
+#define PINOCCHIO_MODEL_DIR "/home/prodefi/robot/robot_ws/src/robot_rrt/models/"
 #endif
 
 extern pinocchio::Model model;

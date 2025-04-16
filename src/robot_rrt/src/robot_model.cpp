@@ -1,7 +1,8 @@
-#include "robot_planning/robot_model.h"
+#include "robot_rrt/robot_model.h"
 #include <iostream>
 
 using namespace pinocchio;
+using namespace pinocchio::fcl;
 
 // 定义全局变量
 Model model;
@@ -15,7 +16,7 @@ void addObstacle(pinocchio::GeometryModel &geom_model)
     using namespace pinocchio;
 
     // 创建 Box 类型障碍物（单位: mm）
-    GeometryObject obstacle("cube_obstacle", 33, std::make_shared<geometry::Box>(0.25, 0.25, 0.6), SE3(Eigen::Matrix3d::Identity(), Eigen::Vector3d(0, 0.45, 0.3)));
+    GeometryObject obstacle("cube_obstacle", 33, std::make_shared<Box>(0.25, 0.25, 0.6), SE3(Eigen::Matrix3d::Identity(), Eigen::Vector3d(0, 0.45, 0.3)));
     obstacle.meshColor = Eigen::Vector4d(1.0, 0.0, 0.0, 1.0);
     geom_model.addGeometryObject(obstacle);
 }
@@ -46,21 +47,29 @@ void setupAndSimulateRobot()
 
 bool CollisionCheck(const pinocchio::Model &model, pinocchio::Data &data, const pinocchio::GeometryModel &geom_model, pinocchio::GeometryData &geom_data, const Eigen::VectorXd &q_total, bool verbose)
 {
-    pinocchio::computeCollisions(model, data, geom_model, geom_data, q_total);
+    pinocchio::computeCollisions(model, data, geom_model, geom_data, q_total, true);
     for (size_t k = 0; k < geom_model.collisionPairs.size(); ++k)
     {
-        const auto &cp = geom_model.collisionPairs[k];
-        const auto &result = geom_data.collisionResults[k];
-        if (result.isCollision())
+        const pinocchio::CollisionPair &cp = geom_model.collisionPairs[k];
+        const hpp::fcl::CollisionResult &cr = geom_data.collisionResults[k];
+        if (cr.isCollision())
         {
             if (verbose)
             {
                 std::cout << "Collision detected between pair: " << cp.first << " and " << cp.second << std::endl;
             }
-            return true;
+            return true;  // Return immediately if a collision is detected
+        }
+        else
+        {
+            if (verbose)
+            {
+                // std::cout << "No collision detected between pair: " << cp.first
+                //           << " and " << cp.second << std::endl;
+            }
         }
     }
-    return false;
+    return false;  // Return false if no collisions are detected
 }
 
 void printGeometryIDs(const pinocchio::GeometryModel &geom_model)
