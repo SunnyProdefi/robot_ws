@@ -2,7 +2,7 @@
 #include <iostream>
 
 using namespace pinocchio;
-using namespace pinocchio::fcl;
+// using namespace pinocchio::fcl;
 
 // 定义全局变量
 Model model;
@@ -13,11 +13,17 @@ Eigen::VectorXd q_init_(28);
 
 void addObstacle(pinocchio::GeometryModel &geom_model)
 {
-    using namespace pinocchio;
+    // 创建障碍物的几何形状，立方体大小调整为 0.25 x 0.25 x 0.65
+    auto cube_shape = std::make_shared<hpp::fcl::Box>(250, 250, 600);
 
-    // 创建 Box 类型障碍物（单位: mm）
-    GeometryObject obstacle("cube_obstacle", 33, std::make_shared<Box>(0.25, 0.25, 0.6), SE3(Eigen::Matrix3d::Identity(), Eigen::Vector3d(0, 0.45, 0.3)));
-    obstacle.meshColor = Eigen::Vector4d(1.0, 0.0, 0.0, 1.0);
+    // 定义障碍物的位置和方向
+    Eigen::Matrix3d rot = Eigen::Matrix3d::Identity();  // 无旋转
+    Eigen::Vector3d trans(0, 450, 300);
+    pinocchio::SE3 placement(rot, trans);
+
+    // 创建并添加 GeometryObject
+    GeometryObject obstacle("cube_obstacle", 33, cube_shape, placement);
+    obstacle.meshColor = Eigen::Vector4d(1.0, 0.0, 0.0, 1.0);  // 颜色调整为纯红色, 透明度为1
     geom_model.addGeometryObject(obstacle);
 }
 
