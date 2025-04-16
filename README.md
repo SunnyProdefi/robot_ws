@@ -117,3 +117,14 @@ rosrun robot_common listen_tf
 > 下周完成所有材料准备，下下周安排一天完成组装与调试。
 
 更改control_flag == 2的插值点是leg_transform_cs.cpp和robot_planning.cpp
+
+robot_rrt
+third_party
+boost
+eigen3
+hppfcl:sudo apt-get install ros-noetic-hpp-fcl
+       2024.6.10：hpp-fcl 作者已将最新版 2.4.4 更新到 Ros Noetic 中，直接用上面的命令安装即可
+ompl:  git clone https://github.com/ompl/ompl.git
+pinocchio:
+urdfdom
+yaml-cpp
