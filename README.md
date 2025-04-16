@@ -125,6 +125,6 @@ eigen3
 hppfcl:sudo apt-get install ros-noetic-hpp-fcl
        2024.6.10：hpp-fcl 作者已将最新版 2.4.4 更新到 Ros Noetic 中，直接用上面的命令安装即可
 ompl:  git clone https://github.com/ompl/ompl.git
-pinocchio:
+pinocchio:sudo apt install robotpkg-py38-pinocchio
 urdfdom
 yaml-cpp
