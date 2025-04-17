@@ -24,54 +24,19 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   third_party/boost
-  third_party/coal
-  third_party/hppfcl
   third_party/eigen3
-  third_party/ompl
-  third_party/pinocchio
-  third_party/urdfdom
   third_party/yaml-cpp
 )
 
 set(core_libs
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/coal/libcoal.so
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/hppfcl/libhpp-fcl.so
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ompl/lin_x64/libompl.so
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pinocchio/libpinocchio_collision.so
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pinocchio/libpinocchio_default.so
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pinocchio/libpinocchio_parsers.so
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pinocchio/libpinocchio_casadi.so
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/urdfdom/liburdfdom_model_lin_x64.a
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/urdfdom/libtinyxml_lin_x64.a
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/urdfdom/libconsole_bridge_lin_x64.a
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/yaml-cpp/libyaml-cpp_lin_x64.so
 )
 
-set(CORE_SRC
-  src/BSplineInterpolator.cpp
-  src/robot_model.cpp
-)
-
-# URDFDOM（非标准 CMake 包，使用 find_library 手动查找）
-find_library(URDFDOM_MODEL_LIB urdfdom_model REQUIRED)
-find_library(URDFDOM_MODEL_STATE_LIB urdfdom_model_state REQUIRED)
-find_library(URDFDOM_SENSOR_LIB urdfdom_sensor REQUIRED)
-find_library(URDFDOM_WORLD_LIB urdfdom_world REQUIRED)
-
-set(URDFDOM_LIBRARIES
-  ${URDFDOM_MODEL_LIB}
-  ${URDFDOM_MODEL_STATE_LIB}
-  ${URDFDOM_SENSOR_LIB}
-  ${URDFDOM_WORLD_LIB}
-)
-
-add_library(core_rrt STATIC ${CORE_SRC})
-target_link_libraries(core_rrt ${core_libs} pthread)
-
-add_executable(dualArmRRT src/dualArmRRT.cpp)
-add_dependencies(dualArmRRT ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(dualArmRRT
+add_executable(rrt_cli src/rrt_cli.cpp)
+add_dependencies(rrt_cli ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(rrt_cli
   ${catkin_LIBRARIES}
-  core_rrt
-  ${URDFDOM_LIBRARIES}
+  ${core_libs}
+  pthread
 )
+
