@@ -159,19 +159,19 @@ int main(int argc, char** argv)
     joint_msg.position[JOINT4_5] = 0.494959;
     joint_msg.position[JOINT4_6] = 0.016244;
 
-    joint_msg.position[JOINT2_1] = 2.041711;
-    joint_msg.position[JOINT2_2] = -0.616538;
-    joint_msg.position[JOINT2_3] = 2.032447;
-    joint_msg.position[JOINT2_4] = -1.33452;
-    joint_msg.position[JOINT2_5] = 1.159544;
-    joint_msg.position[JOINT2_6] = -2.898303;
+    joint_msg.position[JOINT2_1] = -1.23754;
+    joint_msg.position[JOINT2_2] = -2.83752;
+    joint_msg.position[JOINT2_3] = -1.99311;
+    joint_msg.position[JOINT2_4] = -1.31756;
+    joint_msg.position[JOINT2_5] = -1.35178;
+    joint_msg.position[JOINT2_6] = -0.0869968;
 
-    joint_msg.position[JOINT3_1] = -2.041711;
-    joint_msg.position[JOINT3_2] = -0.616538;
-    joint_msg.position[JOINT3_3] = 2.032447;
-    joint_msg.position[JOINT3_4] = 1.33452;
-    joint_msg.position[JOINT3_5] = 1.159544;
-    joint_msg.position[JOINT3_6] = -0.24329;
+    joint_msg.position[JOINT3_1] = 0.962226;
+    joint_msg.position[JOINT3_2] = -2.83752;
+    joint_msg.position[JOINT3_3] = -1.99311;
+    joint_msg.position[JOINT3_4] = 1.09056;
+    joint_msg.position[JOINT3_5] = -1.18132;
+    joint_msg.position[JOINT3_6] = -2.98608;
 
     joint_msg.position[JOINT1_PLATLINK] = -0.847454;
     joint_msg.position[JOINT1_PLATLINK2] = -2.41825;

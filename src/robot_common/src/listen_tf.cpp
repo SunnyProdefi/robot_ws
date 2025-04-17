@@ -156,6 +156,7 @@ int main(int argc, char** argv)
         tf::StampedTransform tf_world_flan1, tf_world_flan4;
         tf::StampedTransform tf_base_link1_0, tf_base_link4_0;
         tf::StampedTransform tf_world_obj, tf_world_obj_1, tf_world_obj_2;
+        tf::StampedTransform tf_link2_0_flan2, tf_link3_0_flan3;
         try
         {
             listener.lookupTransform("world", "dummy_point3", ros::Time(0), transform);
@@ -169,6 +170,8 @@ int main(int argc, char** argv)
             listener.lookupTransform("world", "object", ros::Time(0), tf_world_obj);
             listener.lookupTransform("world", "object1", ros::Time(0), tf_world_obj_1);
             listener.lookupTransform("world", "object2", ros::Time(0), tf_world_obj_2);
+            listener.lookupTransform("Link2_0", "flan2", ros::Time(0), tf_link2_0_flan2);
+            listener.lookupTransform("Link3_0", "flan3", ros::Time(0), tf_link3_0_flan3);
 
             Eigen::Matrix4f transform_matrix = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f transform_matrix2 = Eigen::Matrix4f::Identity();
@@ -181,6 +184,8 @@ int main(int argc, char** argv)
             Eigen::Matrix4f tf_mat_world_obj = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f tf_mat_world_obj_1 = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f tf_mat_world_obj_2 = Eigen::Matrix4f::Identity();
+            Eigen::Matrix4f tf_mat_link2_0_flan2 = Eigen::Matrix4f::Identity();
+            Eigen::Matrix4f tf_mat_link3_0_flan3 = Eigen::Matrix4f::Identity();
 
             tf::Matrix3x3 rotation_matrix(transform.getRotation());
             tf::Matrix3x3 rotation_matrix2(transform2.getRotation());
@@ -193,6 +198,8 @@ int main(int argc, char** argv)
             tf::Matrix3x3 rot_mat_world_obj(tf_world_obj.getRotation());
             tf::Matrix3x3 rot_mat_world_obj_1(tf_world_obj_1.getRotation());
             tf::Matrix3x3 rot_mat_world_obj_2(tf_world_obj_2.getRotation());
+            tf::Matrix3x3 rot_mat_link2_0_flan2(tf_link2_0_flan2.getRotation());
+            tf::Matrix3x3 rot_mat_link3_0_flan3(tf_link3_0_flan3.getRotation());
 
             for (int i = 0; i < 3; ++i)
             {
@@ -209,6 +216,8 @@ int main(int argc, char** argv)
                     tf_mat_world_obj(i, j) = rot_mat_world_obj[i][j];
                     tf_mat_world_obj_1(i, j) = rot_mat_world_obj_1[i][j];
                     tf_mat_world_obj_2(i, j) = rot_mat_world_obj_2[i][j];
+                    tf_mat_link2_0_flan2(i, j) = rot_mat_link2_0_flan2[i][j];
+                    tf_mat_link3_0_flan3(i, j) = rot_mat_link3_0_flan3[i][j];
                 }
             }
 
@@ -256,6 +265,14 @@ int main(int argc, char** argv)
             tf_mat_world_obj_2(1, 3) = tf_world_obj_2.getOrigin().y();
             tf_mat_world_obj_2(2, 3) = tf_world_obj_2.getOrigin().z();
 
+            tf_mat_link2_0_flan2(0, 3) = tf_link2_0_flan2.getOrigin().x();
+            tf_mat_link2_0_flan2(1, 3) = tf_link2_0_flan2.getOrigin().y();
+            tf_mat_link2_0_flan2(2, 3) = tf_link2_0_flan2.getOrigin().z();
+
+            tf_mat_link3_0_flan3(0, 3) = tf_link3_0_flan3.getOrigin().x();
+            tf_mat_link3_0_flan3(1, 3) = tf_link3_0_flan3.getOrigin().y();
+            tf_mat_link3_0_flan3(2, 3) = tf_link3_0_flan3.getOrigin().z();
+
             saveTransformToYAML(yaml_path, transform_matrix, transform_matrix2);
             saveTransformToYAML(path_tf_double_arm_float, transform_matrix, transform_matrix2);
             saveTFToYAML(path_tf_using, tf_mat_world_flan1, "tf_mat_world_flan1");
@@ -264,6 +281,8 @@ int main(int argc, char** argv)
             saveTFToYAML(path_tf_using, tf_mat_base_link4_0, "tf_mat_base_link4_0");
             saveTFToYAML(path_tf_using, tf_mat_base_link2_0, "tf_mat_base_link2_0");
             saveTFToYAML(path_tf_using, tf_mat_base_link3_0, "tf_mat_base_link3_0");
+            saveTFToYAML(path_tf_using, tf_mat_link2_0_flan2, "tf_mat_link2_0_flan2");
+            saveTFToYAML(path_tf_using, tf_mat_link3_0_flan3, "tf_mat_link3_0_flan3");
 
             saveTFToYAML(path_tf_obj, tf_mat_base_link1_0, "tf_mat_base_link1_0");
             saveTFToYAML(path_tf_obj, tf_mat_base_link2_0, "tf_mat_base_link2_0");
