@@ -2,6 +2,9 @@
 #include <sensor_msgs/JointState.h>
 #include <string>
 #include <array>
+#include <yaml-cpp/yaml.h>
+#include <fstream>
+#include <ros/package.h>
 
 // 用枚举来给 41 个关节分配索引 ID，方便快速访问
 enum JointID : int
@@ -113,6 +116,30 @@ static const std::array<std::string, JOINT_COUNT> JOINT_NAMES = {
     /* JOINT4_PLATLINK2 */ "Joint4_platlink2",
 };
 
+// 工具函数（如前所述）：
+bool load_branch_angles(const YAML::Node& root, const std::string& branch_name, sensor_msgs::JointState& joint_msg, const std::vector<int>& joint_ids)
+{
+    if (!root[branch_name])
+    {
+        ROS_WARN_STREAM("No joint data for " << branch_name);
+        return false;
+    }
+
+    const YAML::Node& angles = root[branch_name];
+    if (angles.size() != joint_ids.size())
+    {
+        ROS_ERROR_STREAM("Mismatch size in " << branch_name << ": expected " << joint_ids.size() << ", got " << angles.size());
+        return false;
+    }
+
+    for (size_t i = 0; i < joint_ids.size(); ++i)
+    {
+        joint_msg.position[joint_ids[i]] = angles[i].as<double>();
+    }
+
+    return true;
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "init_angle_pub");
@@ -138,40 +165,22 @@ int main(int argc, char** argv)
     joint_msg.position[JOINT3_0] = 1.5708;  // Body_displace
     joint_msg.position[JOINT4_0] = 1.5708;  // Body_displace
 
-    // joint_msg.position[JOINT1_1] = 1.597727;
-    // joint_msg.position[JOINT1_2] = 0.295055;
-    // joint_msg.position[JOINT1_3] = 2.156446;
-    // joint_msg.position[JOINT1_4] = 0.040097;
-    // joint_msg.position[JOINT1_5] = 0.494959;
-    // joint_msg.position[JOINT1_6] = 3.125349;
+    // 1. 加载 YAML 文件
+    // yaml路径
+    std::string init_angles_path = ros::package::getPath("robot_control") + "/config/init_angles.yaml";
+    YAML::Node config = YAML::LoadFile(init_angles_path);
 
-    joint_msg.position[JOINT1_1] = 1.597727;
-    joint_msg.position[JOINT1_2] = 0.295055;
-    joint_msg.position[JOINT1_3] = 2.156446;
-    joint_msg.position[JOINT1_4] = 3.101495;
-    joint_msg.position[JOINT1_5] = -0.494894;
-    joint_msg.position[JOINT1_6] = -0.016370;
+    // 2. 定义每个分支对应的关节 ID（JOINTx_1 ~ JOINTx_6）
+    std::vector<int> branch1_ids = {JOINT1_1, JOINT1_2, JOINT1_3, JOINT1_4, JOINT1_5, JOINT1_6};
+    std::vector<int> branch2_ids = {JOINT2_1, JOINT2_2, JOINT2_3, JOINT2_4, JOINT2_5, JOINT2_6};
+    std::vector<int> branch3_ids = {JOINT3_1, JOINT3_2, JOINT3_3, JOINT3_4, JOINT3_5, JOINT3_6};
+    std::vector<int> branch4_ids = {JOINT4_1, JOINT4_2, JOINT4_3, JOINT4_4, JOINT4_5, JOINT4_6};
 
-    joint_msg.position[JOINT4_1] = -1.597727;
-    joint_msg.position[JOINT4_2] = 0.295055;
-    joint_msg.position[JOINT4_3] = 2.156446;
-    joint_msg.position[JOINT4_4] = -0.040097;
-    joint_msg.position[JOINT4_5] = 0.494959;
-    joint_msg.position[JOINT4_6] = 0.016244;
-
-    joint_msg.position[JOINT2_1] = -1.23754;
-    joint_msg.position[JOINT2_2] = -2.83752;
-    joint_msg.position[JOINT2_3] = -1.99311;
-    joint_msg.position[JOINT2_4] = -1.31756;
-    joint_msg.position[JOINT2_5] = -1.35178;
-    joint_msg.position[JOINT2_6] = -0.0869968;
-
-    joint_msg.position[JOINT3_1] = 0.962226;
-    joint_msg.position[JOINT3_2] = -2.83752;
-    joint_msg.position[JOINT3_3] = -1.99311;
-    joint_msg.position[JOINT3_4] = 1.09056;
-    joint_msg.position[JOINT3_5] = -1.18132;
-    joint_msg.position[JOINT3_6] = -2.98608;
+    // 3. 加载四个分支的角度到 joint_msg
+    load_branch_angles(config, "branch1", joint_msg, branch1_ids);
+    load_branch_angles(config, "branch2", joint_msg, branch2_ids);
+    load_branch_angles(config, "branch3", joint_msg, branch3_ids);
+    load_branch_angles(config, "branch4", joint_msg, branch4_ids);
 
     joint_msg.position[JOINT1_PLATLINK] = -0.847454;
     joint_msg.position[JOINT1_PLATLINK2] = -2.41825;

@@ -1080,7 +1080,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 6;
+                control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;

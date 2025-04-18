@@ -255,4 +255,5 @@ add_executable(init_angle_pub src/init_angle_pub.cpp)
 
 target_link_libraries(init_angle_pub
    ${catkin_LIBRARIES}
+   yaml-cpp
 )

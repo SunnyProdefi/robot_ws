@@ -59,17 +59,19 @@ private:
             // 如果关节角度在限位内，则进行第4个关节的归一化处理
             if (within_limits)
             {
-                // 获取第4个关节角度（index = 3）
-                size_t joint4_index = 3;
-                if (joint4_index < solution.size())
-                {
-                    float joint4_angle = solution[joint4_index];
+                std::vector<size_t> normalize_indices = {3, 5};  // 对应 Joint4 和 Joint6
 
-                    // ✅ 判断是否接近 ±π，若是则归一化
-                    if (std::abs(std::abs(joint4_angle) - static_cast<float>(M_PI)) < 1.0f)
+                for (size_t joint_index : normalize_indices)
+                {
+                    if (joint_index < solution.size())
                     {
-                        float normalized = normalizeAngle(joint4_angle);
-                        solution[joint4_index] = normalized;
+                        float angle = solution[joint_index];
+
+                        // 若超出 ±π 或接近 ±π，归一化
+                        if (std::abs(angle) > M_PI || std::abs(std::abs(angle) - M_PI) < 0.8f)
+                        {
+                            solution[joint_index] = normalizeAngle(angle);
+                        }
                     }
                 }
 
@@ -373,9 +375,52 @@ private:
         // 保存 YAML 文件
         // ==========================
         std::string save_path = "/home/prodefi/github/robot_ws/src/robot_planning/config/ik_solutions.yaml";
+        YAML::Emitter out;
+        out.SetIndent(2);
+        out.SetMapFormat(YAML::Block);
+        out.SetSeqFormat(YAML::Block);  // 默认 block，但我们单独设置数组为 flow
+        out << YAML::BeginMap;
+        out << YAML::Key << "waypoints" << YAML::Value << YAML::BeginSeq;
+
+        for (const auto& wp : yaml_doc["waypoints"])
+        {
+            out << YAML::BeginMap;
+
+            for (const auto& keyval : wp)
+            {
+                std::string key = keyval.first.as<std::string>();
+                out << YAML::Key << key;
+
+                // 单独处理数组，设置为 Flow
+                if (key == "joint_angles" || key == "best_solution" || key == "interpolated_from")
+                {
+                    out << YAML::Value << YAML::Flow << keyval.second;
+                }
+                else if (key == "all_solutions")
+                {
+                    out << YAML::Value << YAML::BeginSeq;
+                    for (const auto& sol : keyval.second)
+                    {
+                        out << YAML::Flow << sol;
+                    }
+                    out << YAML::EndSeq;
+                }
+                else
+                {
+                    out << YAML::Value << keyval.second;
+                }
+            }
+
+            out << YAML::EndMap;
+        }
+
+        out << YAML::EndSeq;
+        out << YAML::EndMap;
+
         std::ofstream fout(save_path);
-        fout << yaml_doc;
+        fout << out.c_str();
         fout.close();
+
         ROS_INFO_STREAM("IK solutions saved to: " << save_path);
 
         // ==========================
