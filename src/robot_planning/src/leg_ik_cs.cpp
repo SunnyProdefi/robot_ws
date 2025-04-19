@@ -74,11 +74,13 @@ namespace robot_planning
         return all_poses;
     }
 
-    // 将角度归一化到 [0, 2π)
-    float normalizeAngle(float angle)
+    float normalizeAngleToNearest(float angle, float reference)
     {
         const float TWO_PI = 2.0f * static_cast<float>(M_PI);
-        return fmod(angle + TWO_PI, TWO_PI);
+        float diff = angle - reference;
+        while (diff > M_PI) diff -= TWO_PI;
+        while (diff < -M_PI) diff += TWO_PI;
+        return reference + diff;
     }
 
     // 欧几里得距离计算
@@ -96,7 +98,7 @@ namespace robot_planning
     // 计算所有解，并找到最优解（并对第4个关节归一化后替换原数据）
     std::pair<std::vector<std::vector<float>>, std::vector<float>> findAllSolutions(std::vector<float>& ik_results,       // 输入所有 IK 解的一维向量
                                                                                     const std::vector<float>& initial_q,  // 初始关节角
-                                                                                    size_t num_joints                     // 关节数量
+                                                                                    size_t num_joints                     // 每组解中关节数量
     )
     {
         std::vector<std::vector<float>> all_solutions;
@@ -105,29 +107,26 @@ namespace robot_planning
 
         for (size_t i = 0; i < ik_results.size(); i += num_joints)
         {
-            // 索引安全检查
+            // 安全性检查
             if (i + num_joints > ik_results.size())
                 break;
 
-            // 获取第4个关节角度（index = 3）
-            size_t joint4_index = i + 3;
-            if (joint4_index < ik_results.size())
-            {
-                float joint4_angle = ik_results[joint4_index];
+            // 构造当前解
+            std::vector<float> solution(ik_results.begin() + i, ik_results.begin() + i + num_joints);
 
-                // ✅ 判断是否接近 ±π，若是则归一化
-                if (std::abs(std::abs(joint4_angle) - static_cast<float>(M_PI)) < 1.0f)
+            // ✅ 对周期性关节（如 joint 4 和 6）做相对归一化处理
+            std::vector<size_t> wrap_indices = {3, 5};  // 4号和6号关节
+            for (size_t joint_index : wrap_indices)
+            {
+                if (joint_index < solution.size() && joint_index < initial_q.size())
                 {
-                    float normalized = normalizeAngle(joint4_angle);
-                    ik_results[joint4_index] = normalized;
+                    solution[joint_index] = normalizeAngleToNearest(solution[joint_index], initial_q[joint_index]);
                 }
             }
 
-            // 构造当前解
-            std::vector<float> solution(ik_results.begin() + i, ik_results.begin() + i + num_joints);
             all_solutions.push_back(solution);
 
-            // 计算距离并判断是否为最优解
+            // ✅ 距离判断
             float distance = calculateDistance(initial_q, solution);
             if (distance < min_distance)
             {

@@ -38,14 +38,9 @@ private:
 
         for (size_t i = 0; i < ik_results.size(); i += num_joints)
         {
-            // 索引安全检查
-            if (i + num_joints > ik_results.size())
-                break;
-
-            // 构造当前解
             std::vector<float> solution(ik_results.begin() + i, ik_results.begin() + i + num_joints);
 
-            // 检查所有关节是否在限位内
+            // 检查是否在限位内
             bool within_limits = true;
             for (size_t j = 0; j < solution.size(); ++j)
             {
@@ -56,28 +51,20 @@ private:
                 }
             }
 
-            // 如果关节角度在限位内，则进行第4个关节的归一化处理
             if (within_limits)
             {
-                std::vector<size_t> normalize_indices = {3, 5};  // 对应 Joint4 和 Joint6
-
+                // ✅ 对周期关节做归一化处理
+                std::vector<size_t> normalize_indices = {3, 5};
                 for (size_t joint_index : normalize_indices)
                 {
-                    if (joint_index < solution.size())
+                    if (joint_index < solution.size() && joint_index < initial_q.size())
                     {
-                        float angle = solution[joint_index];
-
-                        // 若超出 ±π 或接近 ±π，归一化
-                        if (std::abs(angle) > M_PI || std::abs(std::abs(angle) - M_PI) < 0.8f)
-                        {
-                            solution[joint_index] = normalizeAngle(angle);
-                        }
+                        solution[joint_index] = normalizeAngleToNearest(solution[joint_index], initial_q[joint_index]);
                     }
                 }
 
                 all_solutions.push_back(solution);
 
-                // 计算距离并判断是否为最优解
                 float distance = calculateDistance(initial_q, solution);
                 if (distance < min_distance)
                 {
@@ -102,11 +89,16 @@ private:
         return std::sqrt(distance);
     }
 
-    // 将角度归一化到 [0, 2π)
-    float normalizeAngle(float angle)
+    // 归一化 angle 到以 reference 为中心的最近等效角度
+    float normalizeAngleToNearest(float angle, float reference)
     {
         const float TWO_PI = 2.0f * static_cast<float>(M_PI);
-        return fmod(angle + TWO_PI, TWO_PI);
+        float diff = angle - reference;
+
+        while (diff > M_PI) diff -= TWO_PI;
+        while (diff < -M_PI) diff += TWO_PI;
+
+        return reference + diff;
     }
 
     // 四元数球面线性插值

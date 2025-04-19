@@ -151,10 +151,10 @@ namespace robot_planning
 
         /**
          *  分阶段插值:
-         *  stage0: z方向
-         *  stage1: x方向
-         *  stage2: y方向
-         *  stage3: 旋转
+         *  stage0: x方向
+         *  stage1: y方向
+         *  stage2: 旋转
+         *  stage3: z方向
          */
         for (int stage = 0; stage < 4; ++stage)
         {
@@ -164,23 +164,23 @@ namespace robot_planning
 
                 if (stage == 0)
                 {
-                    // 插值Z
-                    pos_current.z() = (1 - t) * pos_init.z() + t * pos_goal.z();
-                }
-                else if (stage == 1)
-                {
                     // 插值X
                     pos_current.x() = (1 - t) * pos_init.x() + t * pos_goal.x();
                 }
-                else if (stage == 2)
+                else if (stage == 1)
                 {
                     // 插值Y
                     pos_current.y() = (1 - t) * pos_init.y() + t * pos_goal.y();
                 }
-                else if (stage == 3)
+                else if (stage == 2)
                 {
                     // 插值旋转 (四元数slerp)
                     q_current = q_init.slerp(t, q_goal);
+                }
+                else if (stage == 3)
+                {
+                    // 插值Z
+                    pos_current.z() = (1 - t) * pos_init.z() + t * pos_goal.z();
                 }
 
                 // 组装矩阵

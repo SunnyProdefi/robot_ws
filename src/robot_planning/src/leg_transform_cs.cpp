@@ -137,8 +137,8 @@ namespace robot_planning
         gold_tf_mat_world_base.block<3, 1>(0, 3) = pos_world_base_gold;
 
         std::vector<Eigen::Matrix4f> interpolated_poses;
-        int point_per_stage = 150;
-        int point = 600;
+        int point_per_stage = 1500;
+        int point = 6000;
 
         // 初始与目标位置/旋转
         Eigen::Vector3f pos_init = init_tf_mat_world_base.block<3, 1>(0, 3);
@@ -152,19 +152,7 @@ namespace robot_planning
         Eigen::Vector3f pos_current = pos_init;
         Eigen::Quaternionf q_current = q_init;
 
-        // 阶段1：插值 Z
-        for (int i = 0; i < point_per_stage; ++i)
-        {
-            float t = static_cast<float>(i) / (point_per_stage - 1);
-            pos_current.z() = (1 - t) * pos_init.z() + t * pos_gold.z();
-
-            Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
-            tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();
-            tf.block<3, 1>(0, 3) = pos_current;
-            interpolated_poses.push_back(tf);
-        }
-
-        // 阶段2：插值 X
+        // 阶段1：插值 X
         for (int i = 0; i < point_per_stage; ++i)
         {
             float t = static_cast<float>(i) / (point_per_stage - 1);
@@ -176,7 +164,7 @@ namespace robot_planning
             interpolated_poses.push_back(tf);
         }
 
-        // 阶段3：插值 Y
+        // 阶段2：插值 Y
         for (int i = 0; i < point_per_stage; ++i)
         {
             float t = static_cast<float>(i) / (point_per_stage - 1);
@@ -188,7 +176,7 @@ namespace robot_planning
             interpolated_poses.push_back(tf);
         }
 
-        // 阶段4：插值旋转（SLERP）
+        // 阶段3：插值旋转（SLERP）
         for (int i = 0; i < point_per_stage; ++i)
         {
             float t = static_cast<float>(i) / (point_per_stage - 1);
@@ -196,7 +184,19 @@ namespace robot_planning
 
             Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
             tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();
-            tf.block<3, 1>(0, 3) = pos_current;  // 平移保持最终状态
+            tf.block<3, 1>(0, 3) = pos_current;  // 平移保持前两阶段插值后的结果
+            interpolated_poses.push_back(tf);
+        }
+
+        // 阶段4：插值 Z
+        for (int i = 0; i < point_per_stage; ++i)
+        {
+            float t = static_cast<float>(i) / (point_per_stage - 1);
+            pos_current.z() = (1 - t) * pos_init.z() + t * pos_gold.z();
+
+            Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+            tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();  // 保持最终旋转
+            tf.block<3, 1>(0, 3) = pos_current;
             interpolated_poses.push_back(tf);
         }
 

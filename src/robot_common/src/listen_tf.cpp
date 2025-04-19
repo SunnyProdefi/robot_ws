@@ -16,54 +16,81 @@ std::string robot_common_path = ros::package::getPath("robot_control");
 std::string path_tf_obj = robot_common_path + "/config/common_tf.yaml";
 
 std::string robot_planning_path = ros::package::getPath("robot_planning");
-std::string path_tf_double_arm_float = robot_planning_path + "/config/tf_double_arm_float.yaml";
+std::string path_tf_double_arm_float = robot_planning_path + "/config/ik_urdf_double_arm_float.yaml";
+
+#include <yaml-cpp/yaml.h>
+#include <Eigen/Dense>
+#include <fstream>
+#include <ros/ros.h>
 
 void saveTransformToYAML(const std::string& filename, const Eigen::Matrix4f& transform_matrix_L, const Eigen::Matrix4f& transform_matrix_R)
 {
-    YAML::Emitter out;
-    out << YAML::BeginMap;
+    YAML::Node root;
 
-    // 写入 target_pose_R
-    out << YAML::Key << "target_pose_R" << YAML::Value << YAML::BeginMap;
-    out << YAML::Key << "position" << YAML::Value << YAML::Flow << YAML::BeginSeq << transform_matrix_R(0, 3) << transform_matrix_R(1, 3) << transform_matrix_R(2, 3) << YAML::EndSeq;
-    out << YAML::Key << "orientation" << YAML::Value << YAML::BeginSeq;
+    // ✅ 尝试读取已有文件
+    std::ifstream file_in(filename);
+    if (file_in.is_open())
+    {
+        try
+        {
+            root = YAML::Load(file_in);
+        }
+        catch (const YAML::Exception& e)
+        {
+            ROS_WARN_STREAM("Failed to load existing YAML, creating new file. Error: " << e.what());
+            root = YAML::Node();
+        }
+        file_in.close();
+    }
+
+    // ✅ target_pose_R
+    YAML::Node position_R;
+    position_R.push_back(transform_matrix_R(0, 3));
+    position_R.push_back(transform_matrix_R(1, 3));
+    position_R.push_back(transform_matrix_R(2, 3));
+    position_R.SetStyle(YAML::EmitterStyle::Flow);
+
+    YAML::Node orientation_R;
     for (int i = 0; i < 3; ++i)
     {
-        out << YAML::Flow << YAML::BeginSeq;
-        for (int j = 0; j < 3; ++j)
-        {
-            out << transform_matrix_R(i, j);
-        }
-        out << YAML::EndSeq;
+        YAML::Node row;
+        for (int j = 0; j < 3; ++j) row.push_back(transform_matrix_R(i, j));
+        row.SetStyle(YAML::EmitterStyle::Flow);
+        orientation_R.push_back(row);
     }
-    out << YAML::EndSeq;
-    out << YAML::EndMap;
 
-    // 写入 target_pose_L
-    out << YAML::Key << "target_pose_L" << YAML::Value << YAML::BeginMap;
-    out << YAML::Key << "position" << YAML::Value << YAML::Flow << YAML::BeginSeq << transform_matrix_L(0, 3) << transform_matrix_L(1, 3) << transform_matrix_L(2, 3) << YAML::EndSeq;
-    out << YAML::Key << "orientation" << YAML::Value << YAML::BeginSeq;
+    root["target_pose_R"]["position"] = position_R;
+    root["target_pose_R"]["orientation"] = orientation_R;
+
+    // ✅ target_pose_L
+    YAML::Node position_L;
+    position_L.push_back(transform_matrix_L(0, 3));
+    position_L.push_back(transform_matrix_L(1, 3));
+    position_L.push_back(transform_matrix_L(2, 3));
+    position_L.SetStyle(YAML::EmitterStyle::Flow);
+
+    YAML::Node orientation_L;
     for (int i = 0; i < 3; ++i)
     {
-        out << YAML::Flow << YAML::BeginSeq;
-        for (int j = 0; j < 3; ++j)
-        {
-            out << transform_matrix_L(i, j);
-        }
-        out << YAML::EndSeq;
+        YAML::Node row;
+        for (int j = 0; j < 3; ++j) row.push_back(transform_matrix_L(i, j));
+        row.SetStyle(YAML::EmitterStyle::Flow);
+        orientation_L.push_back(row);
     }
-    out << YAML::EndSeq;
-    out << YAML::EndMap;
 
-    out << YAML::EndMap;
+    root["target_pose_L"]["position"] = position_L;
+    root["target_pose_L"]["orientation"] = orientation_L;
 
-    // 直接覆盖文件，避免重复数据
-    std::ofstream file(filename, std::ios::out | std::ios::trunc);
-    if (file.is_open())
+    // ✅ 写回文件
+    std::ofstream file_out(filename, std::ios::out | std::ios::trunc);
+    if (file_out.is_open())
     {
-        file << out.c_str();
-        file.close();
-        ROS_INFO_STREAM("Saved latest transformation to " << filename);
+        YAML::Emitter out;
+        out.SetIndent(2);  // 可选美化缩进
+        out << root;
+        file_out << out.c_str();
+        file_out.close();
+        ROS_INFO_STREAM("Saved target_pose_R and target_pose_L to " << filename);
     }
     else
     {

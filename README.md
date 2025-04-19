@@ -116,7 +116,14 @@ rosrun robot_common listen_tf
 > **进度计划**：  
 > 下周完成所有材料准备，下下周安排一天完成组装与调试。
 
-更改control_flag == 2的插值点是leg_transform_cs.cpp和robot_planning.cpp
+更改control_flag == 2的插值点是
+leg_transform_cs.cpp中的:
+int point_per_stage = 1500;
+int point = 6000;
+和robot_planning.cpp中:
+std::vector<std::vector<double>> joint_angles(6000, std::vector<double>(24, 0.0));
+std::vector<Eigen::Matrix4f> base_sequence = robot_planning::interpolateFloatingBase(init_floating_base_file, gold_floating_base_file, 1500);
+
 
 robot_rrt
 third_party
@@ -128,3 +135,6 @@ ompl:  git clone https://github.com/ompl/ompl.git
 pinocchio:sudo apt install robotpkg-py38-pinocchio
 urdfdom
 yaml-cpp
+
+Q:
+1.单臂抓取步骤3和4中出现奇异的位姿,动作不流畅

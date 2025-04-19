@@ -101,7 +101,12 @@
         "semaphore": "cpp",
         "filesystem": "cpp",
         "alignedvector3": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "charconv": "cpp",
+        "coroutine": "cpp",
+        "cuchar": "cpp",
+        "netfwd": "cpp",
+        "source_location": "cpp"
     },
     "commentTranslate.hover.enabled": true
 }
