@@ -6,6 +6,7 @@
 #include <robot_planning/PlanPath.h>
 #include <robot_planning/RobotPose.h>
 #include <robot_planning/CartesianInterpolation.h>
+#include <robot_planning/SynchronizedCartesianInterpolation.h>
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 #include "motor_driver.h"
@@ -276,9 +277,13 @@ int main(int argc, char **argv)
     // 创建插值服务客户端
     ros::ServiceClient interp_client = nh.serviceClient<robot_planning::CartesianInterpolation>("/cartesian_interpolation");
 
+    // 创建同步插值服务客户端
+    ros::ServiceClient sync_interpolation_client = nh.serviceClient<robot_planning::SynchronizedCartesianInterpolation>("synchronized_cartesian_interpolation");
+
     // control_flag = 0 读取上电状态
     // control_flag = 1 运动到初始状态
     // control_flag = 2 抓取演示
+    // control_flag = 12 同步插值
 
     ros::Rate loop_rate(200);  // 200Hz
 
@@ -583,9 +588,9 @@ int main(int argc, char **argv)
 
                 // 读取YAML中的世界→物体，base→link2_0 变换
                 Eigen::Matrix4d tf_mat_world_obj = loadTransformFromYAML(common_tf_path, "tf_mat_world_obj");
-                std::cout << "tf_mat_world_obj:\n" << tf_mat_world_obj << std::endl;
+                // std::cout << "tf_mat_world_obj:\n" << tf_mat_world_obj << std::endl;
                 Eigen::Matrix4d tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
-                std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link2_0 << std::endl;
+                // std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link2_0 << std::endl;
 
                 // 构造世界→base
                 Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
@@ -605,9 +610,9 @@ int main(int argc, char **argv)
                 // link2_0 → obj
                 Eigen::Matrix4d tf_mat_link2_0_obj = tf_mat_base_link2_0.inverse() * tf_mat_base_obj;
 
-                std::cout << "tf_mat_world_base:\n" << tf_mat_world_base << std::endl;
-                std::cout << "tf_mat_base_obj:\n" << tf_mat_base_obj << std::endl;
-                std::cout << "tf_mat_link2_0_obj:\n" << tf_mat_link2_0_obj << std::endl;
+                // std::cout << "tf_mat_world_base:\n" << tf_mat_world_base << std::endl;
+                // std::cout << "tf_mat_base_obj:\n" << tf_mat_base_obj << std::endl;
+                // std::cout << "tf_mat_link2_0_obj:\n" << tf_mat_link2_0_obj << std::endl;
 
                 // 请求获取分支2末端的位姿（相对于link2_0)）（link2_0 -> flan2）
                 robot_planning::RobotPose srv;
@@ -624,9 +629,9 @@ int main(int argc, char **argv)
                     if (srv.response.success)
                     {
                         std::vector<double> transform = srv.response.transform;
-                        std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
-                        std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
-                        std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
 
                         // 用 position 和 quaternion 构造 Eigen::Isometry3d
                         Eigen::Vector3d position(transform[0], transform[1], transform[2]);
@@ -639,7 +644,7 @@ int main(int argc, char **argv)
 
                         // 转换为 Matrix4d 显示
                         tf_mat_link3_0_flan3 = tf_iso.matrix();
-                        std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
                     }
                     else
                     {
@@ -822,9 +827,9 @@ int main(int argc, char **argv)
                     if (srv.response.success)
                     {
                         std::vector<double> transform = srv.response.transform;
-                        std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
-                        std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
-                        std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
 
                         // 用 position 和 quaternion 构造 Eigen::Isometry3d
                         Eigen::Vector3d position(transform[0], transform[1], transform[2]);
@@ -837,7 +842,7 @@ int main(int argc, char **argv)
 
                         // 转换为 Matrix4d 显示
                         tf_mat_link2_0_flan2 = tf_iso.matrix();
-                        std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link2_0_flan2 << std::endl;
+                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link2_0_flan2 << std::endl;
                     }
                     else
                     {
@@ -849,7 +854,7 @@ int main(int argc, char **argv)
                     std::cerr << "Failed to call service /robot_pose" << std::endl;
                 }
 
-                std::cout << "tf_mat_link2_0_flan2:\n" << tf_mat_link2_0_flan2 << std::endl;
+                // std::cout << "tf_mat_link2_0_flan2:\n" << tf_mat_link2_0_flan2 << std::endl;
 
                 Eigen::Matrix4d tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2;
 
@@ -860,7 +865,7 @@ int main(int argc, char **argv)
                 // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
                 tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2 * translation;
 
-                std::cout << "tf_mat_link2_0_flan2_goal:\n" << tf_mat_link2_0_flan2_goal << std::endl;
+                // std::cout << "tf_mat_link2_0_flan2_goal:\n" << tf_mat_link2_0_flan2_goal << std::endl;
 
                 // 获取变换矩阵中的位置和四元数
                 Eigen::Vector3d position = tf_mat_link2_0_flan2_goal.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
@@ -1026,9 +1031,9 @@ int main(int argc, char **argv)
 
                 // 读取YAML中的世界→物体，base→link2_0 变换
                 Eigen::Matrix4d tf_mat_world_obj_1 = loadTransformFromYAML(common_tf_path, "tf_mat_world_obj_1");
-                std::cout << "tf_mat_world_obj:\n" << tf_mat_world_obj_1 << std::endl;
+                // std::cout << "tf_mat_world_obj:\n" << tf_mat_world_obj_1 << std::endl;
                 Eigen::Matrix4d tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
-                std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link2_0 << std::endl;
+                // std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link2_0 << std::endl;
 
                 // 构造世界→base
                 Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
@@ -1048,9 +1053,9 @@ int main(int argc, char **argv)
                 // link2_0 → obj1
                 Eigen::Matrix4d tf_mat_link3_0_flan3_goal = tf_mat_base_link2_0.inverse() * tf_mat_base_obj_1;
 
-                std::cout << "tf_mat_world_base:\n" << tf_mat_world_base << std::endl;
-                std::cout << "tf_mat_base_obj:\n" << tf_mat_base_obj_1 << std::endl;
-                std::cout << "tf_mat_link2_0_obj:\n" << tf_mat_link3_0_flan3_goal << std::endl;
+                // std::cout << "tf_mat_world_base:\n" << tf_mat_world_base << std::endl;
+                // std::cout << "tf_mat_base_obj:\n" << tf_mat_base_obj_1 << std::endl;
+                // std::cout << "tf_mat_link2_0_obj:\n" << tf_mat_link3_0_flan3_goal << std::endl;
 
                 // 请求获取分支2末端的位姿（相对于link2_0)）（link2_0 -> flan2）
                 robot_planning::RobotPose srv;
@@ -1067,9 +1072,9 @@ int main(int argc, char **argv)
                     if (srv.response.success)
                     {
                         std::vector<double> transform = srv.response.transform;
-                        std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
-                        std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
-                        std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
 
                         // 用 position 和 quaternion 构造 Eigen::Isometry3d
                         Eigen::Vector3d position(transform[0], transform[1], transform[2]);
@@ -1082,7 +1087,7 @@ int main(int argc, char **argv)
 
                         // 转换为 Matrix4d 显示
                         tf_mat_link3_0_flan3 = tf_iso.matrix();
-                        std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
                     }
                     else
                     {
@@ -1271,9 +1276,9 @@ int main(int argc, char **argv)
                     if (srv.response.success)
                     {
                         std::vector<double> transform = srv.response.transform;
-                        std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
-                        std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
-                        std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
 
                         // 用 position 和 quaternion 构造 Eigen::Isometry3d
                         Eigen::Vector3d position(transform[0], transform[1], transform[2]);
@@ -1286,7 +1291,7 @@ int main(int argc, char **argv)
 
                         // 转换为 Matrix4d 显示
                         tf_mat_link3_0_flan3 = tf_iso.matrix();
-                        std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
                     }
                     else
                     {
@@ -1298,7 +1303,7 @@ int main(int argc, char **argv)
                     std::cerr << "Failed to call service /robot_pose" << std::endl;
                 }
 
-                std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+                // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
 
                 Eigen::Matrix4d tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3;
 
@@ -1309,7 +1314,7 @@ int main(int argc, char **argv)
                 // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
                 tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3 * translation;
 
-                std::cout << "tf_mat_link3_0_flan3_goal:\n" << tf_mat_link3_0_flan3_goal << std::endl;
+                // std::cout << "tf_mat_link3_0_flan3_goal:\n" << tf_mat_link3_0_flan3_goal << std::endl;
 
                 // 获取变换矩阵中的位置和四元数
                 Eigen::Vector3d position = tf_mat_link3_0_flan3_goal.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
@@ -1488,9 +1493,9 @@ int main(int argc, char **argv)
                     if (srv.response.success)
                     {
                         std::vector<double> transform = srv.response.transform;
-                        std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
-                        std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
-                        std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
 
                         // 用 position 和 quaternion 构造 Eigen::Isometry3d
                         Eigen::Vector3d position(transform[0], transform[1], transform[2]);
@@ -1503,7 +1508,7 @@ int main(int argc, char **argv)
 
                         // 转换为 Matrix4d 显示
                         tf_mat_link2_0_flan2 = tf_iso.matrix();
-                        std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link2_0_flan2 << std::endl;
+                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link2_0_flan2 << std::endl;
                     }
                     else
                     {
@@ -1515,7 +1520,7 @@ int main(int argc, char **argv)
                     std::cerr << "Failed to call service /robot_pose" << std::endl;
                 }
 
-                std::cout << "tf_mat_link2_0_flan2:\n" << tf_mat_link2_0_flan2 << std::endl;
+                // std::cout << "tf_mat_link2_0_flan2:\n" << tf_mat_link2_0_flan2 << std::endl;
 
                 Eigen::Matrix4d tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2;
 
@@ -1526,7 +1531,7 @@ int main(int argc, char **argv)
                 // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
                 tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2 * translation;
 
-                std::cout << "tf_mat_link2_0_flan2_goal:\n" << tf_mat_link2_0_flan2_goal << std::endl;
+                // std::cout << "tf_mat_link2_0_flan2_goal:\n" << tf_mat_link2_0_flan2_goal << std::endl;
 
                 // 获取变换矩阵中的位置和四元数
                 Eigen::Vector3d position = tf_mat_link2_0_flan2_goal.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
@@ -1692,9 +1697,9 @@ int main(int argc, char **argv)
 
                 // 读取YAML中的世界→物体，base→link3_0 变换
                 Eigen::Matrix4d tf_mat_world_obj_2 = loadTransformFromYAML(common_tf_path, "tf_mat_world_obj_2");
-                std::cout << "tf_mat_world_obj_2:\n" << tf_mat_world_obj_2 << std::endl;
+                // std::cout << "tf_mat_world_obj_2:\n" << tf_mat_world_obj_2 << std::endl;
                 Eigen::Matrix4d tf_mat_base_link3_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link3_0");
-                std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link3_0 << std::endl;
+                // std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link3_0 << std::endl;
 
                 // 构造世界→base
                 Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
@@ -1729,9 +1734,9 @@ int main(int argc, char **argv)
                     if (srv.response.success)
                     {
                         std::vector<double> transform = srv.response.transform;
-                        std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
-                        std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
-                        std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
 
                         // 用 position 和 quaternion 构造 Eigen::Isometry3d
                         Eigen::Vector3d position(transform[0], transform[1], transform[2]);
@@ -1744,7 +1749,7 @@ int main(int argc, char **argv)
 
                         // 转换为 Matrix4d 显示
                         tf_mat_link3_0_flan3 = tf_iso.matrix();
-                        std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
                     }
                     else
                     {
@@ -1756,7 +1761,7 @@ int main(int argc, char **argv)
                     std::cerr << "Failed to call service /robot_pose" << std::endl;
                 }
 
-                std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+                // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
 
                 // 获取变换矩阵中的位置和四元数
                 Eigen::Vector3d position = tf_mat_link3_0_obj.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
@@ -1935,9 +1940,9 @@ int main(int argc, char **argv)
                     if (srv.response.success)
                     {
                         std::vector<double> transform = srv.response.transform;
-                        std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
-                        std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
-                        std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
 
                         // 用 position 和 quaternion 构造 Eigen::Isometry3d
                         Eigen::Vector3d position(transform[0], transform[1], transform[2]);
@@ -1950,7 +1955,7 @@ int main(int argc, char **argv)
 
                         // 转换为 Matrix4d 显示
                         tf_mat_link3_0_flan3 = tf_iso.matrix();
-                        std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
                     }
                     else
                     {
@@ -1962,7 +1967,7 @@ int main(int argc, char **argv)
                     std::cerr << "Failed to call service /robot_pose" << std::endl;
                 }
 
-                std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+                // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
 
                 Eigen::Matrix4d tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3;
 
@@ -1973,7 +1978,7 @@ int main(int argc, char **argv)
                 // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
                 tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3 * translation;
 
-                std::cout << "tf_mat_link3_0_flan3_goal:\n" << tf_mat_link3_0_flan3_goal << std::endl;
+                // std::cout << "tf_mat_link3_0_flan3_goal:\n" << tf_mat_link3_0_flan3_goal << std::endl;
 
                 // 获取变换矩阵中的位置和四元数
                 Eigen::Vector3d position = tf_mat_link3_0_flan3_goal.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
@@ -2124,6 +2129,669 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
+                control_flag = 10;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
+
+                // 发布夹爪指令
+                std_msgs::Float64MultiArray gripper_command;
+                gripper_command.data = {0.0, 0.0, 0.0, 0.0};
+                gripper_pub.publish(gripper_command);
+
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+            }
+        }
+
+        else if (control_flag == 10)
+        {
+            if (!planning_requested)
+            {
+                std::cout << "Control flag 10 received" << std::endl;
+
+                // 读取YAML中的world→cube_r，base→link3_0 变换
+                Eigen::Matrix4d tf_mat_world_cube_r = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_r");
+                // std::cout << "tf_mat_world_cube_r:\n" << tf_mat_world_cube_r << std::endl;
+                Eigen::Matrix4d tf_mat_base_link3_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link3_0");
+                // std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link3_0 << std::endl;
+
+                // 构造world→base
+                Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
+                Eigen::Quaterniond quat_base(float_base_position[6],  // qw
+                                             float_base_position[3],  // qx
+                                             float_base_position[4],  // qy
+                                             float_base_position[5]   // qz
+                );
+                Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
+                Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
+                tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
+                tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
+
+                // base → cube_r
+                Eigen::Matrix4d tf_mat_base_cube_r = tf_mat_world_base.inverse() * tf_mat_world_cube_r;
+
+                // link3_0 → cube_r
+                Eigen::Matrix4d tf_mat_link3_0_cube_r = tf_mat_base_link3_0.inverse() * tf_mat_base_cube_r;
+
+                // 请求获取分支3末端的位姿（相对于link3_0)）（link3_0 -> flan3）
+                robot_planning::RobotPose srv;
+                srv.request.float_base_pose = float_base_position;
+                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+                srv.request.source_frame = "link3_0";
+                srv.request.target_frame = "branch3_end";
+
+                Eigen::Matrix4d tf_mat_link3_0_flan3;
+
+                if (pose_client.call(srv))
+                {
+                    if (srv.response.success)
+                    {
+                        std::vector<double> transform = srv.response.transform;
+                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+
+                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
+                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
+                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
+                        quat.normalize();                                                                 // 防止精度误差
+
+                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
+                        tf_iso.linear() = quat.toRotationMatrix();
+                        tf_iso.translation() = position;
+
+                        // 转换为 Matrix4d 显示
+                        tf_mat_link3_0_flan3 = tf_iso.matrix();
+                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+                    }
+                    else
+                    {
+                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
+                    }
+                }
+                else
+                {
+                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                }
+
+                // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position = tf_mat_link3_0_cube_r.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat(tf_mat_link3_0_cube_r.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion = quat.coeffs();                        // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> goal_pose = {
+                    position.x(),   position.y(),   position.z(),                   // [x, y, z]
+                    quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()  // [qx, qy, qz, qw]
+                };
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position_flan2 = tf_mat_link3_0_flan3.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat_flan2(tf_mat_link3_0_flan3.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion_flan2 = quat_flan2.coeffs();                 // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> start_pose = {
+                    position_flan2.x(),   position_flan2.y(),   position_flan2.z(),                         // [x, y, z]
+                    quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
+                };
+
+                robot_planning::CartesianInterpolation interp_srv;
+                interp_srv.request.branch_id = 2;
+
+                // 设置初始关节角度（float64[]）
+                interp_srv.request.joint_angles.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+
+                interp_srv.request.start_pose = start_pose;
+                interp_srv.request.goal_pose = goal_pose;
+
+                // 设置插值参数
+                interp_srv.request.duration = 3.0;     // 2 秒
+                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
+
+                // 发送请求
+                if (interp_client.call(interp_srv))
+                {
+                    if (interp_srv.response.success)
+                    {
+                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
+                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
+
+                        // for (int i = 0; i < interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size(); ++i)
+                        // {
+                        //     std::cout << "Trajectory point " << i << ": ";
+                        //     for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
+                        //     {
+                        //         std::cout << interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+                        // }
+
+                        // 保存轨迹
+                        planned_joint_trajectory.clear();
+                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
+                        for (int i = 0; i < num_points; ++i)
+                        {
+                            // 创建一个包含所有分支的轨迹点
+                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
+
+                            // 复制当前分支的轨迹点
+                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
+                            {
+                                point[2 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
+                            }
+
+                            // 保持其他分支的关节角度不变
+                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
+                            {
+                                if (branchi != 2)  // 不是当前分支
+                                {
+                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
+                                    {
+                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
+                                    }
+                                }
+                            }
+
+                            // for (int i = 0; i < point.size(); ++i)
+                            // {
+                            //     std::cout << point[i] << " ";
+                            // }
+                            // std::cout << std::endl;
+
+                            planned_joint_trajectory.push_back(point);
+                        }
+                        planning_requested = true;
+                        trajectory_index = 0;
+                    }
+                    else
+                    {
+                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
+                        control_flag = 0;  // 回到初始状态
+                    }
+                }
+                else
+                {
+                    ROS_ERROR("Failed to call service cartesian_interpolation");
+                    control_flag = 0;  // 回到初始状态
+                }
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                // 设置目标关节角度
+                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                {
+                    q_send[2][motorj] = planned_joint_trajectory[trajectory_index][2 * (MOTOR_BRANCHN_N - 1) + motorj];
+                }
+
+                // for (int i = 0; i < 6; i++)
+                // {
+                //     std::cout << q_send[1][i] << " ";
+                // }
+                // std::cout << std::endl;
+
+                // 执行规划轨迹
+                if (!isSimulation)
+                {
+                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+                }
+                else
+                {
+                    // 仿真模式直接使用 q_send
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                    {
+                        q_recv[2][motorj] = q_send[2][motorj];
+                    }
+                }
+
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+
+                trajectory_index++;
+            }
+            else
+            {
+                ROS_INFO("Trajectory execution completed");
+                control_flag = 11;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+
+        else if (control_flag == 11)
+        {
+            if (!planning_requested)
+            {
+                std::cout << "Control flag 11 received" << std::endl;
+
+                // 读取YAML中的world→cube_l，base→link2_0 变换
+                Eigen::Matrix4d tf_mat_world_cube_l = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_l");
+                // std::cout << "tf_mat_world_cube_l:\n" << tf_mat_world_cube_l << std::endl;
+                Eigen::Matrix4d tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
+                // std::cout << "tf_mat_base_link2_0:\n" << tf_mat_base_link2_0 << std::endl;
+
+                // 构造world→base
+                Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
+                Eigen::Quaterniond quat_base(float_base_position[6],  // qw
+                                             float_base_position[3],  // qx
+                                             float_base_position[4],  // qy
+                                             float_base_position[5]   // qz
+                );
+                Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
+                Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
+                tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
+                tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
+
+                // base → cube_l
+                Eigen::Matrix4d tf_mat_base_cube_l = tf_mat_world_base.inverse() * tf_mat_world_cube_l;
+
+                // link2_0 → cube_l
+                Eigen::Matrix4d tf_mat_link2_0_cube_l = tf_mat_base_link2_0.inverse() * tf_mat_base_cube_l;
+
+                // 请求获取分支3末端的位姿（相对于link3_0)）（link3_0 -> flan3）
+                robot_planning::RobotPose srv;
+                srv.request.float_base_pose = float_base_position;
+                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+                srv.request.source_frame = "link2_0";
+                srv.request.target_frame = "branch2_end";
+
+                Eigen::Matrix4d tf_mat_link2_0_flan2;
+
+                if (pose_client.call(srv))
+                {
+                    if (srv.response.success)
+                    {
+                        std::vector<double> transform = srv.response.transform;
+                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
+                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
+                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
+
+                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
+                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
+                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
+                        quat.normalize();                                                                 // 防止精度误差
+
+                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
+                        tf_iso.linear() = quat.toRotationMatrix();
+                        tf_iso.translation() = position;
+
+                        // 转换为 Matrix4d 显示
+                        tf_mat_link2_0_flan2 = tf_iso.matrix();
+                        // std::cout << "tf_mat_link2_0_flan2:\n" << tf_mat_link2_0_flan2 << std::endl;
+                    }
+                    else
+                    {
+                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
+                    }
+                }
+                else
+                {
+                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                }
+
+                // std::cout << "tf_mat_link2_0_flan2:\n" << tf_mat_link2_0_flan2 << std::endl;
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position = tf_mat_link2_0_cube_l.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat(tf_mat_link2_0_cube_l.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion = quat.coeffs();                        // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> goal_pose = {
+                    position.x(),   position.y(),   position.z(),                   // [x, y, z]
+                    quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()  // [qx, qy, qz, qw]
+                };
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position_flan2 = tf_mat_link2_0_flan2.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat_flan2(tf_mat_link2_0_flan2.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion_flan2 = quat_flan2.coeffs();                 // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> start_pose = {
+                    position_flan2.x(),   position_flan2.y(),   position_flan2.z(),                         // [x, y, z]
+                    quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
+                };
+
+                robot_planning::CartesianInterpolation interp_srv;
+                interp_srv.request.branch_id = 1;
+
+                // 设置初始关节角度（float64[]）
+                interp_srv.request.joint_angles.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+
+                interp_srv.request.start_pose = start_pose;
+                interp_srv.request.goal_pose = goal_pose;
+
+                // 设置插值参数
+                interp_srv.request.duration = 3.0;     // 2 秒
+                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
+
+                // 发送请求
+                if (interp_client.call(interp_srv))
+                {
+                    if (interp_srv.response.success)
+                    {
+                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
+                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
+
+                        // for (int i = 0; i < interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size(); ++i)
+                        // {
+                        //     std::cout << "Trajectory point " << i << ": ";
+                        //     for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
+                        //     {
+                        //         std::cout << interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j] << " ";
+                        //     }
+                        //     std::cout << std::endl;
+                        // }
+
+                        // 保存轨迹
+                        planned_joint_trajectory.clear();
+                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
+                        for (int i = 0; i < num_points; ++i)
+                        {
+                            // 创建一个包含所有分支的轨迹点
+                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
+
+                            // 复制当前分支的轨迹点
+                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
+                            {
+                                point[1 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
+                            }
+
+                            // 保持其他分支的关节角度不变
+                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
+                            {
+                                if (branchi != 1)  // 不是当前分支
+                                {
+                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
+                                    {
+                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
+                                    }
+                                }
+                            }
+
+                            // for (int i = 0; i < point.size(); ++i)
+                            // {
+                            //     std::cout << point[i] << " ";
+                            // }
+                            // std::cout << std::endl;
+
+                            planned_joint_trajectory.push_back(point);
+                        }
+                        planning_requested = true;
+                        trajectory_index = 0;
+                    }
+                    else
+                    {
+                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
+                        control_flag = 0;  // 回到初始状态
+                    }
+                }
+                else
+                {
+                    ROS_ERROR("Failed to call service cartesian_interpolation");
+                    control_flag = 0;  // 回到初始状态
+                }
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                // 设置目标关节角度
+                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                {
+                    q_send[1][motorj] = planned_joint_trajectory[trajectory_index][1 * (MOTOR_BRANCHN_N - 1) + motorj];
+                }
+
+                // for (int i = 0; i < 6; i++)
+                // {
+                //     std::cout << q_send[1][i] << " ";
+                // }
+                // std::cout << std::endl;
+
+                // 执行规划轨迹
+                if (!isSimulation)
+                {
+                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+                }
+                else
+                {
+                    // 仿真模式直接使用 q_send
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                    {
+                        q_recv[1][motorj] = q_send[1][motorj];
+                    }
+                }
+
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+
+                trajectory_index++;
+            }
+            else
+            {
+                ROS_INFO("Trajectory execution completed");
+                control_flag = 12;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+
+        else if (control_flag == 12)
+        {
+            if (!planning_requested)
+            {
+                /* ------------------------- ① 取得当前位姿 ------------------------- */
+                // -------- 分支2（link2_0 -> branch2_end）--------
+                robot_planning::RobotPose pose_srv2;
+                pose_srv2.request.float_base_pose = float_base_position;
+                pose_srv2.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                pose_srv2.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+                pose_srv2.request.source_frame = "link2_0";
+                pose_srv2.request.target_frame = "branch2_end";
+
+                // -------- 分支3（link3_0 -> branch3_end）--------
+                robot_planning::RobotPose pose_srv3 = pose_srv2;  // 共用 joint 数组
+                pose_srv3.request.source_frame = "link3_0";
+                pose_srv3.request.target_frame = "branch3_end";
+
+                Eigen::Matrix4d tf_link2_0_flan2, tf_link3_0_flan3;
+                auto fetchPose = [&](robot_planning::RobotPose &srv, Eigen::Matrix4d &outMat, const std::string &name)
+                {
+                    if (!pose_client.call(srv) || !srv.response.success)
+                        throw std::runtime_error("获取 " + name + " 位姿失败：" + srv.response.message);
+                    const auto &t = srv.response.transform;
+                    Eigen::Vector3d p(t[0], t[1], t[2]);
+                    Eigen::Quaterniond q(t[6], t[3], t[4], t[5]);  // w, x, y, z
+                    q.normalize();
+                    Eigen::Isometry3d iso = Eigen::Isometry3d::Identity();
+                    iso.translation() = p;
+                    iso.linear() = q.toRotationMatrix();
+                    outMat = iso.matrix();
+                };
+
+                try
+                {
+                    fetchPose(pose_srv2, tf_link2_0_flan2, "link2_0->flan2");
+                    fetchPose(pose_srv3, tf_link3_0_flan3, "link3_0->flan3");
+                }
+                catch (const std::exception &e)
+                {
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;  // 回到初始状态
+                    return 0;
+                }
+
+                /* ------------------------- ② 生成目标位姿 ------------------------- */
+                Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
+                translation(1, 3) = 0.12;  // Y 轴 +0.12
+
+                Eigen::Matrix4d tf_link2_0_flan2_goal = tf_link2_0_flan2 * translation;
+                Eigen::Matrix4d tf_link3_0_flan3_goal = tf_link3_0_flan3 * translation;
+
+                auto matToPose = [](const Eigen::Matrix4d &T)
+                {
+                    Eigen::Vector3d p = T.block<3, 1>(0, 3);
+                    Eigen::Quaterniond q(T.block<3, 3>(0, 0));
+                    q.normalize();
+                    return std::vector<double>{p.x(), p.y(), p.z(), q.x(), q.y(), q.z(), q.w()};
+                };
+
+                std::vector<double> start_pose2 = matToPose(tf_link2_0_flan2);
+                std::vector<double> start_pose3 = matToPose(tf_link3_0_flan3);
+                std::vector<double> goal_pose2 = matToPose(tf_link2_0_flan2_goal);
+                std::vector<double> goal_pose3 = matToPose(tf_link3_0_flan3_goal);
+
+                /* ------------------------- ③ 调用插值服务 ------------------------- */
+                robot_planning::SynchronizedCartesianInterpolation sync_srv;
+                
+                // 设置分支2参数
+                sync_srv.request.branch2_id = 2;
+                sync_srv.request.branch2_start_pose = start_pose2;
+                sync_srv.request.branch2_goal_pose = goal_pose2;
+                sync_srv.request.branch2_joint_angles = {q_recv[1].begin(), q_recv[1].begin() + 6};
+                
+                // 设置分支3参数
+                sync_srv.request.branch3_id = 3;
+                sync_srv.request.branch3_start_pose = start_pose3;
+                sync_srv.request.branch3_goal_pose = goal_pose3;
+                sync_srv.request.branch3_joint_angles = {q_recv[2].begin(), q_recv[2].begin() + 6};
+                
+                // 设置时间参数
+                sync_srv.request.duration = 5.0;
+                sync_srv.request.frequency = 200.0;
+                
+                if (sync_interpolation_client.call(sync_srv))
+                {
+                    if (sync_srv.response.success)
+                    {
+                        // 使用同步后的轨迹
+                        std::vector<double> branch2_trajectory = sync_srv.response.branch2_trajectory;
+                        std::vector<double> branch3_trajectory = sync_srv.response.branch3_trajectory;
+                        
+                        // 执行轨迹...
+                        planned_joint_trajectory.clear();
+                        int n_joints = MOTOR_BRANCHN_N - 1;        // 每个分支关节数
+                        int num_points = branch2_trajectory.size() / n_joints;  // 两条轨迹点数应相同
+
+                        for (int i = 0; i < num_points; ++i)
+                        {
+                            std::vector<double> point(BRANCHN_N * n_joints, 0.0);
+
+                            // 填分支2
+                            for (int j = 0; j < n_joints; ++j) point[1 * n_joints + j] = branch2_trajectory[i * n_joints + j];
+
+                            // 填分支3
+                            for (int j = 0; j < n_joints; ++j) point[2 * n_joints + j] = branch3_trajectory[i * n_joints + j];
+
+                            // 其它分支保持原角度
+                            for (int b = 0; b < BRANCHN_N; ++b)
+                            {
+                                if (b == 1 || b == 2)
+                                    continue;
+                                for (int j = 0; j < n_joints; ++j) point[b * n_joints + j] = q_recv[b][j];
+                            }
+                            planned_joint_trajectory.push_back(point);
+                        }
+
+                        planning_requested = true;
+                        trajectory_index = 0;
+                    }
+                    else
+                    {
+                        ROS_ERROR("同步插值失败：%s", sync_srv.response.message.c_str());
+                        control_flag = 0;
+                        return 0;
+                    }
+                }
+                else
+                {
+                    ROS_ERROR("无法调用同步插值服务");
+                    control_flag = 0;
+                    return 0;
+                }
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                int n_joints = MOTOR_BRANCHN_N - 1;
+
+                // -------- 分支2（索引1）--------
+                for (int j = 0; j < n_joints; ++j) q_send[1][j] = planned_joint_trajectory[trajectory_index][1 * n_joints + j];
+
+                // -------- 分支3（索引2）--------
+                for (int j = 0; j < n_joints; ++j) q_send[2][j] = planned_joint_trajectory[trajectory_index][2 * n_joints + j];
+
+                // 执行规划轨迹
+                if (!isSimulation)
+                {
+                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+                }
+                else
+                {
+                    // 仿真模式直接使用 q_send
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                    {
+                        q_recv[2][motorj] = q_send[2][motorj];
+                    }
+                }
+
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+
+                trajectory_index++;
+            }
+            else
+            {
+                ROS_INFO("Trajectory execution completed");
                 control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
@@ -2131,7 +2799,7 @@ int main(int argc, char **argv)
             }
         }
 
-        else if (control_flag == 10)
+        else if (control_flag == 20)
         {
             if (trajectory_index < planned_joint_trajectory.size())
             {
@@ -2262,7 +2930,7 @@ int main(int argc, char **argv)
         {
             // 发布夹爪指令
             std_msgs::Float64MultiArray gripper_command;
-            gripper_command.data = {0.0, 0.5, 0.5, 0.0};
+            gripper_command.data = {0.0, 0.0, 0.5, 0.0};
             gripper_pub.publish(gripper_command);
 
             q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
@@ -2286,7 +2954,7 @@ int main(int argc, char **argv)
         {
             // 发布夹爪指令
             std_msgs::Float64MultiArray gripper_command;
-            gripper_command.data = {0.0, 0.5, 0.5, 0.0};
+            gripper_command.data = {0.0, 0.0, 0.0, 0.0};
             gripper_pub.publish(gripper_command);
 
             q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态

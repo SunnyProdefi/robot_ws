@@ -293,7 +293,7 @@ private:
                     max_diff = std::max(max_diff, diff);
                 }
 
-                float max_time_required = max_diff / 0.05f;                         // max_joint_velocity
+                float max_time_required = max_diff / 0.1f;                          // max_joint_velocity
                 int steps = static_cast<int>(std::ceil(max_time_required / 0.02));  // time_step
 
                 for (int k = 1; k <= steps; ++k)
