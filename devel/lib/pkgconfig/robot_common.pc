@@ -1,8 +1,0 @@
-prefix=/home/prodefi/github/robot_ws/devel
-
-Name: robot_common
-Description: Description of robot_common
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
