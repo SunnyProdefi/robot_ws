@@ -1,0 +1,10 @@
+(cl:defpackage robot_control-srv
+  (:use )
+  (:export
+   "GETBASELINKPOSE"
+   "<GETBASELINKPOSE-REQUEST>"
+   "GETBASELINKPOSE-REQUEST"
+   "<GETBASELINKPOSE-RESPONSE>"
+   "GETBASELINKPOSE-RESPONSE"
+  ))
+

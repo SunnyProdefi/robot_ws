@@ -1,0 +1,8 @@
+prefix=/home/prodefi/github/robot_ws/devel
+
+Name: robot_rrt
+Description: Description of robot_rrt
+Version: 0.0.0
+Cflags: -I/home/prodefi/github/robot_ws/src/robot_rrt/include
+Libs: -L${prefix}/lib 
+Requires: roscpp rospy std_msgs roslib message_runtime geometry_msgs visualization_msgs message_generation
