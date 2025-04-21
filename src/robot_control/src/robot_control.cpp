@@ -2349,59 +2349,24 @@ int main(int argc, char **argv)
         else if (control_flag == 21)
         {
             /*----------------------------------------------------
-             * 0. 参数  (Tx Ty Tz 单位 N·m)
+             * 0. 参数 (Tx Ty Tz 单位 N·m)
              *--------------------------------------------------*/
             const Eigen::Matrix<double, 6, 1> M = (Eigen::Matrix<double, 6, 1>() << 2.0, 2.0, 2.0, 0.2, 0.2, 0.2).finished();
-
             const Eigen::Matrix<double, 6, 1> B = (Eigen::Matrix<double, 6, 1>() << 60.0, 60.0, 60.0, 4.0, 4.0, 4.0).finished();
-
-            const Eigen::Matrix<double, 6, 1> K = Eigen::Matrix<double, 6, 1>::Zero();  // 纯阻尼
+            const Eigen::Matrix<double, 6, 1> K =  // ★ 加入弹簧刚度
+                (Eigen::Matrix<double, 6, 1>() << 200.0, 200.0, 200.0, 10.0, 10.0, 10.0).finished();
 
             const double MAX_TRANSL = 0.015;                // m
-            const double MAX_ANGLE = 5.0 * M_PI / 180.0;    // rad ≈ 5 °
+            const double MAX_ANGLE = 5.0 * M_PI / 180.0;    // rad
             const double MAX_POSVEL = 0.20;                 // m/s
             const double MAX_ANGVEL = 30.0 * M_PI / 180.0;  // rad/s
 
             /*----------------------------------------------------
-             * 1. 环路状态
+             * 1. 期望零位 T_ref（进入模式时记录一次）
              *--------------------------------------------------*/
-            static Eigen::Matrix<double, 6, 1> x = Eigen::Matrix<double, 6, 1>::Zero();    // 位移 & 角度
-            static Eigen::Matrix<double, 6, 1> x_d = Eigen::Matrix<double, 6, 1>::Zero();  // 速度 & 角速度
-            static ros::Time last_t = ros::Time::now();
+            static Eigen::Isometry3d T_ref = Eigen::Isometry3d::Identity();
+            static bool ref_init = false;
 
-            double dt = (ros::Time::now() - last_t).toSec();
-            last_t = ros::Time::now();
-            if (dt <= 0.)
-                dt = 1e-3;
-
-            /*----------------------------------------------------
-             * 2. 力‑扭矩误差
-             *--------------------------------------------------*/
-            Eigen::Matrix<double, 6, 1> F_des = Eigen::Matrix<double, 6, 1>::Zero();  // 目标全零
-            Eigen::Matrix<double, 6, 1> F_meas;
-            F_meas << force_data_3.force.x, force_data_3.force.y, force_data_3.force.z, force_data_3.torque.x, force_data_3.torque.y, force_data_3.torque.z;
-            Eigen::Matrix<double, 6, 1> F_err = F_des - F_meas;
-
-            /*----------------------------------------------------
-             * 3. 6‑维导纳方程
-             *--------------------------------------------------*/
-            Eigen::Matrix<double, 6, 1> x_dd = (F_err - B.cwiseProduct(x_d) - K.cwiseProduct(x)).cwiseQuotient(M);
-
-            x_d += x_dd * dt;
-
-            /* ========= 速度限幅 ========= */
-            x_d.head<3>() = x_d.head<3>().cwiseMax(-MAX_POSVEL).cwiseMin(MAX_POSVEL);  // 平移速度
-            x_d.tail<3>() = x_d.tail<3>().cwiseMax(-MAX_ANGVEL).cwiseMin(MAX_ANGVEL);  // 角速度
-
-            x += x_d * dt;
-
-            /* ========= 位移限幅 ========= */
-            x.head<3>() = x.head<3>().cwiseMax(-MAX_TRANSL).cwiseMin(MAX_TRANSL);  // 平移位移
-            x.tail<3>() = x.tail<3>().cwiseMax(-MAX_ANGLE).cwiseMin(MAX_ANGLE);    // 角度位移
-
-            /*----------------------------------------------------
-             * 4. 当前 EE 位姿
-             *--------------------------------------------------*/
             Eigen::Matrix4d T2_cur, T3_cur;
             if (!getCurrentEEPose(T2_cur, T3_cur))
             {
@@ -2411,15 +2376,73 @@ int main(int argc, char **argv)
             Eigen::Isometry3d T_cur = Eigen::Isometry3d::Identity();
             T_cur.matrix() = T3_cur;
 
-            /*----------------------------------------------------
-             * 5. 叠加位移 & 微旋
-             *--------------------------------------------------*/
-            Eigen::Isometry3d T_tgt = T_cur;
-            /* 平移 */
-            T_tgt.translation() += x.head<3>();
+            if (!ref_init)
+            {  // 首次进入 21 模式，锁定期望位姿
+                T_ref = T_cur;
+                ref_init = true;
+            }
 
-            /* 旋转：把后三维视为角速度积分得到的小角度向量 ωdt */
-            Eigen::Vector3d rot_vec = x.tail<3>();
+            /*----------------------------------------------------
+             * 2. 环路状态
+             *--------------------------------------------------*/
+            static Eigen::Matrix<double, 6, 1> x_rel = Eigen::Matrix<double, 6, 1>::Zero();    // 相对位移
+            static Eigen::Matrix<double, 6, 1> x_rel_d = Eigen::Matrix<double, 6, 1>::Zero();  // 速度
+            static ros::Time last_t = ros::Time::now();
+
+            double dt = (ros::Time::now() - last_t).toSec();
+            last_t = ros::Time::now();
+            if (dt <= 0.)
+                dt = 1e-3;
+
+            /*----------------------------------------------------
+             * 3. 计算当前相对位移  x_rel  (T_ref → T_cur)
+             *--------------------------------------------------*/
+            // 平移差
+            Eigen::Vector3d p_err = T_cur.translation() - T_ref.translation();
+
+            // 旋转差转小角向量
+            Eigen::Matrix3d R_err = T_ref.linear().transpose() * T_cur.linear();
+            Eigen::AngleAxisd aa(R_err);                     // angle ∈ [0,pi]
+            Eigen::Vector3d w_err = aa.angle() * aa.axis();  // so(3) 向量
+
+            x_rel.head<3>() = p_err;
+            x_rel.tail<3>() = w_err;
+
+            /*----------------------------------------------------
+             * 4. 力‑扭矩误差
+             *--------------------------------------------------*/
+            Eigen::Matrix<double, 6, 1> F_des = Eigen::Matrix<double, 6, 1>::Zero();
+            Eigen::Matrix<double, 6, 1> F_meas;
+            F_meas << force_data_3.force.x, force_data_3.force.y, force_data_3.force.z, force_data_3.torque.x, force_data_3.torque.y, force_data_3.torque.z;
+            Eigen::Matrix<double, 6, 1> F_err = F_des - F_meas;
+
+            /*----------------------------------------------------
+             * 5. 6‑维导纳微分方程  M x¨ + B x˙ + K x = F_err
+             *--------------------------------------------------*/
+            Eigen::Matrix<double, 6, 1> x_dd = (F_err - B.cwiseProduct(x_rel_d) - K.cwiseProduct(x_rel)).cwiseQuotient(M);
+
+            x_rel_d += x_dd * dt;
+
+            /* 限速 */
+            x_rel_d.head<3>() = x_rel_d.head<3>().cwiseMax(-MAX_POSVEL).cwiseMin(MAX_POSVEL);
+            x_rel_d.tail<3>() = x_rel_d.tail<3>().cwiseMax(-MAX_ANGVEL).cwiseMin(MAX_ANGVEL);
+
+            x_rel += x_rel_d * dt;
+
+            /* 限幅 */
+            x_rel.head<3>() = x_rel.head<3>().cwiseMax(-MAX_TRANSL).cwiseMin(MAX_TRANSL);
+            x_rel.tail<3>() = x_rel.tail<3>().cwiseMax(-MAX_ANGLE).cwiseMin(MAX_ANGLE);
+
+            /*----------------------------------------------------
+             * 6. 生成目标位姿  T_tgt = T_ref ⊕ x_rel
+             *--------------------------------------------------*/
+            Eigen::Isometry3d T_tgt = T_ref;
+
+            // 平移
+            T_tgt.translation() += x_rel.head<3>();
+
+            // 旋转
+            Eigen::Vector3d rot_vec = x_rel.tail<3>();
             double angle = rot_vec.norm();
             if (angle > 1e-6)
             {
@@ -2429,7 +2452,7 @@ int main(int argc, char **argv)
             }
 
             /*----------------------------------------------------
-             * 6. IKFast 求解
+             * 7. IKFast 求解
              *--------------------------------------------------*/
             std::vector<float> ee_pose12 = {(float)T_tgt(0, 0), (float)T_tgt(0, 1), (float)T_tgt(0, 2), (float)T_tgt(0, 3), (float)T_tgt(1, 0), (float)T_tgt(1, 1), (float)T_tgt(1, 2), (float)T_tgt(1, 3), (float)T_tgt(2, 0), (float)T_tgt(2, 1), (float)T_tgt(2, 2), (float)T_tgt(2, 3)};
             std::vector<float> ik_results = kin_arm3.inverse(ee_pose12);
@@ -2440,11 +2463,11 @@ int main(int argc, char **argv)
             auto [valid_sols, best_sol] = findAllSolutions(ik_results, q_cur_vec, 6);
 
             /*----------------------------------------------------
-             * 7. 输出 to q_send
+             * 8. 写入 q_send
              *--------------------------------------------------*/
             if (best_sol.empty())
             {
-                ROS_WARN_THROTTLE(1.0, "IKFast 无有效解，保持原位");
+                ROS_WARN_THROTTLE(1.0, "IKFast 无有效解，保持当前位置");
                 for (int j = 0; j < 6; ++j) q_send[2][j] = q_recv[2][j];
             }
             else
@@ -2453,7 +2476,7 @@ int main(int argc, char **argv)
             }
 
             /*----------------------------------------------------
-             * 8. 下发 / 仿真
+             * 9. 下发 / 仿真
              *--------------------------------------------------*/
             if (!isSimulation)
                 Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
@@ -2461,7 +2484,7 @@ int main(int argc, char **argv)
                 for (int j = 0; j < 6; ++j) q_recv[2][j] = q_send[2][j];
 
             /*----------------------------------------------------
-             * 9. 发布 joint state
+             * 10. 发布 joint state
              *--------------------------------------------------*/
             std_msgs::Float64MultiArray motor_state;
             motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);

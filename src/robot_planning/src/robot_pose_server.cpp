@@ -86,13 +86,13 @@ public:
 
     bool callback(robot_planning::RobotPose::Request &req, robot_planning::RobotPose::Response &res)
     {
-        ROS_INFO("[RobotPoseServer] Callback triggered for source: %s, target: %s", req.source_frame.c_str(), req.target_frame.c_str());
+        // ROS_INFO("[RobotPoseServer] Callback triggered for source: %s, target: %s", req.source_frame.c_str(), req.target_frame.c_str());
 
         using namespace utils;
 
         if (req.float_base_pose.size() < 7 || req.branch2_joints.size() < 6 || req.branch3_joints.size() < 6)
         {
-            ROS_WARN("Invalid input sizes: float_base_pose=%lu, branch2_joints=%lu, branch3_joints=%lu", req.float_base_pose.size(), req.branch2_joints.size(), req.branch3_joints.size());
+            // ROS_WARN("Invalid input sizes: float_base_pose=%lu, branch2_joints=%lu, branch3_joints=%lu", req.float_base_pose.size(), req.branch2_joints.size(), req.branch3_joints.size());
             res.success = false;
             res.message = "Invalid pose or joint vector size.";
             return true;
@@ -104,9 +104,9 @@ public:
         // ROSINFO打印
         Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n", "[", "]");
 
-        ROS_INFO_STREAM("T_base2:\n" << T_base2.matrix().format(fmt));
-        ROS_INFO_STREAM("T_base3:\n" << T_base3.matrix().format(fmt));
-        ROS_INFO_STREAM("T_world_base:\n" << T_world_base.matrix().format(fmt));
+        // ROS_INFO_STREAM("T_base2:\n" << T_base2.matrix().format(fmt));
+        // ROS_INFO_STREAM("T_base3:\n" << T_base3.matrix().format(fmt));
+        // ROS_INFO_STREAM("T_world_base:\n" << T_world_base.matrix().format(fmt));
 
         auto j2 = std::vector<float>(req.branch2_joints.begin(), req.branch2_joints.begin() + 6);
         auto j3 = std::vector<float>(req.branch3_joints.begin(), req.branch3_joints.begin() + 6);
@@ -115,17 +115,17 @@ public:
         std::ostringstream oss_j2, oss_j3;
         for (const auto &val : j2) oss_j2 << val << " ";
         for (const auto &val : j3) oss_j3 << val << " ";
-        ROS_INFO("j2: %s", oss_j2.str().c_str());
-        ROS_INFO("j3: %s", oss_j3.str().c_str());
+        // ROS_INFO("j2: %s", oss_j2.str().c_str());
+        // ROS_INFO("j3: %s", oss_j3.str().c_str());
 
-        ROS_INFO("Computing forward kinematics for branch 2 and 3...");
+        // ROS_INFO("Computing forward kinematics for branch 2 and 3...");
 
         // 分别获取关节角度的末端位姿
         std::vector<float> ee_pose_2 = kin2_.forward(j2);  // 应该返回长度为12的向量
         // ROSINFO打印ee_pose_2
-        ROS_INFO_STREAM("ee_pose_2: " << Eigen::Map<Eigen::VectorXf>(ee_pose_2.data(), ee_pose_2.size()).transpose().format(fmt));
+        // ROS_INFO_STREAM("ee_pose_2: " << Eigen::Map<Eigen::VectorXf>(ee_pose_2.data(), ee_pose_2.size()).transpose().format(fmt));
         std::vector<float> ee_pose_3 = kin3_.forward(j3);
-        ROS_INFO_STREAM("ee_pose_3: " << Eigen::Map<Eigen::VectorXf>(ee_pose_3.data(), ee_pose_3.size()).transpose().format(fmt));
+        // ROS_INFO_STREAM("ee_pose_3: " << Eigen::Map<Eigen::VectorXf>(ee_pose_3.data(), ee_pose_3.size()).transpose().format(fmt));
         if (ee_pose_2.size() != 12 || ee_pose_3.size() != 12)
         {
             ROS_ERROR("Invalid FK result for branch2 or branch3");
@@ -143,16 +143,16 @@ public:
         T_l0_b3.translation() << ee_pose_3[3], ee_pose_3[7], ee_pose_3[11];
 
         // ROSINFO 打印 T_l0_b2 和 T_l0_b3
-        ROS_INFO_STREAM("T_l0_b2:\n" << T_l0_b2.matrix().format(fmt));
-        ROS_INFO_STREAM("T_l0_b3:\n" << T_l0_b3.matrix().format(fmt));
+        // ROS_INFO_STREAM("T_l0_b2:\n" << T_l0_b2.matrix().format(fmt));
+        // ROS_INFO_STREAM("T_l0_b3:\n" << T_l0_b3.matrix().format(fmt));
 
         // 计算 world 下的位置
         Eigen::Isometry3d T_world_b2 = T_world_base * T_base2 * T_l0_b2;
         Eigen::Isometry3d T_world_b3 = T_world_base * T_base3 * T_l0_b3;
 
         // ROSINFO 打印 T_world_b2 和 T_world_b3
-        ROS_INFO_STREAM("T_world_b2:\n" << T_world_b2.matrix().format(fmt));
-        ROS_INFO_STREAM("T_world_b3:\n" << T_world_b3.matrix().format(fmt));
+        // ROS_INFO_STREAM("T_world_b2:\n" << T_world_b2.matrix().format(fmt));
+        // ROS_INFO_STREAM("T_world_b3:\n" << T_world_b3.matrix().format(fmt));
 
         // 构建 tf_map
         std::map<std::pair<std::string, std::string>, Eigen::Isometry3d> tf_map = {{{"world", "branch2_end"}, T_world_b2},
@@ -169,7 +169,7 @@ public:
         auto key = std::make_pair(req.source_frame, req.target_frame);
         if (tf_map.count(key))
         {
-            ROS_INFO("Transform from %s to %s successfully computed.", req.source_frame.c_str(), req.target_frame.c_str());
+            // ROS_INFO("Transform from %s to %s successfully computed.", req.source_frame.c_str(), req.target_frame.c_str());
             res.transform = transformToPose(tf_map[key]);
             res.success = true;
             res.message = "Transform computed.";
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "robot_pose_server");
     RobotPoseServer server;
-    ROS_INFO("Robot pose server ready.");
+    // ROS_INFO("Robot pose server ready.");
     ros::spin();
     return 0;
 }
