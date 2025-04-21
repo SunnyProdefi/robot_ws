@@ -2349,20 +2349,19 @@ int main(int argc, char **argv)
         else if (control_flag == 21)
         {
             /*----------------------------------------------------
-             * 0. 参数 (Tx Ty Tz 单位 N·m)
+             * 0. 参数
              *--------------------------------------------------*/
             const Eigen::Matrix<double, 6, 1> M = (Eigen::Matrix<double, 6, 1>() << 2.0, 2.0, 2.0, 0.2, 0.2, 0.2).finished();
-            const Eigen::Matrix<double, 6, 1> B = (Eigen::Matrix<double, 6, 1>() << 60.0, 60.0, 60.0, 4.0, 4.0, 4.0).finished();
-            const Eigen::Matrix<double, 6, 1> K =  // ★ 加入弹簧刚度
-                (Eigen::Matrix<double, 6, 1>() << 200.0, 200.0, 200.0, 10.0, 10.0, 10.0).finished();
+            const Eigen::Matrix<double, 6, 1> B = (Eigen::Matrix<double, 6, 1>() << 40.0, 40.0, 40.0, 3.0, 3.0, 3.0).finished();
+            const Eigen::Matrix<double, 6, 1> K = (Eigen::Matrix<double, 6, 1>() << 100.0, 100.0, 100.0, 5.0, 5.0, 5.0).finished();
 
-            const double MAX_TRANSL = 0.015;                // m
-            const double MAX_ANGLE = 5.0 * M_PI / 180.0;    // rad
-            const double MAX_POSVEL = 0.20;                 // m/s
-            const double MAX_ANGVEL = 30.0 * M_PI / 180.0;  // rad/s
+            const double MAX_TRANSL = 0.02;                 // m
+            const double MAX_ANGLE = 8.0 * M_PI / 180.0;    // rad
+            const double MAX_POSVEL = 0.30;                 // m/s
+            const double MAX_ANGVEL = 45.0 * M_PI / 180.0;  // rad/s
 
             /*----------------------------------------------------
-             * 1. 期望零位 T_ref（进入模式时记录一次）
+             * 1. 锁定 T_ref
              *--------------------------------------------------*/
             static Eigen::Isometry3d T_ref = Eigen::Isometry3d::Identity();
             static bool ref_init = false;
@@ -2377,16 +2376,17 @@ int main(int argc, char **argv)
             T_cur.matrix() = T3_cur;
 
             if (!ref_init)
-            {  // 首次进入 21 模式，锁定期望位姿
+            {
                 T_ref = T_cur;
                 ref_init = true;
+                ROS_INFO("Admittance: reference pose captured.");
             }
 
             /*----------------------------------------------------
-             * 2. 环路状态
+             * 2. 导纳内部状态
              *--------------------------------------------------*/
-            static Eigen::Matrix<double, 6, 1> x_rel = Eigen::Matrix<double, 6, 1>::Zero();    // 相对位移
-            static Eigen::Matrix<double, 6, 1> x_rel_d = Eigen::Matrix<double, 6, 1>::Zero();  // 速度
+            static Eigen::Matrix<double, 6, 1> x_int = Eigen::Matrix<double, 6, 1>::Zero();    // 位移
+            static Eigen::Matrix<double, 6, 1> x_int_d = Eigen::Matrix<double, 6, 1>::Zero();  // 速度
             static ros::Time last_t = ros::Time::now();
 
             double dt = (ros::Time::now() - last_t).toSec();
@@ -2395,21 +2395,7 @@ int main(int argc, char **argv)
                 dt = 1e-3;
 
             /*----------------------------------------------------
-             * 3. 计算当前相对位移  x_rel  (T_ref → T_cur)
-             *--------------------------------------------------*/
-            // 平移差
-            Eigen::Vector3d p_err = T_cur.translation() - T_ref.translation();
-
-            // 旋转差转小角向量
-            Eigen::Matrix3d R_err = T_ref.linear().transpose() * T_cur.linear();
-            Eigen::AngleAxisd aa(R_err);                     // angle ∈ [0,pi]
-            Eigen::Vector3d w_err = aa.angle() * aa.axis();  // so(3) 向量
-
-            x_rel.head<3>() = p_err;
-            x_rel.tail<3>() = w_err;
-
-            /*----------------------------------------------------
-             * 4. 力‑扭矩误差
+             * 3. 力‑扭矩误差
              *--------------------------------------------------*/
             Eigen::Matrix<double, 6, 1> F_des = Eigen::Matrix<double, 6, 1>::Zero();
             Eigen::Matrix<double, 6, 1> F_meas;
@@ -2417,42 +2403,47 @@ int main(int argc, char **argv)
             Eigen::Matrix<double, 6, 1> F_err = F_des - F_meas;
 
             /*----------------------------------------------------
-             * 5. 6‑维导纳微分方程  M x¨ + B x˙ + K x = F_err
+             * 4. 导纳微分方程
              *--------------------------------------------------*/
-            Eigen::Matrix<double, 6, 1> x_dd = (F_err - B.cwiseProduct(x_rel_d) - K.cwiseProduct(x_rel)).cwiseQuotient(M);
+            Eigen::Matrix<double, 6, 1> x_dd = (F_err - B.cwiseProduct(x_int_d) - K.cwiseProduct(x_int)).cwiseQuotient(M);
 
-            x_rel_d += x_dd * dt;
+            x_int_d += x_dd * dt;
 
             /* 限速 */
-            x_rel_d.head<3>() = x_rel_d.head<3>().cwiseMax(-MAX_POSVEL).cwiseMin(MAX_POSVEL);
-            x_rel_d.tail<3>() = x_rel_d.tail<3>().cwiseMax(-MAX_ANGVEL).cwiseMin(MAX_ANGVEL);
+            x_int_d.head<3>() = x_int_d.head<3>().cwiseMax(-MAX_POSVEL).cwiseMin(MAX_POSVEL);
+            x_int_d.tail<3>() = x_int_d.tail<3>().cwiseMax(-MAX_ANGVEL).cwiseMin(MAX_ANGVEL);
 
-            x_rel += x_rel_d * dt;
+            x_int += x_int_d * dt;
 
             /* 限幅 */
-            x_rel.head<3>() = x_rel.head<3>().cwiseMax(-MAX_TRANSL).cwiseMin(MAX_TRANSL);
-            x_rel.tail<3>() = x_rel.tail<3>().cwiseMax(-MAX_ANGLE).cwiseMin(MAX_ANGLE);
+            x_int.head<3>() = x_int.head<3>().cwiseMax(-MAX_TRANSL).cwiseMin(MAX_TRANSL);
+            x_int.tail<3>() = x_int.tail<3>().cwiseMax(-MAX_ANGLE).cwiseMin(MAX_ANGLE);
 
             /*----------------------------------------------------
-             * 6. 生成目标位姿  T_tgt = T_ref ⊕ x_rel
+             * 5. 生成目标位姿
              *--------------------------------------------------*/
             Eigen::Isometry3d T_tgt = T_ref;
+            T_tgt.translation() += x_int.head<3>();
 
-            // 平移
-            T_tgt.translation() += x_rel.head<3>();
-
-            // 旋转
-            Eigen::Vector3d rot_vec = x_rel.tail<3>();
-            double angle = rot_vec.norm();
-            if (angle > 1e-6)
+            Eigen::Vector3d rot_vec = x_int.tail<3>();
+            double ang = rot_vec.norm();
+            if (ang > 1e-6)
             {
-                Eigen::Vector3d axis = rot_vec / angle;
-                Eigen::AngleAxisd dR(angle, axis);
-                T_tgt.linear() = dR.toRotationMatrix() * T_tgt.linear();
+                T_tgt.linear() = (Eigen::AngleAxisd(ang, rot_vec / ang)).toRotationMatrix() * T_tgt.linear();
             }
 
+            /* ---------- 调试打印 ---------- */
+            ROS_INFO_THROTTLE(0.2,
+                              "F  [%.2f %.2f %.2f] N | T  [%.2f %.2f %.2f] Nm | "
+                              "dx [%.4f %.4f %.4f] m | dR [%.2f %.2f %.2f] deg",
+                              F_meas(0), F_meas(1), F_meas(2),  // Fx Fy Fz
+                              F_meas(3), F_meas(4), F_meas(5),  // Tx Ty Tz
+                              x_int(0), x_int(1), x_int(2),     // Δx Δy Δz
+                              x_int(3) * 180.0 / M_PI, x_int(4) * 180.0 / M_PI,
+                              x_int(5) * 180.0 / M_PI);  // ΔRx ΔRy ΔRz
+
             /*----------------------------------------------------
-             * 7. IKFast 求解
+             * 6. IKFast
              *--------------------------------------------------*/
             std::vector<float> ee_pose12 = {(float)T_tgt(0, 0), (float)T_tgt(0, 1), (float)T_tgt(0, 2), (float)T_tgt(0, 3), (float)T_tgt(1, 0), (float)T_tgt(1, 1), (float)T_tgt(1, 2), (float)T_tgt(1, 3), (float)T_tgt(2, 0), (float)T_tgt(2, 1), (float)T_tgt(2, 2), (float)T_tgt(2, 3)};
             std::vector<float> ik_results = kin_arm3.inverse(ee_pose12);
@@ -2463,7 +2454,7 @@ int main(int argc, char **argv)
             auto [valid_sols, best_sol] = findAllSolutions(ik_results, q_cur_vec, 6);
 
             /*----------------------------------------------------
-             * 8. 写入 q_send
+             * 7. 写入 q_send
              *--------------------------------------------------*/
             if (best_sol.empty())
             {
@@ -2476,7 +2467,7 @@ int main(int argc, char **argv)
             }
 
             /*----------------------------------------------------
-             * 9. 下发 / 仿真
+             * 8. 下发 / 仿真
              *--------------------------------------------------*/
             if (!isSimulation)
                 Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
@@ -2484,7 +2475,7 @@ int main(int argc, char **argv)
                 for (int j = 0; j < 6; ++j) q_recv[2][j] = q_send[2][j];
 
             /*----------------------------------------------------
-             * 10. 发布 joint state
+             * 9. 发布 joint state
              *--------------------------------------------------*/
             std_msgs::Float64MultiArray motor_state;
             motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);

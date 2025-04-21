@@ -1,3 +1,4 @@
 /.catkin_workspace
 /build
-/develsrc/robotiq/
+/devel
+/src/robotiq/
