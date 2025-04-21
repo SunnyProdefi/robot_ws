@@ -185,6 +185,7 @@ int main(int argc, char** argv)
         tf::StampedTransform tf_world_obj, tf_world_obj_1, tf_world_obj_2;
         tf::StampedTransform tf_link2_0_flan2, tf_link3_0_flan3;
         tf::StampedTransform tf_world_cube_l, tf_world_cube_r;
+        tf::StampedTransform tf_base_link2_0, tf_base_link3_0;
         try
         {
             listener.lookupTransform("world", "dummy_point3", ros::Time(0), transform);
@@ -193,8 +194,8 @@ int main(int argc, char** argv)
             listener.lookupTransform("world", "flan4", ros::Time(0), tf_world_flan4);
             listener.lookupTransform("base_link", "Link1_0", ros::Time(0), tf_base_link1_0);
             listener.lookupTransform("base_link", "Link4_0", ros::Time(0), tf_base_link4_0);
-            listener.lookupTransform("base_link", "Link2_0", ros::Time(0), tf_base_link1_0);
-            listener.lookupTransform("base_link", "Link3_0", ros::Time(0), tf_base_link4_0);
+            listener.lookupTransform("base_link", "Link2_0", ros::Time(0), tf_base_link2_0);
+            listener.lookupTransform("base_link", "Link3_0", ros::Time(0), tf_base_link3_0);
             listener.lookupTransform("world", "object", ros::Time(0), tf_world_obj);
             listener.lookupTransform("world", "object1", ros::Time(0), tf_world_obj_1);
             listener.lookupTransform("world", "object2", ros::Time(0), tf_world_obj_2);
@@ -281,13 +282,13 @@ int main(int argc, char** argv)
             tf_mat_base_link4_0(1, 3) = tf_base_link4_0.getOrigin().y();
             tf_mat_base_link4_0(2, 3) = tf_base_link4_0.getOrigin().z();
 
-            tf_mat_base_link2_0(0, 3) = tf_base_link1_0.getOrigin().x();
-            tf_mat_base_link2_0(1, 3) = tf_base_link1_0.getOrigin().y();
-            tf_mat_base_link2_0(2, 3) = tf_base_link1_0.getOrigin().z();
+            tf_mat_base_link2_0(0, 3) = tf_base_link2_0.getOrigin().x();
+            tf_mat_base_link2_0(1, 3) = tf_base_link2_0.getOrigin().y();
+            tf_mat_base_link2_0(2, 3) = tf_base_link2_0.getOrigin().z();
 
-            tf_mat_base_link3_0(0, 3) = tf_base_link4_0.getOrigin().x();
-            tf_mat_base_link3_0(1, 3) = tf_base_link4_0.getOrigin().y();
-            tf_mat_base_link3_0(2, 3) = tf_base_link4_0.getOrigin().z();
+            tf_mat_base_link3_0(0, 3) = tf_base_link3_0.getOrigin().x();
+            tf_mat_base_link3_0(1, 3) = tf_base_link3_0.getOrigin().y();
+            tf_mat_base_link3_0(2, 3) = tf_base_link3_0.getOrigin().z();
 
             tf_mat_world_obj(0, 3) = tf_world_obj.getOrigin().x();
             tf_mat_world_obj(1, 3) = tf_world_obj.getOrigin().y();

@@ -222,3 +222,10 @@ target_link_libraries(listen_tf
   yaml-cpp
   ${roslib_LIBRARIES}
 )
+
+add_executable(listen_tf_workspace src/listen_tf_workspace.cpp)
+target_link_libraries(listen_tf_workspace
+  ${catkin_LIBRARIES}
+  yaml-cpp
+  ${roslib_LIBRARIES}
+)
