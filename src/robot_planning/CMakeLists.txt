@@ -146,6 +146,14 @@ target_link_libraries(get_base_link_pose_test
   ${sim_libs}
 )
 
+add_executable(get_base_workspace src/get_base_workspace.cpp)
+add_dependencies(get_base_workspace ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(get_base_workspace
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
 # -------------------- RRT Executable --------------------
 # add_executable(rrt_planner src/dualArmRRT.cpp)
 # add_dependencies(rrt_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

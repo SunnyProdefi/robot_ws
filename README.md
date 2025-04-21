@@ -77,6 +77,8 @@ roslaunch robot_description init_robot_display.launch
 启动 TF 监听节点：
 ```bash
 rosrun robot_common listen_tf
+
+rosrun robot_common listen_tf_workspace
 ```
 
 ---
