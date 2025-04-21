@@ -280,7 +280,7 @@ private:
             // 改为速度规划（而不是固定频率）；
             // 做角速度 / 加速度限制（更高阶插值如 B样条）；
 
-            if (i >= 0)
+            if (i > 0)
             {
                 std::vector<float> prev_solution = q_init;
 
@@ -293,7 +293,7 @@ private:
                     max_diff = std::max(max_diff, diff);
                 }
 
-                float max_time_required = max_diff / 0.1f;                          // max_joint_velocity
+                float max_time_required = max_diff / 1.0f;                          // max_joint_velocity
                 int steps = static_cast<int>(std::ceil(max_time_required / 0.02));  // time_step
 
                 for (int k = 1; k <= steps; ++k)
