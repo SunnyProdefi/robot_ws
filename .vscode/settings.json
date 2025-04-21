@@ -106,7 +106,8 @@
         "coroutine": "cpp",
         "cuchar": "cpp",
         "netfwd": "cpp",
-        "source_location": "cpp"
+        "source_location": "cpp",
+        "dense": "cpp"
     },
     "commentTranslate.hover.enabled": true
 }
