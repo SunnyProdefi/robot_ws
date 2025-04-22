@@ -1,0 +1,84 @@
+controller_list:
+  - name: fake_arm1_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - Joint1_0
+      - Joint1_1
+      - Joint1_2
+      - Joint1_3
+      - Joint1_4
+      - Joint1_5
+      - Joint1_6
+  - name: fake_arm2_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - Joint2_0
+      - Joint2_1
+      - Joint2_2
+      - Joint2_3
+      - Joint2_4
+      - Joint2_5
+      - Joint2_6
+  - name: fake_arm3_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - Joint3_0
+      - Joint3_1
+      - Joint3_2
+      - Joint3_3
+      - Joint3_4
+      - Joint3_5
+      - Joint3_6
+  - name: fake_arm4_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - Joint4_0
+      - Joint4_1
+      - Joint4_2
+      - Joint4_3
+      - Joint4_4
+      - Joint4_5
+      - Joint4_6
+  - name: fake_hand1_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - Link1_finger_joint
+  - name: fake_hand2_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - Link2_finger_joint
+  - name: fake_hand3_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - Link3_finger_joint
+  - name: fake_hand4_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - Link4_finger_joint
+  - name: fake_platform_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - Joint_platform
+      - Joint1_platlink
+      - Joint2_platlink
+      - Joint3_platlink
+      - Joint4_platlink
+initial:  # Define initial robot poses per group
+  - group: arm1
+    pose: init_arm1
+  - group: arm2
+    pose: init_arm2
+  - group: arm3
+    pose: init_arm3
+  - group: arm4
+    pose: init_arm4
+  - group: hand1
+    pose: hand1_open
+  - group: hand2
+    pose: hand2_open
+  - group: hand3
+    pose: hand3_open
+  - group: hand4
+    pose: hand4_open
+  - group: platform
+    pose: init_platform

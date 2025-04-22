@@ -1,0 +1,258 @@
+arm1_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - Joint1_0
+    - Joint1_1
+    - Joint1_2
+    - Joint1_3
+    - Joint1_4
+    - Joint1_5
+    - Joint1_6
+  gains:
+    Joint1_0:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint1_1:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint1_2:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint1_3:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint1_4:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint1_5:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint1_6:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+arm2_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - Joint2_0
+    - Joint2_1
+    - Joint2_2
+    - Joint2_3
+    - Joint2_4
+    - Joint2_5
+    - Joint2_6
+  gains:
+    Joint2_0:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint2_1:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint2_2:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint2_3:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint2_4:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint2_5:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint2_6:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+arm3_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - Joint3_0
+    - Joint3_1
+    - Joint3_2
+    - Joint3_3
+    - Joint3_4
+    - Joint3_5
+    - Joint3_6
+  gains:
+    Joint3_0:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint3_1:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint3_2:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint3_3:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint3_4:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint3_5:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint3_6:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+arm4_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - Joint4_0
+    - Joint4_1
+    - Joint4_2
+    - Joint4_3
+    - Joint4_4
+    - Joint4_5
+    - Joint4_6
+  gains:
+    Joint4_0:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint4_1:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint4_2:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint4_3:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint4_4:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint4_5:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint4_6:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+hand1_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - Link1_finger_joint
+  gains:
+    Link1_finger_joint:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+hand2_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - Link2_finger_joint
+  gains:
+    Link2_finger_joint:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+hand3_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - Link3_finger_joint
+  gains:
+    Link3_finger_joint:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+hand4_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - Link4_finger_joint
+  gains:
+    Link4_finger_joint:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+platform_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - Joint_platform
+    - Joint1_platlink
+    - Joint2_platlink
+    - Joint3_platlink
+    - Joint4_platlink
+  gains:
+    Joint_platform:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint1_platlink:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint2_platlink:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint3_platlink:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1
+    Joint4_platlink:
+      p: 100
+      d: 1
+      i: 1
+      i_clamp: 1

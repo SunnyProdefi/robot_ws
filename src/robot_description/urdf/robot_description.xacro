@@ -78,7 +78,7 @@
     </collision>
   </link>
 
-  <!-- <link name="dummy_point1"></link>
+  <link name="dummy_point1"></link>
   <joint name="truss_link_to_point1" type="fixed">
     <parent link="truss_link"/>
     <child link="dummy_point1"/>
@@ -139,7 +139,7 @@
     <parent link="truss_link"/>
     <child link="cube_r"/>
     <origin xyz="-0.1175 0.12 -0.2325" rpy="0 0 0"/>
-  </joint> -->
+  </joint>
 
   <link name="Link_platform">
     <inertial>
@@ -417,35 +417,6 @@
     <xacro:insert_block name="negative_dynamics_parameter"/>
     <limit
       lower="${-pi/2}"
-      upper="0"
-      effort="1000"
-      velocity="10" />
-  </joint>
-
-  <link name="Link${number}_platlink2">
-    <inertial>
-      <origin xyz="-0.033084 0.0135522 0.00049999" rpy="0 0 0" />
-      <mass value="0.0110" />
-      <inertia ixx="2.3755012E-06" ixy="4.9413420E-06" ixz="0" iyy="1.2414435E-05" iyz="0" izz="1.4621084E-05" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry> <mesh filename="package://robot_description/meshes/Link_platlink2.STL" /> </geometry>
-      <material name=""> <color rgba="1 1 1 1" /> </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry> <mesh filename="package://robot_description/meshes/Link_platlink2.STL" /> </geometry>
-    </collision>
-  </link>
-
-  <joint name="Joint${number}_platlink2" type="revolute">
-    <origin xyz="0.04 0 0" rpy="0 0 0" />
-    <parent link="Link${number}_0" />
-    <child link="Link${number}_platlink2" />
-    <axis xyz="0 0 1" />
-    <limit
-      lower="-${pi/2}"
       upper="0"
       effort="1000"
       velocity="10" />

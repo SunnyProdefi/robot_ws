@@ -72,68 +72,60 @@
       </geometry>
     </collision>
   </link>
-  <!-- <link name="dummy_point1"></link>
+  <link name="dummy_point1"/>
   <joint name="truss_link_to_point1" type="fixed">
     <parent link="truss_link"/>
     <child link="dummy_point1"/>
-    <origin xyz="0.795 0 0.53" rpy="1.5708 0 0"/>
+    <origin rpy="1.5708 0 0" xyz="0.795 0 0.53"/>
   </joint>
-
-  <link name="dummy_point2"></link>
+  <link name="dummy_point2"/>
   <joint name="truss_link_to_point2" type="fixed">
     <parent link="truss_link"/>
     <child link="dummy_point2"/>
-    <origin xyz="0.795 0 -0.53" rpy="1.5708 0 0"/>
+    <origin rpy="1.5708 0 0" xyz="0.795 0 -0.53"/>
   </joint>
-
-  <link name="dummy_point3"></link>
+  <link name="dummy_point3"/>
   <joint name="truss_link_to_point3" type="fixed">
     <parent link="truss_link"/>
     <child link="dummy_point3"/>
-    <origin xyz="0.08 0.18 0.40" rpy="1.5708 0.707 0"/>
+    <origin rpy="1.5708 0.707 0" xyz="0.08 0.18 0.40"/>
   </joint>
-
-  <link name="dummy_point4"></link>
+  <link name="dummy_point4"/>
   <joint name="truss_link_to_point4" type="fixed">
     <parent link="truss_link"/>
     <child link="dummy_point4"/>
-    <origin xyz="0 0.215 -0.3" rpy="0 0 0"/>
+    <origin rpy="0 0 0" xyz="0 0.215 -0.3"/>
   </joint>
-
-  <link name="object"></link>
+  <link name="object"/>
   <joint name="truss_link_to_obj" type="fixed">
     <parent link="truss_link"/>
     <child link="object"/>
-    <origin xyz="0.08 0.03 0.40" rpy="1.5708 0.707 0"/>
+    <origin rpy="1.5708 0.707 0" xyz="0.08 0.03 0.40"/>
   </joint>
-
-  <link name="object1"></link>
+  <link name="object1"/>
   <joint name="truss_link_to_obj1" type="fixed">
     <parent link="truss_link"/>
     <child link="object1"/>
-    <origin xyz="-0.1 0.215 0.085" rpy="0 3.1416 0"/>
+    <origin rpy="0 3.1416 0" xyz="-0.1 0.215 0.085"/>
   </joint>
-
-  <link name="object2"></link>
+  <link name="object2"/>
   <joint name="truss_link_to_obj2" type="fixed">
     <parent link="truss_link"/>
     <child link="object2"/>
-    <origin xyz="-0.265 0.215 -0.35" rpy="0 0 -1.5708"/>
+    <origin rpy="0 0 -1.5708" xyz="-0.265 0.215 -0.35"/>
   </joint>
-
-  <link name="cube_l"></link>
+  <link name="cube_l"/>
   <joint name="truss_link_to_cube_l" type="fixed">
     <parent link="truss_link"/>
     <child link="cube_l"/>
-    <origin xyz="-0.1175 0.12 0.2325" rpy="0 3.1416 0"/>
+    <origin rpy="0 3.1416 0" xyz="-0.1175 0.12 0.2325"/>
   </joint>
-
-  <link name="cube_r"></link>
+  <link name="cube_r"/>
   <joint name="truss_link_to_cube_r" type="fixed">
     <parent link="truss_link"/>
     <child link="cube_r"/>
-    <origin xyz="-0.1175 0.12 -0.2325" rpy="0 0 0"/>
-  </joint> -->
+    <origin rpy="0 0 0" xyz="-0.1175 0.12 -0.2325"/>
+  </joint>
   <link name="Link_platform">
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0.011605"/>
@@ -2378,35 +2370,6 @@
     <dynamics damping="0.1" friction="0.8"/>
     <limit effort="1000" lower="-1.5707963267948966" upper="0" velocity="10"/>
   </joint>
-  <link name="Link1_platlink2">
-    <inertial>
-      <origin rpy="0 0 0" xyz="-0.033084 0.0135522 0.00049999"/>
-      <mass value="0.0110"/>
-      <inertia ixx="2.3755012E-06" ixy="4.9413420E-06" ixz="0" iyy="1.2414435E-05" iyz="0" izz="1.4621084E-05"/>
-    </inertial>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://robot_description/meshes/Link_platlink2.STL"/>
-      </geometry>
-      <material name="">
-        <color rgba="1 1 1 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://robot_description/meshes/Link_platlink2.STL"/>
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint1_platlink2" type="revolute">
-    <origin rpy="0 0 0" xyz="0.04 0 0"/>
-    <parent link="Link1_0"/>
-    <child link="Link1_platlink2"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="1000" lower="-1.5707963267948966" upper="0" velocity="10"/>
-  </joint>
   <link name="Link2_platlink">
     <inertial>
       <origin rpy="0 0 0" xyz="0.02891563 -0.01184461 0.0004999"/>
@@ -2435,35 +2398,6 @@
     <child link="Link2_platlink"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.1" friction="0.8"/>
-    <limit effort="1000" lower="-1.5707963267948966" upper="0" velocity="10"/>
-  </joint>
-  <link name="Link2_platlink2">
-    <inertial>
-      <origin rpy="0 0 0" xyz="-0.033084 0.0135522 0.00049999"/>
-      <mass value="0.0110"/>
-      <inertia ixx="2.3755012E-06" ixy="4.9413420E-06" ixz="0" iyy="1.2414435E-05" iyz="0" izz="1.4621084E-05"/>
-    </inertial>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://robot_description/meshes/Link_platlink2.STL"/>
-      </geometry>
-      <material name="">
-        <color rgba="1 1 1 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://robot_description/meshes/Link_platlink2.STL"/>
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint2_platlink2" type="revolute">
-    <origin rpy="0 0 0" xyz="0.04 0 0"/>
-    <parent link="Link2_0"/>
-    <child link="Link2_platlink2"/>
-    <axis xyz="0 0 1"/>
     <limit effort="1000" lower="-1.5707963267948966" upper="0" velocity="10"/>
   </joint>
   <link name="Link3_platlink">
@@ -2496,35 +2430,6 @@
     <dynamics damping="0.1" friction="0.8"/>
     <limit effort="1000" lower="-1.5707963267948966" upper="0" velocity="10"/>
   </joint>
-  <link name="Link3_platlink2">
-    <inertial>
-      <origin rpy="0 0 0" xyz="-0.033084 0.0135522 0.00049999"/>
-      <mass value="0.0110"/>
-      <inertia ixx="2.3755012E-06" ixy="4.9413420E-06" ixz="0" iyy="1.2414435E-05" iyz="0" izz="1.4621084E-05"/>
-    </inertial>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://robot_description/meshes/Link_platlink2.STL"/>
-      </geometry>
-      <material name="">
-        <color rgba="1 1 1 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://robot_description/meshes/Link_platlink2.STL"/>
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint3_platlink2" type="revolute">
-    <origin rpy="0 0 0" xyz="0.04 0 0"/>
-    <parent link="Link3_0"/>
-    <child link="Link3_platlink2"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="1000" lower="-1.5707963267948966" upper="0" velocity="10"/>
-  </joint>
   <link name="Link4_platlink">
     <inertial>
       <origin rpy="0 0 0" xyz="0.02891563 -0.01184461 0.0004999"/>
@@ -2553,35 +2458,6 @@
     <child link="Link4_platlink"/>
     <axis xyz="0 0 1"/>
     <dynamics damping="0.1" friction="0.8"/>
-    <limit effort="1000" lower="-1.5707963267948966" upper="0" velocity="10"/>
-  </joint>
-  <link name="Link4_platlink2">
-    <inertial>
-      <origin rpy="0 0 0" xyz="-0.033084 0.0135522 0.00049999"/>
-      <mass value="0.0110"/>
-      <inertia ixx="2.3755012E-06" ixy="4.9413420E-06" ixz="0" iyy="1.2414435E-05" iyz="0" izz="1.4621084E-05"/>
-    </inertial>
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://robot_description/meshes/Link_platlink2.STL"/>
-      </geometry>
-      <material name="">
-        <color rgba="1 1 1 1"/>
-      </material>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <mesh filename="package://robot_description/meshes/Link_platlink2.STL"/>
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint4_platlink2" type="revolute">
-    <origin rpy="0 0 0" xyz="0.04 0 0"/>
-    <parent link="Link4_0"/>
-    <child link="Link4_platlink2"/>
-    <axis xyz="0 0 1"/>
     <limit effort="1000" lower="-1.5707963267948966" upper="0" velocity="10"/>
   </joint>
 </robot>
