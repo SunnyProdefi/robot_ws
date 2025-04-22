@@ -12,6 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   visualization_msgs
+  moveit_core
+  moveit_ros_planning
+  moveit_ros_planning_interface
 )
 
 catkin_package(
@@ -35,6 +38,13 @@ set(core_libs
 add_executable(rrt_cli src/rrt_cli.cpp)
 add_dependencies(rrt_cli ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(rrt_cli
+  ${catkin_LIBRARIES}
+  ${core_libs}
+  pthread
+)
+
+add_executable(collision_check_node src/collision_check_node.cpp)
+target_link_libraries(collision_check_node 
   ${catkin_LIBRARIES}
   ${core_libs}
   pthread
