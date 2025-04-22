@@ -154,6 +154,14 @@ target_link_libraries(get_base_workspace
   ${sim_libs}
 )
 
+add_executable(get_branch2and3_workspace src/get_branch2and3_workspace.cpp)
+add_dependencies(get_branch2and3_workspace ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(get_branch2and3_workspace
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
 # -------------------- RRT Executable --------------------
 # add_executable(rrt_planner src/dualArmRRT.cpp)
 # add_dependencies(rrt_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

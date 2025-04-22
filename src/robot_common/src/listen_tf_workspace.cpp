@@ -97,20 +97,27 @@ int main(int argc, char** argv)
     while (ros::ok())
     {
         tf::StampedTransform tf_base_link1_0, tf_base_link4_0;
+        tf::StampedTransform tf_base_link2_0, tf_base_link3_0;
         tf::StampedTransform tf_flan1_flan4;
         try
         {
             listener.lookupTransform("base_link", "Link1_0", ros::Time(0), tf_base_link1_0);
             listener.lookupTransform("base_link", "Link4_0", ros::Time(0), tf_base_link4_0);
+            listener.lookupTransform("base_link", "Link2_0", ros::Time(0), tf_base_link2_0);
+            listener.lookupTransform("base_link", "Link3_0", ros::Time(0), tf_base_link3_0);
             listener.lookupTransform("flan1", "flan4", ros::Time(0), tf_flan1_flan4);
 
             Eigen::Matrix4f tf_mat_base_link1_0 = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f tf_mat_base_link4_0 = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f tf_mat_flan1_flan4 = Eigen::Matrix4f::Identity();
+            Eigen::Matrix4f tf_mat_base_link2_0 = Eigen::Matrix4f::Identity();
+            Eigen::Matrix4f tf_mat_base_link3_0 = Eigen::Matrix4f::Identity();
 
             tf::Matrix3x3 rot_mat_base_link1_0(tf_base_link1_0.getRotation());
             tf::Matrix3x3 rot_mat_base_link4_0(tf_base_link4_0.getRotation());
             tf::Matrix3x3 rot_mat_flan1_flan4(tf_flan1_flan4.getRotation());
+            tf::Matrix3x3 rot_mat_base_link2_0(tf_base_link2_0.getRotation());
+            tf::Matrix3x3 rot_mat_base_link3_0(tf_base_link3_0.getRotation());
 
             for (int i = 0; i < 3; ++i)
             {
@@ -119,6 +126,8 @@ int main(int argc, char** argv)
                     tf_mat_base_link1_0(i, j) = rot_mat_base_link1_0[i][j];
                     tf_mat_base_link4_0(i, j) = rot_mat_base_link4_0[i][j];
                     tf_mat_flan1_flan4(i, j) = rot_mat_flan1_flan4[i][j];
+                    tf_mat_base_link2_0(i, j) = rot_mat_base_link2_0[i][j];
+                    tf_mat_base_link3_0(i, j) = rot_mat_base_link3_0[i][j];
                 }
             }
 
@@ -134,9 +143,19 @@ int main(int argc, char** argv)
             tf_mat_flan1_flan4(1, 3) = tf_flan1_flan4.getOrigin().y();
             tf_mat_flan1_flan4(2, 3) = tf_flan1_flan4.getOrigin().z();
 
+            tf_mat_base_link2_0(0, 3) = tf_base_link2_0.getOrigin().x();
+            tf_mat_base_link2_0(1, 3) = tf_base_link2_0.getOrigin().y();
+            tf_mat_base_link2_0(2, 3) = tf_base_link2_0.getOrigin().z();
+
+            tf_mat_base_link3_0(0, 3) = tf_base_link3_0.getOrigin().x();
+            tf_mat_base_link3_0(1, 3) = tf_base_link3_0.getOrigin().y();
+            tf_mat_base_link3_0(2, 3) = tf_base_link3_0.getOrigin().z();
+
             saveTFToYAML(path_tf_workspace, tf_mat_base_link1_0, "tf_mat_base_link1_0");
             saveTFToYAML(path_tf_workspace, tf_mat_base_link4_0, "tf_mat_base_link4_0");
             saveTFToYAML(path_tf_workspace, tf_mat_flan1_flan4, "tf_mat_flan1_flan4");
+            saveTFToYAML(path_tf_workspace, tf_mat_base_link2_0, "tf_mat_base_link2_0");
+            saveTFToYAML(path_tf_workspace, tf_mat_base_link3_0, "tf_mat_base_link3_0");
         }
         catch (tf::TransformException& ex)
         {
