@@ -64,7 +64,7 @@ void computeWorkspace(int branch_id, const Eigen::Matrix4d& T_base_link, const s
     std::vector<std::uniform_real_distribution<>> distributions;
     for (const auto& lim : joint_limits) distributions.emplace_back(lim.first, lim.second);
 
-    const int NUM_SAMPLES = 1000000;
+    const int NUM_SAMPLES = 10000;
     std::vector<Eigen::Matrix4d> workspace_poses;
 
     for (int i = 0; i < NUM_SAMPLES; ++i)
