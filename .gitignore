@@ -2,3 +2,6 @@
 /build
 /devel
 /src/robotiq/
+/src/robot_planning/config/workspace_branch2.yaml
+/src/robot_planning/config/workspace_branch3.yaml
+/src/robot_planning/config/feasible_base_poses.yaml
