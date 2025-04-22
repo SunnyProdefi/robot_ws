@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot name="robot_description"  xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:arg name="transmission_hw_interface" default = "hardware_interface/EffortJointInterface"/>
+  <xacro:include filename = "$(find robotiq_2f_85_gripper_visualization)/urdf/robotiq_arg2f_85_macro.xacro"/>
+  <xacro:include filename="robot_parameter.xacro" />
+<!--body*********************************************************************************************************-->
+  <link name="world"/>
+
+  <joint name="world_joint" type="fixed">
+    <parent link="world"/>
+    <child  link="base_link"/>
+    <origin xyz="0 0 0.45" rpy="0 1.5708 0"/>
+  </joint>
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 0.042" rpy="0 0 0" />
+      <mass value="1.492" />
+      <inertia ixx="0.004886486" ixy="-0.000017397" ixz="-0.000263075" iyy="0.004100237" iyz="0" izz="0.003937989" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/base_link.STL" /> </geometry>
+      <material name=""> <color rgba="0.75294 0.75294 0.75294 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot_description/meshes/base_link.STL"/>
+      </geometry>
+      <surface>
+        <friction>
+          <torsional>
+            <coefficient>5.0</coefficient>
+            <surface_radius>0.10</surface_radius>
+            <use_patch_radius>false</use_patch_radius>
+          </torsional>
+        </friction>
+      </surface>
+    </collision>
+  </link> 
+
+<!--leg*********************************************************************************************************-->  
+<xacro:macro name="Leg_Model" params="number bodyX bodyY body_yaw">  
+  <link name="Link${number}_0">
+    <inertial>
+      <origin xyz="0.085427 -0.025518 0" rpy="0 0 0" />
+      <mass value="0.960" />
+      <inertia ixx="0.000648473" ixy="-0.001018876" ixz="0.000012959" iyy="0.002674366" iyz="0" izz="0.003031056" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_0.STL" /> </geometry>
+      <material name=""> <color rgba="0 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_0.STL" /> </geometry>
+    </collision>
+  </link>
+
+  <joint name="Joint${number}_0" type="revolute">
+    <origin xyz="${bodyX*0.072125} ${bodyY*0.072125} 0.018" rpy="${pi/2} 0 ${body_yaw*pi/4}" />
+    <parent link="base_link" />
+    <child link="Link${number}_0" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="0"
+      upper="${pi/2}"
+      effort="1000"
+      velocity="10" />
+  </joint>
+
+  <link name="Link${number}_1">
+    <inertial>
+      <origin xyz="0.052469 -0.009040 0.002060" rpy="0 0 0" />
+      <mass value="0.914" />
+      <inertia ixx="0.000671687" ixy="-0.000084224" ixz="-0.000107815" iyy="0.000786758" iyz="0.000017298" izz="0.000958254" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_1.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_1.STL" /> </geometry>
+    </collision>
+  </link>
+
+  <joint name="Joint${number}_1" type="revolute">
+    <origin xyz="0.12 -0.117 0" rpy="${-pi/2} 0 0" />
+    <parent link="Link${number}_0" />
+    <child link="Link${number}_1" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-3*pi/4}"
+      upper="${3*pi/2}"
+      effort="300"
+      velocity="10" />
+  </joint>
+
+  <link name="Link${number}_2">
+    <inertial>
+      <origin xyz="0.273270 0.000006 0.007530" rpy="0 0 0" />
+      <mass value="1.144" />
+      <inertia ixx="0.000909959" ixy="0" ixz="0.000569994" iyy="0.018834040" iyz="0" izz="0.018336908" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_2.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_2.STL" /> </geometry>
+    </collision>
+  </link>
+
+  <joint name="Joint${number}_2" type="revolute">
+    <origin xyz="0.0625 -0.0025 0" rpy="${pi/2} 0 0" />
+    <parent link="Link${number}_1" />
+    <child link="Link${number}_2" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-2*pi/3}"
+      upper="${pi/2}"
+      effort="300"
+      velocity="10" />
+  </joint>
+
+  <link name="Link${number}_3">
+    <inertial>
+      <origin xyz="0.081336 -0.0003 -0.000693" rpy="0 0 0" />
+      <mass value="0.395" />
+      <inertia ixx="0.000576423" ixy="0" ixz="0.000031283" iyy="0.001662107" iyz="0" izz="0.001334389" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_3.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_3.STL" /> </geometry>
+    </collision>
+  </link>
+
+  <joint name="Joint${number}_3" type="revolute">
+    <origin xyz="0.35 0.0002 0" rpy="${-pi} 0 0" />
+    <parent link="Link${number}_2" />
+    <child link="Link${number}_3" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-29*pi/36}"
+      upper="${29*pi/36}"
+      effort="300"
+      velocity="10" />
+  </joint>
+
+  <link name="Link${number}_4">
+    <inertial>
+      <origin xyz="0.005438 0.000120 0.134002" rpy="0 0 0" />
+      <mass value="0.376" />
+      <inertia ixx="0.0001484574" ixy="0" ixz="0.000099045" iyy="0.001658464" iyz="-0.000002871" izz="0.000360737" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_4.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_4.STL" /> </geometry>
+    </collision>
+  </link>
+
+  <joint name="Joint${number}_4" type="revolute">
+    <origin xyz="0.1745 0 0" rpy="0 ${-pi/2} ${-pi}" />
+    <parent link="Link${number}_3" />
+    <child link="Link${number}_4" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-pi}"
+      upper="${pi}"
+      effort="100"
+      velocity="10" />
+  </joint>
+
+  <link name="Link${number}_5">
+    <inertial>
+      <origin xyz="0.058277 0 -0.001068" rpy="0 0 0" />
+      <mass value="0.327" />
+      <inertia ixx="0.000412080" ixy="0" ixz="0.000002889" iyy="0.000943104" iyz="0" izz="0.000708641" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_5.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_5.STL" /> </geometry>
+    </collision>
+  </link>
+  
+  <joint name="Joint${number}_5" type="revolute">
+    <origin xyz="0 0 0.1795" rpy="${pi} ${-pi/2} 0" />
+    <parent link="Link${number}_4" />
+    <child link="Link${number}_5" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-11*pi/18}"
+      upper="${11*pi/18}"
+      effort="100"
+      velocity="10" />
+  </joint>
+
+  <link name="Link${number}_6">
+    <inertial>
+      <origin xyz="-0.000076 -0.001467 0.088450" rpy="0 0 0" />
+      <mass value="0.366" />
+      <inertia ixx="0.000945510" ixy="-0.000011196" ixz="0" iyy="0.000811306" iyz="-0.000011704" izz="0.000402389" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_6.STL" /> </geometry>
+      <material name=""> <color rgba="1 1 1 1" /> </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry> <mesh filename="package://robot_description/meshes/Link_6.STL" /> </geometry>
+    </collision>
+  </link>
+
+  <joint name="Joint${number}_6" type="revolute">
+    <origin xyz="0.141 0 0" rpy="${pi} ${-pi/2} 0" />
+    <parent link="Link${number}_5" />
+    <child link="Link${number}_6" />
+    <axis xyz="0 0 1" />
+    <xacro:insert_block name="dynamics_parameter"/>
+    <limit
+      lower="${-pi}"
+      upper="${pi}"
+      effort="100"
+      velocity="10" />
+  </joint>
+
+
+  <!--定义fixed关节，将robotiq_arg2f_base_link连接到机械臂末端的tool0-->
+  <joint name ="Joint${number}_hand" type = "fixed">
+      <parent link="Link${number}_6"/>
+      <child link="Link${number}_robotiq_arg2f_base_link"/>
+      <origin xyz="0 0 0.0385" rpy="0 0 0"/>
+  </joint>
+
+  <!--调用robotiq_arg2f_85，加入夹爪的link和joint-->
+  <xacro:robotiq_arg2f_85 
+      prefix = "Link${number}_"
+      transmission_hw_interface = "$(arg transmission_hw_interface)"
+  />
+</xacro:macro> 
+
+<!--ALL Leg Set*******************************************************************************************-->
+<xacro:Leg_Model number="1" bodyX="1" bodyY="1" body_yaw="1"></xacro:Leg_Model>
+<xacro:Leg_Model number="2" bodyX="-1" bodyY="1" body_yaw="3"></xacro:Leg_Model>
+<xacro:Leg_Model number="3" bodyX="-1" bodyY="-1" body_yaw="5"></xacro:Leg_Model>
+<xacro:Leg_Model number="4" bodyX="1" bodyY="-1" body_yaw="7"></xacro:Leg_Model>
+
+</robot>

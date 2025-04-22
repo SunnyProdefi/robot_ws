@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: robot_description
+    relative_path: urdf/robot_description_moveit.urdf
+    xacro_args: ""
+  SRDF:
+    relative_path: config/robot_description.srdf
+  CONFIG:
+    author_name: sunprodefi
+    author_email: sunprodefi@gmail.com
+    generated_timestamp: 1745300466

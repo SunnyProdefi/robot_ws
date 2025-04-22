@@ -1,0 +1,92 @@
+controller_list:
+  - name: arm1_controller
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      - Joint1_0
+      - Joint1_1
+      - Joint1_2
+      - Joint1_3
+      - Joint1_4
+      - Joint1_5
+      - Joint1_6
+  - name: arm2_controller
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      - Joint2_0
+      - Joint2_1
+      - Joint2_2
+      - Joint2_3
+      - Joint2_4
+      - Joint2_5
+      - Joint2_6
+  - name: arm3_controller
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      - Joint3_0
+      - Joint3_1
+      - Joint3_2
+      - Joint3_3
+      - Joint3_4
+      - Joint3_5
+      - Joint3_6
+  - name: arm4_controller
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      - Joint4_0
+      - Joint4_1
+      - Joint4_2
+      - Joint4_3
+      - Joint4_4
+      - Joint4_5
+      - Joint4_6
+  - name: dual_arm_group_controller
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      - Joint2_0
+      - Joint2_1
+      - Joint2_2
+      - Joint2_3
+      - Joint2_4
+      - Joint2_5
+      - Joint2_6
+      - Joint3_0
+      - Joint3_1
+      - Joint3_2
+      - Joint3_3
+      - Joint3_4
+      - Joint3_5
+      - Joint3_6
+  - name: hand1_controller
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      - Link1_finger_joint
+  - name: hand2_controller
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      - Link2_finger_joint
+  - name: hand3_controller
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      - Link3_finger_joint
+  - name: hand4_controller
+    action_ns: follow_joint_trajectory
+    type: FollowJointTrajectory
+    default: True
+    joints:
+      - Link4_finger_joint

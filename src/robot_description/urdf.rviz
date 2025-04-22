@@ -5,10 +5,9 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /TF1
         - /TF1/Frames1
       Splitter Ratio: 0.6120689511299133
-    Tree Height: 365
+    Tree Height: 571
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -122,16 +121,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        Link1_platlink:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        Link1_platlink2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         Link1_right_inner_finger:
           Alpha: 1
           Show Axes: false
@@ -218,16 +207,6 @@ Visualization Manager:
           Show Trail: false
           Value: true
         Link2_left_outer_knuckle:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        Link2_platlink:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        Link2_platlink2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -322,16 +301,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        Link3_platlink:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        Link3_platlink2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         Link3_right_inner_finger:
           Alpha: 1
           Show Axes: false
@@ -422,16 +391,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        Link4_platlink:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        Link4_platlink2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         Link4_right_inner_finger:
           Alpha: 1
           Show Axes: false
@@ -462,65 +421,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        Link_platform:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        dummy_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        dummy_point1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        dummy_point2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        dummy_point3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        dummy_point4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        flan1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        flan2:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        flan3:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        flan4:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        object:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        object1:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        truss_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -566,10 +467,6 @@ Visualization Manager:
           Value: false
         Link1_left_outer_knuckle:
           Value: false
-        Link1_platlink:
-          Value: false
-        Link1_platlink2:
-          Value: false
         Link1_right_inner_finger:
           Value: false
         Link1_right_inner_finger_pad:
@@ -605,10 +502,6 @@ Visualization Manager:
         Link2_left_outer_finger:
           Value: false
         Link2_left_outer_knuckle:
-          Value: false
-        Link2_platlink:
-          Value: false
-        Link2_platlink2:
           Value: false
         Link2_right_inner_finger:
           Value: false
@@ -646,10 +539,6 @@ Visualization Manager:
           Value: false
         Link3_left_outer_knuckle:
           Value: false
-        Link3_platlink:
-          Value: false
-        Link3_platlink2:
-          Value: false
         Link3_right_inner_finger:
           Value: false
         Link3_right_inner_finger_pad:
@@ -686,10 +575,6 @@ Visualization Manager:
           Value: false
         Link4_left_outer_knuckle:
           Value: false
-        Link4_platlink:
-          Value: false
-        Link4_platlink2:
-          Value: false
         Link4_right_inner_finger:
           Value: false
         Link4_right_inner_finger_pad:
@@ -702,34 +587,8 @@ Visualization Manager:
           Value: false
         Link4_robotiq_arg2f_base_link:
           Value: false
-        Link_platform:
-          Value: false
         base_link:
           Value: false
-        dummy_link:
-          Value: true
-        dummy_point1:
-          Value: true
-        dummy_point2:
-          Value: true
-        dummy_point3:
-          Value: true
-        dummy_point4:
-          Value: true
-        flan1:
-          Value: true
-        flan2:
-          Value: true
-        flan3:
-          Value: true
-        flan4:
-          Value: true
-        object:
-          Value: true
-        object1:
-          Value: true
-        truss_link:
-          Value: true
         world:
           Value: true
       Marker Alpha: 1
@@ -740,134 +599,95 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          dummy_link:
-            base_link:
-              Link1_0:
-                Link1_1:
-                  Link1_2:
-                    Link1_3:
-                      Link1_4:
-                        Link1_5:
-                          Link1_6:
-                            Link1_robotiq_arg2f_base_link:
-                              Link1_left_inner_knuckle:
-                                {}
-                              Link1_left_outer_knuckle:
-                                Link1_left_outer_finger:
-                                  Link1_left_inner_finger:
-                                    Link1_left_inner_finger_pad:
-                                      {}
-                              Link1_right_inner_knuckle:
-                                {}
-                              Link1_right_outer_knuckle:
-                                Link1_right_outer_finger:
-                                  Link1_right_inner_finger:
-                                    Link1_right_inner_finger_pad:
-                                      {}
-                            flan1:
+          base_link:
+            Link1_0:
+              Link1_1:
+                Link1_2:
+                  Link1_3:
+                    Link1_4:
+                      Link1_5:
+                        Link1_6:
+                          Link1_robotiq_arg2f_base_link:
+                            Link1_left_inner_knuckle:
                               {}
-                Link1_platlink2:
-                  {}
-              Link2_0:
-                Link2_1:
-                  Link2_2:
-                    Link2_3:
-                      Link2_4:
-                        Link2_5:
-                          Link2_6:
-                            Link2_robotiq_arg2f_base_link:
-                              Link2_left_inner_knuckle:
-                                {}
-                              Link2_left_outer_knuckle:
-                                Link2_left_outer_finger:
-                                  Link2_left_inner_finger:
-                                    Link2_left_inner_finger_pad:
-                                      {}
-                              Link2_right_inner_knuckle:
-                                {}
-                              Link2_right_outer_knuckle:
-                                Link2_right_outer_finger:
-                                  Link2_right_inner_finger:
-                                    Link2_right_inner_finger_pad:
-                                      {}
-                            flan2:
+                            Link1_left_outer_knuckle:
+                              Link1_left_outer_finger:
+                                Link1_left_inner_finger:
+                                  Link1_left_inner_finger_pad:
+                                    {}
+                            Link1_right_inner_knuckle:
                               {}
-                Link2_platlink2:
-                  {}
-              Link3_0:
-                Link3_1:
-                  Link3_2:
-                    Link3_3:
-                      Link3_4:
-                        Link3_5:
-                          Link3_6:
-                            Link3_robotiq_arg2f_base_link:
-                              Link3_left_inner_knuckle:
-                                {}
-                              Link3_left_outer_knuckle:
-                                Link3_left_outer_finger:
-                                  Link3_left_inner_finger:
-                                    Link3_left_inner_finger_pad:
-                                      {}
-                              Link3_right_inner_knuckle:
-                                {}
-                              Link3_right_outer_knuckle:
-                                Link3_right_outer_finger:
-                                  Link3_right_inner_finger:
-                                    Link3_right_inner_finger_pad:
-                                      {}
-                            flan3:
+                            Link1_right_outer_knuckle:
+                              Link1_right_outer_finger:
+                                Link1_right_inner_finger:
+                                  Link1_right_inner_finger_pad:
+                                    {}
+            Link2_0:
+              Link2_1:
+                Link2_2:
+                  Link2_3:
+                    Link2_4:
+                      Link2_5:
+                        Link2_6:
+                          Link2_robotiq_arg2f_base_link:
+                            Link2_left_inner_knuckle:
                               {}
-                Link3_platlink2:
-                  {}
-              Link4_0:
-                Link4_1:
-                  Link4_2:
-                    Link4_3:
-                      Link4_4:
-                        Link4_5:
-                          Link4_6:
-                            Link4_robotiq_arg2f_base_link:
-                              Link4_left_inner_knuckle:
-                                {}
-                              Link4_left_outer_knuckle:
-                                Link4_left_outer_finger:
-                                  Link4_left_inner_finger:
-                                    Link4_left_inner_finger_pad:
-                                      {}
-                              Link4_right_inner_knuckle:
-                                {}
-                              Link4_right_outer_knuckle:
-                                Link4_right_outer_finger:
-                                  Link4_right_inner_finger:
-                                    Link4_right_inner_finger_pad:
-                                      {}
-                            flan4:
+                            Link2_left_outer_knuckle:
+                              Link2_left_outer_finger:
+                                Link2_left_inner_finger:
+                                  Link2_left_inner_finger_pad:
+                                    {}
+                            Link2_right_inner_knuckle:
                               {}
-                Link4_platlink2:
-                  {}
-              Link_platform:
-                Link1_platlink:
-                  {}
-                Link2_platlink:
-                  {}
-                Link3_platlink:
-                  {}
-                Link4_platlink:
-                  {}
-          truss_link:
-            dummy_point1:
-              {}
-            dummy_point2:
-              {}
-            dummy_point3:
-              {}
-            dummy_point4:
-              {}
-            object:
-              {}
-            object1:
-              {}
+                            Link2_right_outer_knuckle:
+                              Link2_right_outer_finger:
+                                Link2_right_inner_finger:
+                                  Link2_right_inner_finger_pad:
+                                    {}
+            Link3_0:
+              Link3_1:
+                Link3_2:
+                  Link3_3:
+                    Link3_4:
+                      Link3_5:
+                        Link3_6:
+                          Link3_robotiq_arg2f_base_link:
+                            Link3_left_inner_knuckle:
+                              {}
+                            Link3_left_outer_knuckle:
+                              Link3_left_outer_finger:
+                                Link3_left_inner_finger:
+                                  Link3_left_inner_finger_pad:
+                                    {}
+                            Link3_right_inner_knuckle:
+                              {}
+                            Link3_right_outer_knuckle:
+                              Link3_right_outer_finger:
+                                Link3_right_inner_finger:
+                                  Link3_right_inner_finger_pad:
+                                    {}
+            Link4_0:
+              Link4_1:
+                Link4_2:
+                  Link4_3:
+                    Link4_4:
+                      Link4_5:
+                        Link4_6:
+                          Link4_robotiq_arg2f_base_link:
+                            Link4_left_inner_knuckle:
+                              {}
+                            Link4_left_outer_knuckle:
+                              Link4_left_outer_finger:
+                                Link4_left_inner_finger:
+                                  Link4_left_inner_finger_pad:
+                                    {}
+                            Link4_right_inner_knuckle:
+                              {}
+                            Link4_right_outer_knuckle:
+                              Link4_right_outer_finger:
+                                Link4_right_inner_finger:
+                                  Link4_right_inner_finger_pad:
+                                    {}
       Update Interval: 0
       Value: true
   Enabled: true
@@ -898,7 +718,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.8263978958129883
+      Distance: 4.500163555145264
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -906,17 +726,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.49156758189201355
-        Y: 0.04898495227098465
-        Z: 0.15580517053604126
+        X: -0.019601961597800255
+        Y: 0.24011552333831787
+        Z: 0.7016652226448059
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7653990983963013
+      Pitch: 0.7053991556167603
       Target Frame: <Fixed Frame>
-      Yaw: 0.925426721572876
+      Yaw: 0.6954270005226135
     Saved: ~
 Window Geometry:
   Displays:
@@ -924,7 +744,7 @@ Window Geometry:
   Height: 876
   Hide Left Dock: true
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd0000000400000000000001d2000002f8fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed0000031500000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003d000002f8000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000122000002abfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000031000002ab000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000005db00000046fc0100000002fb0000000800540069006d00650100000000000005db0000030700fffffffb0000000800540069006d00650100000000000004500000000000000000000005db000002ca00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001d2000002c6fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed0000031500000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003d000002c6000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c000002610000000100000122000002abfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000031000002ab000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000005db00000046fc0100000002fb0000000800540069006d00650100000000000005db000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000005db000002c600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -935,4 +755,4 @@ Window Geometry:
     collapsed: true
   Width: 1499
   X: 705
-  Y: 61
+  Y: 27
