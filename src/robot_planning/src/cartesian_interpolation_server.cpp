@@ -6,6 +6,7 @@
 #include <cmath>
 #include <yaml-cpp/yaml.h>
 #include <fstream>
+#include <ros/package.h>
 
 using namespace Eigen;
 
@@ -366,7 +367,8 @@ private:
         // ==========================
         // 保存 YAML 文件
         // ==========================
-        std::string save_path = "/home/prodefi/github/robot_ws/src/robot_planning/config/ik_solutions.yaml";
+
+        std::string save_path = ros::package::getPath("robot_planning") + "/config/ik_solutions.yaml";
         YAML::Emitter out;
         out.SetIndent(2);
         out.SetMapFormat(YAML::Block);

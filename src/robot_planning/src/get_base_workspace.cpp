@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include <fstream>
 #include "robot_planning/ikfast_wrapper_single_arm.h"
+#include <ros/package.h>
 
 // 将旋转矩阵和平移向量转换为12维pose向量
 std::vector<float> transformToVector(const Eigen::Matrix3d& rot, const Eigen::Vector3d& trans)
@@ -76,7 +77,8 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     // ==== 读取配置文件 ====
-    YAML::Node config = YAML::LoadFile("/home/prodefi/github/robot_ws/src/robot_planning/config/workspace.yaml");
+    std::string save_path = ros::package::getPath("robot_planning") + "/config/workspace.yaml";
+    YAML::Node config = YAML::LoadFile(save_path);
 
     Eigen::Matrix4d T_base_link1_0, T_base_link4_0, T_flan1_flan4;
     readTransformFromYAML(config["tf_mat_base_link1_0"], T_base_link1_0);
@@ -148,7 +150,7 @@ int main(int argc, char** argv)
     ROS_INFO("Total feasible base poses: %lu", feasible_base_poses.size());
 
     // ==== 保存结果到 YAML ====
-    std::string output_path = "/home/prodefi/github/robot_ws/src/robot_planning/config/feasible_base_poses.yaml";
+    std::string output_path = ros::package::getPath("robot_planning") + "/config/feasible_base_poses.yaml";
     saveBasePosesToYAML(feasible_base_poses, output_path);
 
     return 0;

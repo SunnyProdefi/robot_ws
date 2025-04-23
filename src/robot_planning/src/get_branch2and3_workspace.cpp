@@ -5,6 +5,7 @@
 #include <fstream>
 #include <Eigen/Dense>
 #include "robot_planning/ikfast_wrapper_single_arm.h"
+#include <ros/package.h>
 
 // 转换矩阵 → 向量
 std::vector<float> transformToVector(const Eigen::Matrix3d& rot, const Eigen::Vector3d& trans)
@@ -93,8 +94,8 @@ void computeWorkspace(int branch_id, const Eigen::Matrix4d& T_base_link, const s
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "compute_workspace_branch2_3");
-
-    YAML::Node config = YAML::LoadFile("/home/prodefi/github/robot_ws/src/robot_planning/config/workspace.yaml");
+    std::string save_path = ros::package::getPath("robot_planning") + "/config/workspace.yaml";
+    YAML::Node config = YAML::LoadFile(save_path);
 
     Eigen::Matrix4d T_base_link2_0, T_base_link3_0;
     readTransformFromYAML(config["tf_mat_base_link2_0"], T_base_link2_0);
@@ -102,9 +103,10 @@ int main(int argc, char** argv)
 
     // 使用同一个求解器类，如果你分支2/3有不同模型，请分别创建
     robots::Kinematics ik_solver_branch2, ik_solver_branch3;
-
-    computeWorkspace(2, T_base_link2_0, "/home/prodefi/github/robot_ws/src/robot_planning/config/workspace_branch2.yaml", ik_solver_branch2);
-    computeWorkspace(3, T_base_link3_0, "/home/prodefi/github/robot_ws/src/robot_planning/config/workspace_branch3.yaml", ik_solver_branch3);
+    std::string workspace_branch2_path = ros::package::getPath("robot_planning") + "/config/workspace_branch2.yaml";
+    std::string workspace_branch3_path = ros::package::getPath("robot_planning") + "/config/workspace_branch3.yaml";
+    computeWorkspace(2, T_base_link2_0, workspace_branch2_path, ik_solver_branch2);
+    computeWorkspace(3, T_base_link3_0, workspace_branch3_path, ik_solver_branch3);
 
     return 0;
 }
