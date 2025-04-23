@@ -21,6 +21,7 @@ ssh -X robot@192.168.0.118
 
 ```bash
 roslaunch robot_control robot_control.launch
+roslaunch moveit_config demo.launch
 ```
 
 `robot_control.launch` 是一个 ROS 启动文件，用于启动机器人控制系统的各个组件和节点。确保你已经安装并配置好 ROS 环境。
@@ -31,6 +32,7 @@ roslaunch robot_control robot_control.launch
 
 ```bash
 rostopic pub /control_flag std_msgs/Int32 "data: 1" -1
+rosrun robot_rrt collision_check_node
 ```
 
 这里：

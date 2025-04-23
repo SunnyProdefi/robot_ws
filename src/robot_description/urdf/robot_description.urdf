@@ -9,6 +9,12 @@
 <robot name="robot_description">
     <!--body*********************************************************************************************************-->
     <!-- <link name="world" /> -->
+    <link name="dummy_root"/>
+    <joint name="dummy_fixed_joint" type="fixed">
+        <parent link="dummy_root"/>
+        <child link="base_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
 
     <link name="base_link">
         <inertial>

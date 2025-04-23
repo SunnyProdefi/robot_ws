@@ -50,3 +50,9 @@ target_link_libraries(collision_check_node
   pthread
 )
 
+add_executable(add_truss_link_node src/add_truss_link_node.cpp)
+target_link_libraries(add_truss_link_node 
+  ${catkin_LIBRARIES}
+  ${core_libs}
+  pthread
+)
