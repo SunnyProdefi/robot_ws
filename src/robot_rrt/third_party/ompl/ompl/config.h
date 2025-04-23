@@ -52,7 +52,7 @@
 #define OMPL_HAVE_FLANN 0
 
 /** \brief Whether SPOT is installed */
-#define OMPL_HAVE_SPOT 1
+#define OMPL_HAVE_SPOT 0
 
 /** \brief Whether Numpy and Boost.Numpy are installed */
 #define OMPL_HAVE_NUMPY 1

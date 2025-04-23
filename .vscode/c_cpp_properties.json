@@ -26,7 +26,8 @@
                 "${workspaceFolder}/devel/include",
                 "${workspaceFolder}/devel/include",
                 "${workspaceFolder}/src/robot_planning/third_party/ompl/include",
-                "${workspaceFolder}/src/robot_rrt/include"
+                "${workspaceFolder}/src/robot_rrt/include",
+                "${workspaceFolder}/src/robot_rrt/third_party/ompl"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",
