@@ -29,10 +29,13 @@ include_directories(
   third_party/boost
   third_party/eigen3
   third_party/yaml-cpp
+  third_party/ompl
 )
 
 set(core_libs
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/yaml-cpp/libyaml-cpp_lin_x64.so
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ompl/lib/libompl.so
+
 )
 
 add_executable(rrt_cli src/rrt_cli.cpp)
@@ -52,6 +55,13 @@ target_link_libraries(collision_check_node
 
 add_executable(add_truss_link_node src/add_truss_link_node.cpp)
 target_link_libraries(add_truss_link_node 
+  ${catkin_LIBRARIES}
+  ${core_libs}
+  pthread
+)
+
+add_executable(ompl_rrt_connect_node src/ompl_rrt_connect_node.cpp)
+target_link_libraries(ompl_rrt_connect_node 
   ${catkin_LIBRARIES}
   ${core_libs}
   pthread

@@ -63,7 +63,7 @@ ros::Publisher motor_state_pub;
 static int control_flag_3_counter = 0;
 
 // float_base位置
-std::vector<double> float_base_position(7, 0.0);
+std::vector<double> float_base_position = {0, 0, 0.45, 0, 0.7071, 0, 0.7071};
 
 // yaml路径
 std::string common_tf_path = ros::package::getPath("robot_control") + "/config/common_tf.yaml";
@@ -438,7 +438,6 @@ int main(int argc, char **argv)
             motor_state_pub.publish(motor_state);
 
             // 发布浮动基座位置
-            float_base_position = {0, 0, 0.45, 0, 0.7071, 0, 0.7071};
             geometry_msgs::Pose float_base_pose;
             float_base_pose.position.x = float_base_position[0];
             float_base_pose.position.y = float_base_position[1];
@@ -958,20 +957,20 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 4;
+                control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
 
                 // 发布夹爪指令
                 std_msgs::Float64MultiArray gripper_command;
-                gripper_command.data = {0.0, 0.0, 0.5, 0.0};
+                gripper_command.data = {0.0, 0.5, 0.5, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.5;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.8;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.8;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);

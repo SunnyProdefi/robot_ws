@@ -52,7 +52,7 @@ int main(int argc, char** argv)
 
     if (res.collision)
     {
-        ROS_WARN("❌ Detected collisions in the current scene:");
+        ROS_WARN("Detected collisions in the current scene:");
 
         for (const auto& contact_pair : res.contacts)
         {
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        ROS_INFO("✅ No collision detected in the current scene.");
+        ROS_INFO("No collision detected in the current scene.");
     }
 
     ros::shutdown();
