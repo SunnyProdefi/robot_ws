@@ -28,17 +28,17 @@
   <group if="$(eval arg('moveit_controller_manager') == 'fake')">
     <!-- We do not have a real robot connected, so publish fake joint states via a joint_state_publisher
          MoveIt's fake controller's joint states are considered via the 'source_list' parameter -->
-    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">
+    <!-- <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">
       <rosparam param="source_list">[move_group/fake_controller_joint_states]</rosparam>
-    </node>
+    </node> -->
     <!-- If desired, a GUI version is available allowing to move the simulated robot around manually
          This corresponds to moving around the real robot without the use of MoveIt. -->
-    <node name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" if="$(arg use_gui)">
+    <!-- <node name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" if="$(arg use_gui)">
       <rosparam param="source_list">[move_group/fake_controller_joint_states]</rosparam>
-    </node>
-
+    </node> -->
+    <node name="joint_angle_publisher" pkg="robot_control" type="joint_angle_publisher"/>
     <!-- Given the published joint states, publish tf for the robot links -->
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen" />
   </group>
 
   <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
@@ -62,5 +62,28 @@
   <include file="$(dirname)/default_warehouse_db.launch" if="$(arg db)">
     <arg name="moveit_warehouse_database_path" value="$(arg db_path)"/>
   </include>
+
+    <rosparam command="load" file="$(find robot_control)/config/robot_control_config.yaml" ns="robot_control"/>
+
+  <!-- Launch robot control node -->
+  <node pkg="robot_control" type="robot_control_node" name="robot_control_node" output="screen"/>
+
+  <!-- 启动 gripper_control -->
+  <node name="gripper_control" pkg="robot_control" type="gripper_control" output="screen" />
+
+  <!-- 启动 robot_planning -->
+  <node pkg="robot_planning" type="robot_planning_node" name="robot_planning_node" output="screen">
+    <param name="urdf_path" value="$(find robot_planning)/models/double_arms_description.urdf"/>
+    <param name="joint_limits_path" value="$(find robot_planning)/config/joint_limits.yaml"/>
+    <param name="init_config_path" value="$(find robot_planning)/config/ik_urdf_double_arm_float.yaml"/>
+  </node>
+
+  <node pkg="robot_planning" type="get_base_link_pose" name="get_base_link_pose" output="screen" />
+  <node pkg="robot_planning" type="cartesian_interpolation_server" name="cartesian_interpolation_server" output="screen" />
+  <node pkg="robot_planning" type="robot_pose_server" name="robot_pose_server" output="screen" />
+
+  <!-- 启动 rosbag，录制所有话题 -->
+  <node name="rosbag_robot" pkg="rosbag" type="record" output="screen"
+      args="-a -O $(env ROSBAG_PATH)robot_log.bag" />
 
 </launch>

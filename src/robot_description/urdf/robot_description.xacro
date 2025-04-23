@@ -12,37 +12,17 @@
 
   <joint name="world_joint" type="fixed">
     <parent link="world"/>
-    <child  link="base_link"/>
+    <child  link="dummy_link"/>
     <origin xyz="0 0 0.45" rpy="0 1.5708 0"/>
   </joint>
 
-  <link name="base_link">
-    <inertial>
-      <origin xyz="0 0 0.042" rpy="0 0 0" />
-      <mass value="1.492" />
-      <inertia ixx="0.004886486" ixy="-0.000017397" ixz="-0.000263075" iyy="0.004100237" iyz="0" izz="0.003937989" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry> <mesh filename="package://robot_description/meshes/base_link.STL" /> </geometry>
-      <material name=""> <color rgba="0.75294 0.75294 0.75294 1" /> </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://robot_description/meshes/base_link.STL"/>
-      </geometry>
-      <surface>
-        <friction>
-          <torsional>
-            <coefficient>5.0</coefficient>
-            <surface_radius>0.10</surface_radius>
-            <use_patch_radius>false</use_patch_radius>
-          </torsional>
-        </friction>
-      </surface>
-    </collision>
-  </link> 
+  <link name="dummy_link"></link>
+
+  <joint name="dummy_joint" type="fixed">
+      <parent link="dummy_link"/>
+      <child  link="base_link"/> 
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
 
   <joint name="world_to_truss_link" type="fixed">
     <parent link="world"/>

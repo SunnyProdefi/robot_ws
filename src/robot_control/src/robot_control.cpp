@@ -436,6 +436,18 @@ int main(int argc, char **argv)
             }
 
             motor_state_pub.publish(motor_state);
+
+            // 发布浮动基座位置
+            float_base_position = {0, 0, 0.45, 0, 0.7071, 0, 0.7071};
+            geometry_msgs::Pose float_base_pose;
+            float_base_pose.position.x = float_base_position[0];
+            float_base_pose.position.y = float_base_position[1];
+            float_base_pose.position.z = float_base_position[2];
+            float_base_pose.orientation.x = float_base_position[3];
+            float_base_pose.orientation.y = float_base_position[4];
+            float_base_pose.orientation.z = float_base_position[5];
+            float_base_pose.orientation.w = float_base_position[6];
+            float_base_pub.publish(float_base_pose);
         }
 
         else if (control_flag == 1)

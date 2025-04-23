@@ -12,6 +12,15 @@ int main(int argc, char** argv)
     // 初始化 PlanningSceneMonitor
     planning_scene_monitor::PlanningSceneMonitorPtr psm(new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
 
+    // 初始化后立即启动状态监听
+    psm->startStateMonitor();
+
+    // 等待关节状态同步
+    ros::Duration(1.0).sleep();
+
+    // 获取当前状态
+    robot_state::RobotState& current_state = psm->getPlanningScene()->getCurrentStateNonConst();
+
     if (!psm->getPlanningScene())
     {
         ROS_ERROR("Unable to get Planning Scene, please check if move_group is started!");
@@ -22,7 +31,7 @@ int main(int argc, char** argv)
     psm->requestPlanningSceneState();
 
     // 获取当前机器人状态
-    robot_state::RobotState& current_state = psm->getPlanningScene()->getCurrentStateNonConst();
+    current_state = psm->getPlanningScene()->getCurrentStateNonConst();
 
     // ✅ 获取当前关节组的关节角（以 arm2 为例）
     const robot_state::JointModelGroup* joint_model_group = current_state.getJointModelGroup("arm2");

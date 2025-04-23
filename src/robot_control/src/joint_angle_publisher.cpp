@@ -56,13 +56,13 @@ enum JointID : int
 
     // Platlink / Platlink2
     JOINT1_PLATLINK,
-    JOINT1_PLATLINK2,
+    // JOINT1_PLATLINK2,
     JOINT2_PLATLINK,
-    JOINT2_PLATLINK2,
+    // JOINT2_PLATLINK2,
     JOINT3_PLATLINK,
-    JOINT3_PLATLINK2,
+    // JOINT3_PLATLINK2,
     JOINT4_PLATLINK,
-    JOINT4_PLATLINK2,
+    // JOINT4_PLATLINK2,
 
     // 用来标记总数量，必须放在最后
     JOINT_COUNT
@@ -109,13 +109,13 @@ static const std::array<std::string, JOINT_COUNT> JOINT_NAMES = {
     /* LINK4_FINGER */ "Link4_finger_joint",
 
     /* JOINT1_PLATLINK */ "Joint1_platlink",
-    /* JOINT1_PLATLINK2 */ "Joint1_platlink2",
+    // /* JOINT1_PLATLINK2 */ "Joint1_platlink2",
     /* JOINT2_PLATLINK */ "Joint2_platlink",
-    /* JOINT2_PLATLINK2 */ "Joint2_platlink2",
+    // /* JOINT2_PLATLINK2 */ "Joint2_platlink2",
     /* JOINT3_PLATLINK */ "Joint3_platlink",
-    /* JOINT3_PLATLINK2 */ "Joint3_platlink2",
+    // /* JOINT3_PLATLINK2 */ "Joint3_platlink2",
     /* JOINT4_PLATLINK */ "Joint4_platlink",
-    /* JOINT4_PLATLINK2 */ "Joint4_platlink2",
+    // /* JOINT4_PLATLINK2 */ "Joint4_platlink2",
 };
 
 sensor_msgs::JointState joint_msg;
@@ -203,13 +203,13 @@ int main(int argc, char** argv)
     joint_msg.position[JOINT4_0] = 1.5708;
 
     joint_msg.position[JOINT1_PLATLINK] = -0.847454;
-    joint_msg.position[JOINT1_PLATLINK2] = -2.41825;
+    // joint_msg.position[JOINT1_PLATLINK2] = -2.41825;
     joint_msg.position[JOINT2_PLATLINK] = -0.847454;
-    joint_msg.position[JOINT2_PLATLINK2] = -2.41825;
+    // joint_msg.position[JOINT2_PLATLINK2] = -2.41825;
     joint_msg.position[JOINT3_PLATLINK] = -0.847454;
-    joint_msg.position[JOINT3_PLATLINK2] = -2.41825;
+    // joint_msg.position[JOINT3_PLATLINK2] = -2.41825;
     joint_msg.position[JOINT4_PLATLINK] = -0.847454;
-    joint_msg.position[JOINT4_PLATLINK2] = -2.41825;
+    // joint_msg.position[JOINT4_PLATLINK2] = -2.41825;
 
     joint_msg.position[JOINT_PLATFORM] = 0.077888;
 
