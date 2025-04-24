@@ -28,24 +28,6 @@ void MpcController::ComputeDynamics(const Eigen::VectorXd& q, const Eigen::Vecto
     pinocchio::computeFrameJacobian(model_, data_, q, frame_id_, pinocchio::LOCAL_WORLD_ALIGNED, J_);
 }
 
-void MpcController::RunMpcSimulation(const Eigen::VectorXd& init_state, int total_steps)
-{
-    Eigen::VectorXd q = init_state.head(dof_);
-    Eigen::VectorXd qd = init_state.tail(dof_);
-    Eigen::VectorXd qdd = Eigen::VectorXd::Zero(dof_);
-
-    for (int i = 0; i < total_steps; ++i)
-    {
-        Eigen::VectorXd tau = SolveOnceMpc(q, qd);
-        pinocchio::aba(model_, data_, q, qd, tau);
-        qdd = data_.ddq;
-
-        qd += qdd * delta_t_;
-        q += qd * delta_t_;
-        std::cout << "Step " << i << ", q: " << q.transpose() << std::endl;
-    }
-}
-
 Eigen::VectorXd MpcController::SolveOnceMpc(const Eigen::VectorXd& q, const Eigen::VectorXd& qd)
 {
     ComputeDynamics(q, qd);
@@ -66,4 +48,22 @@ Eigen::VectorXd MpcController::SolveOnceMpc(const Eigen::VectorXd& q, const Eige
 
     Eigen::VectorXd tau = Eigen::VectorXd::Zero(dof_);  // 伪代码
     return tau;
+}
+
+void MpcController::RunMpcSimulation(const Eigen::VectorXd& init_state, int total_steps)
+{
+    Eigen::VectorXd q = init_state.head(dof_);
+    Eigen::VectorXd qd = init_state.tail(dof_);
+    Eigen::VectorXd qdd = Eigen::VectorXd::Zero(dof_);
+
+    for (int i = 0; i < total_steps; ++i)
+    {
+        Eigen::VectorXd tau = SolveOnceMpc(q, qd);
+        pinocchio::aba(model_, data_, q, qd, tau);
+        qdd = data_.ddq;
+
+        qd += qdd * delta_t_;
+        q += qd * delta_t_;
+        std::cout << "Step " << i << ", q: " << q.transpose() << std::endl;
+    }
 }
