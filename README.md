@@ -113,7 +113,7 @@ rosrun robot_common listen_tf_workspace
 
 1. 废弃原USB延长线，改为加长通信线缆  
 2. 接入六维力传感器线缆  
-3. 更换主控接口法兰（3D打印件）  
+3. 更换主控接口法兰（3D打印件  
 4. 设计并安装夹爪与桁架连接卡扣（3D打印件）  
 5. 制作夹爪固定专用工装（机加工件）  
 
@@ -140,5 +140,20 @@ pinocchio:sudo apt install robotpkg-py38-pinocchio
 urdfdom
 yaml-cpp
 
-Q:
-1.单臂抓取步骤3和4中出现奇异的位姿,动作不流畅
+Q:单臂抓取步骤3和4中出现奇异的位姿,动作不流畅
+A:改变抓取位姿
+Q:moveit中base_link不动
+A:在moveit配置中设置虚拟关节
+<virtual_joint name="dummy" type="floating" parent_frame="world" child_link="dummy_root"/>
+
+roslaunch robot_control robot_control.launch
+
+roslaunch moveit_config demo.launch
+rostopic pub /control_flag std_msgs/Int32 "data: 1" -1
+rosrun robot_rrt ompl_rrt_connect_node
+
+rosrun robot_rrt collision_check_node
+
+roslaunch robot_description init_robot_display.launch
+rosrun robot_common listen_tf
+rosrun robot_common listen_tf_workspace
