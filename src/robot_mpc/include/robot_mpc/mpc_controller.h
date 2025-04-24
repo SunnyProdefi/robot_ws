@@ -33,4 +33,6 @@ private:
     // QP参数
     Eigen::MatrixXd Q_, W_;
     Eigen::VectorXd q_lower_, q_upper_, qd_lower_, qd_upper_;
+
+    Eigen::VectorXd target_state_;  // 目标状态向量 [q_target, qd_target]
 };
