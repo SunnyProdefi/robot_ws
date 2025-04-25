@@ -1,0 +1,8 @@
+<launch>
+    <!-- 启动 MoveIt 配置 -->
+    <include file="$(find moveit_config)/launch/demo.launch"/>
+
+    <!-- 启动碰撞检测服务节点 -->
+    <node name="check_collision_server" pkg="robot_rrt" type="check_collision_server" output="screen" />
+
+</launch>

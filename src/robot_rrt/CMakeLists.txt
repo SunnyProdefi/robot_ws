@@ -17,6 +17,16 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning_interface
 )
 
+add_service_files(
+  FILES
+  CheckCollision.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+
 catkin_package(
   CATKIN_DEPENDS roscpp rospy std_msgs roslib message_runtime geometry_msgs visualization_msgs
   INCLUDE_DIRS include
@@ -65,4 +75,13 @@ target_link_libraries(ompl_rrt_connect_node
   ${catkin_LIBRARIES}
   ${core_libs}
   pthread
+)
+
+add_executable(check_collision_server src/check_collision_server.cpp)
+target_link_libraries(check_collision_server
+  ${catkin_LIBRARIES}
+)
+add_dependencies(check_collision_server 
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
 )

@@ -1,0 +1,5 @@
+# CheckCollision.srv
+float64[] joint_positions   # 输入：关节角数组
+---
+bool collision              # 输出：是否发生碰撞
+string[] collision_pairs    # 输出：发生碰撞的link对
