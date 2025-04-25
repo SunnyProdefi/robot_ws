@@ -234,7 +234,8 @@ int main(int argc, char** argv)
             geometry_msgs::TransformStamped t;
             t.header.stamp = ros::Time::now();
             t.header.frame_id = "world";
-            t.child_frame_id = "dummy_root";
+            // t.child_frame_id = "dummy_root";
+            t.child_frame_id = "base_link";
             t.transform.translation.x = translation.x();
             t.transform.translation.y = translation.y();
             t.transform.translation.z = translation.z();
