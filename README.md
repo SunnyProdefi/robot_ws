@@ -146,6 +146,10 @@ Q:moveit中base_link不动
 A:在moveit配置中设置虚拟关节
 <virtual_joint name="dummy" type="floating" parent_frame="world" child_link="dummy_root"/>
 
+// 设定固定的 Serial_Num -> CAN 设备映射
+std::string can1_serial = "31F100027B7";  // force_torque_data_3,4
+std::string can0_serial = "31F10002876";  // force_torque_data_1,2
+
 roslaunch robot_control robot_control.launch
 
 roslaunch moveit_config demo.launch
