@@ -509,7 +509,7 @@
       effort="1000"
       velocity="10" />
   </joint>
-    <link
+  <!-- <link
     name="Link${number}_platlink2">
     <inertial>
       <origin xyz="-0.033084 0.0135522 0.00049999" rpy="0 0 0" />
@@ -520,31 +520,31 @@
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry> <mesh filename="package://robot_description/meshes/Link_platlink2.STL" /> </geometry>
       <material name=""> <color rgba="1 1 1 1" /> </material>
-    </visual>
+    </visual> -->
     <!--collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry> <mesh filename="package://robot_description/meshes/Link_platlink2.STL" /> </geometry>
     </collision-->
-  </link>
-  <joint name="Joint${number}_platlink2" type="revolute">
-    <origin xyz="0.04 0 0" rpy="0 0 0" />
-    <parent link="Link${number}_0" />
-    <child link="Link${number}_platlink2" />
-    <axis xyz="0 0 1" />
+  <!-- </link> -->
+  <!-- <joint name="Joint${number}_platlink2" type="revolute"> -->
+    <!-- <origin xyz="0.04 0 0" rpy="0 0 0" /> -->
+    <!-- <parent link="Link${number}_0" /> -->
+    <!-- <child link="Link${number}_platlink2" /> -->
+    <!-- <axis xyz="0 0 1" /> -->
     <!--xacro:insert_block name="dynamics_parameter"/-->
-    <limit
+    <!-- <limit
       lower="-${pi/2}"
       upper="0"
       effort="1000"
-      velocity="10" />
-  </joint>
-    <gazebo>
+      velocity="10" /> -->
+  <!-- </joint> -->
+  <!-- <gazebo>
     <joint name="joint${number}_connect" type="fixed">
       <pose>0 0 0 0 0 0</pose>
       <parent>Link${number}_platlink</parent>
       <child>Link${number}_platlink2</child>
     </joint>
-  </gazebo>
+  </gazebo> -->
 </xacro:macro> 
   
 <!--ALL Leg Set*******************************************************************************************-->
