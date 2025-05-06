@@ -253,6 +253,12 @@ target_link_libraries(joint_angle_publisher
    ${catkin_LIBRARIES}
 )
 
+add_executable(joint_angle_publisher_moveit src/joint_angle_publisher_moveit.cpp)
+
+target_link_libraries(joint_angle_publisher_moveit
+   ${catkin_LIBRARIES}
+)
+
 add_executable(init_angle_pub src/init_angle_pub.cpp)
 
 target_link_libraries(init_angle_pub

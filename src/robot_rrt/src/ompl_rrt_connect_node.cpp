@@ -186,8 +186,8 @@ int main(int argc, char** argv)
 
     // 4️⃣ 设置起点和终点
     ob::ScopedState<> start(space), goal(space);
-    start = {-1.35192, -1.448481, -2.243493, 3.199319, 0.03093018, -1.050275};
-    goal = {-1.35399, -1.63415, -2.29649, 3.1416, 0.1636391, -0.9914737};
+    start = {-1.355364, -1.347798, -2.273997, 3.128921, -0.1086081, -1.324823};
+    goal = {-1.3448, -1.81108, -2.4329, 3.1416, 0.23424, -1.31166};  // 确保无碰撞
 
     if (!isStateValid(start.get()))
     {
@@ -205,7 +205,7 @@ int main(int argc, char** argv)
     if (ss.solve(5.0))
     {
         ROS_INFO("Planning succeeded!");
-        ss.simplifySolution();
+        // ss.simplifySolution();
         ss.getSolutionPath().printAsMatrix(std::cout);
     }
     else
