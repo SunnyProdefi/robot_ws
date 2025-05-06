@@ -153,6 +153,7 @@ std::string can0_serial = "31F10002876";  // force_torque_data_1,2
 roslaunch robot_control robot_control.launch
 
 roslaunch moveit_config demo.launch
+rosrun robot_rrt add_truss_link_node
 rostopic pub /control_flag std_msgs/Int32 "data: 1" -1
 rosrun robot_rrt ompl_rrt_connect_node
 

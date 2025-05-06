@@ -957,7 +957,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 4;
+                control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -967,10 +967,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 0.0, 0.5, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.5;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.8;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.8;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -982,6 +982,7 @@ int main(int argc, char **argv)
                     }
                 }
                 motor_state_pub.publish(motor_state);
+                // 延时
             }
         }
 
