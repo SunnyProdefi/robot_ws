@@ -1,0 +1,9 @@
+# robot_planning/PlanPathHome.srv
+
+float64[] init_floating_base
+float64[] gold_floating_base
+float64[] init_joint_angles
+float64[] gold_joint_angles
+---
+bool success
+string message

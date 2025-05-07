@@ -19,6 +19,7 @@ add_service_files(
   PlanPath.srv
   CartesianInterpolation.srv
   RobotPose.srv
+  PlanPathHome.srv
 )
 
 generate_messages(
@@ -100,6 +101,14 @@ target_link_libraries(core ${core_libs} pthread)
 add_executable(robot_planning_node src/robot_planning.cpp)
 add_dependencies(robot_planning_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(robot_planning_node
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
+add_executable(robot_planning_home src/robot_planning_home.cpp)
+add_dependencies(robot_planning_home ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(robot_planning_home
   ${catkin_LIBRARIES}
   core
   ${sim_libs}
