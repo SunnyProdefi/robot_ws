@@ -18,6 +18,7 @@ namespace robot_planning
      * @return 是否成功执行
      */
     bool computeLegTransforms(const std::string& init_floating_base_file, const std::string& gold_floating_base_file, const std::string& tf_using_file, const std::string& output_file);
+    bool computeLegTransforms_home(const std::string& init_floating_base_file, const std::string& gold_floating_base_file, const std::string& tf_using_file, const std::string& output_file);
 
     /**
      * @brief 解析变换矩阵

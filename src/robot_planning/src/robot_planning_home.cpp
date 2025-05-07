@@ -49,12 +49,12 @@ bool planCallback(robot_planning::PlanPathHome::Request& req, robot_planning::Pl
     savePoseAndJointsToYAML(gold_config_file, "gold_floating_base", req.gold_floating_base, "gold_joint_angles", req.gold_joint_angles);
 
     std::string tf_using_file = package_path + "/config/tf_using.yaml";
-    std::string output_file = package_path + "/config/leg_ik_cs.yaml";
-    std::string result_cs_file = package_path + "/config/result_cs.yaml";
-    std::string planning_result_file = package_path + "/config/planning_result.yaml";
+    std::string output_file = package_path + "/config/leg_ik_cs_home.yaml";
+    std::string result_cs_file = package_path + "/config/result_cs_home.yaml";
+    std::string planning_result_file = package_path + "/config/planning_result_home.yaml";
 
     // Step 1: 计算腿末端目标变换
-    if (!robot_planning::computeLegTransforms(init_config_file, gold_config_file, tf_using_file, output_file))
+    if (!robot_planning::computeLegTransforms_home(init_config_file, gold_config_file, tf_using_file, output_file))
     {
         res.success = false;
         res.message = "Failed to compute leg transforms!";
@@ -77,7 +77,7 @@ bool planCallback(robot_planning::PlanPathHome::Request& req, robot_planning::Pl
     robot_planning::loadJointAngles(init_config_file, gold_config_file, result_cs_file, joint_angles);
 
     // 插值floating base
-    std::vector<Eigen::Matrix4f> base_sequence = robot_planning::interpolateFloatingBase(init_config_file, gold_config_file, 150);
+    std::vector<Eigen::Matrix4f> base_sequence = robot_planning::interpolateFloatingBase_home(init_config_file, gold_config_file, 150);
 
     // 将结果写出
     robot_planning::saveFullBodyTrajectoryToYAML(planning_result_file, joint_angles, base_sequence);

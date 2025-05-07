@@ -58,6 +58,7 @@ int trajectory_index = 0;
 ros::ServiceClient planning_client;
 ros::ServiceClient pose_client;
 ros::ServiceClient interp_client;
+ros::ServiceClient planning_client_home;
 ros::Publisher motor_state_pub;
 
 // 在外部定义一个静态变量来计数
@@ -331,7 +332,7 @@ int main(int argc, char **argv)
     // 创建运动规划服务客户端
     planning_client = nh.serviceClient<robot_planning::PlanPath>("/plan_path");
 
-    ros::ServiceClient planning_client = nh.serviceClient<robot_planning::PlanPathHome>("/plan_path_home");
+    planning_client_home = nh.serviceClient<robot_planning::PlanPathHome>("/plan_path_home");
 
     // 创建 service client
     pose_client = nh.serviceClient<robot_planning::RobotPose>("/robot_pose");
@@ -960,7 +961,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 4;
+                control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -3108,7 +3109,7 @@ int main(int argc, char **argv)
                 srv.request.gold_floating_base = gold_floating_base;
                 srv.request.gold_joint_angles = gold_joint_angles;
 
-                if (planning_client.call(srv))
+                if (planning_client_home.call(srv))
                 {
                     if (srv.response.success)
                     {
@@ -3130,7 +3131,7 @@ int main(int argc, char **argv)
             else if (!planning_completed)
             {
                 std::string robot_planning_path = ros::package::getPath("robot_planning");
-                std::string planning_result_path = robot_planning_path + "/config/planning_result.yaml";
+                std::string planning_result_path = robot_planning_path + "/config/planning_result_home.yaml";
                 std::ifstream file(planning_result_path);
                 if (file.good())
                 {
@@ -3295,7 +3296,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 3;
+                control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;

@@ -92,6 +92,7 @@ namespace robot_planning
      * @return 插值后的位姿序列
      */
     std::vector<Eigen::Matrix4f> interpolateFloatingBase(const std::string& init_floating_base_file, const std::string& gold_floating_base_file, int point_per_stage = 250);
+    std::vector<Eigen::Matrix4f> interpolateFloatingBase_home(const std::string& init_floating_base_file, const std::string& gold_floating_base_file, int point_per_stage = 250);
 
     /**
      * @brief 将 joint + base 结果写入 YAML 文件

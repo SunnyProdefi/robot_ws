@@ -195,6 +195,85 @@ namespace robot_planning
     }
 
     /**
+     * @brief 插值 floating_base
+     * @param floating_base_file 文件名，如 floating_base.yaml
+     * @param point_per_stage    每个阶段的插值点数，默认 250
+     * @return 逐阶段插值后得到的基座变换序列
+     */
+    std::vector<Eigen::Matrix4f> interpolateFloatingBase_home(const std::string& init_floating_base_file, const std::string& gold_floating_base_file, int point_per_stage)
+    {
+        YAML::Node init_floating_base_yaml = loadYAML(init_floating_base_file);
+        YAML::Node gold_floating_base_yaml = loadYAML(gold_floating_base_file);
+        std::vector<Eigen::Matrix4f> interpolated_poses;
+
+        if (!init_floating_base_yaml || !gold_floating_base_yaml)
+        {
+            ROS_ERROR("Failed to load floating_base.yaml.");
+            return interpolated_poses;
+        }
+
+        // 解析初始位姿
+        Eigen::Vector3f pos_init(init_floating_base_yaml["init_floating_base"][0].as<float>(), init_floating_base_yaml["init_floating_base"][1].as<float>(), init_floating_base_yaml["init_floating_base"][2].as<float>());
+        Eigen::Matrix3f rot_init =
+            quaternionToRotationMatrix(init_floating_base_yaml["init_floating_base"][3].as<float>(), init_floating_base_yaml["init_floating_base"][4].as<float>(), init_floating_base_yaml["init_floating_base"][5].as<float>(), init_floating_base_yaml["init_floating_base"][6].as<float>());
+
+        // 解析目标位姿
+        Eigen::Vector3f pos_goal(gold_floating_base_yaml["gold_floating_base"][0].as<float>(), gold_floating_base_yaml["gold_floating_base"][1].as<float>(), gold_floating_base_yaml["gold_floating_base"][2].as<float>());
+        Eigen::Matrix3f rot_goal =
+            quaternionToRotationMatrix(gold_floating_base_yaml["gold_floating_base"][3].as<float>(), gold_floating_base_yaml["gold_floating_base"][4].as<float>(), gold_floating_base_yaml["gold_floating_base"][5].as<float>(), gold_floating_base_yaml["gold_floating_base"][6].as<float>());
+
+        Eigen::Quaternionf q_init(rot_init);
+        Eigen::Quaternionf q_goal(rot_goal);
+
+        Eigen::Vector3f pos_current = pos_init;
+        Eigen::Quaternionf q_current = q_init;
+
+        /**
+         *  修改后的阶段顺序:
+         *  stage0: Z
+         *  stage1: 旋转
+         *  stage2: Y
+         *  stage3: X
+         */
+        for (int stage = 0; stage < 4; ++stage)
+        {
+            for (int i = 0; i < point_per_stage; ++i)
+            {
+                float t = (point_per_stage == 1) ? 1.0f : static_cast<float>(i) / (point_per_stage - 1);
+
+                if (stage == 0)
+                {
+                    // 插值 Z
+                    pos_current.z() = (1 - t) * pos_init.z() + t * pos_goal.z();
+                }
+                else if (stage == 1)
+                {
+                    // 插值旋转 (四元数 slerp)
+                    q_current = q_init.slerp(t, q_goal);
+                }
+                else if (stage == 2)
+                {
+                    // 插值 Y
+                    pos_current.y() = (1 - t) * pos_init.y() + t * pos_goal.y();
+                }
+                else if (stage == 3)
+                {
+                    // 插值 X
+                    pos_current.x() = (1 - t) * pos_init.x() + t * pos_goal.x();
+                }
+
+                // 构造变换矩阵
+                Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+                tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();
+                tf.block<3, 1>(0, 3) = pos_current;
+                interpolated_poses.push_back(tf);
+            }
+        }
+
+        return interpolated_poses;
+    }
+
+    /**
      * @brief 将 joint + base 结果写入 YAML 文件
      * @param output_file 输出文件名
      * @param joint_angles 最终插值后的关节角度序列

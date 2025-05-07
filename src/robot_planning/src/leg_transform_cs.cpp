@@ -236,4 +236,132 @@ namespace robot_planning
         return true;
     }
 
+    bool computeLegTransforms_home(const std::string& init_floating_base_file, const std::string& gold_floating_base_file, const std::string& tf_using_file, const std::string& output_file)
+    {
+        YAML::Node init_floating_base_yaml = loadYAML(init_floating_base_file);
+        YAML::Node gold_floating_base_yaml = loadYAML(gold_floating_base_file);
+        YAML::Node tf_using_yaml = loadYAML(tf_using_file);
+
+        if (!init_floating_base_yaml || !gold_floating_base_yaml || !tf_using_yaml)
+        {
+            ROS_ERROR("Failed to load one or both YAML files.");
+            return false;
+        }
+
+        // **读取 init_floating_base（world -> base）**
+        Eigen::Vector3f pos_world_base_init(init_floating_base_yaml["init_floating_base"][0].as<float>(), init_floating_base_yaml["init_floating_base"][1].as<float>(), init_floating_base_yaml["init_floating_base"][2].as<float>());
+        Eigen::Matrix3f rot_world_base_init =
+            quaternionToRotationMatrix(init_floating_base_yaml["init_floating_base"][3].as<float>(), init_floating_base_yaml["init_floating_base"][4].as<float>(), init_floating_base_yaml["init_floating_base"][5].as<float>(), init_floating_base_yaml["init_floating_base"][6].as<float>());
+        Eigen::Matrix4f init_tf_mat_world_base = Eigen::Matrix4f::Identity();
+        init_tf_mat_world_base.block<3, 3>(0, 0) = rot_world_base_init;
+        init_tf_mat_world_base.block<3, 1>(0, 3) = pos_world_base_init;
+
+        // **读取 gold_floating_base（world -> base）**
+        Eigen::Vector3f pos_world_base_gold(gold_floating_base_yaml["gold_floating_base"][0].as<float>(), gold_floating_base_yaml["gold_floating_base"][1].as<float>(), gold_floating_base_yaml["gold_floating_base"][2].as<float>());
+        Eigen::Matrix3f rot_world_base_gold =
+            quaternionToRotationMatrix(gold_floating_base_yaml["gold_floating_base"][3].as<float>(), gold_floating_base_yaml["gold_floating_base"][4].as<float>(), gold_floating_base_yaml["gold_floating_base"][5].as<float>(), gold_floating_base_yaml["gold_floating_base"][6].as<float>());
+        Eigen::Matrix4f gold_tf_mat_world_base = Eigen::Matrix4f::Identity();
+        gold_tf_mat_world_base.block<3, 3>(0, 0) = rot_world_base_gold;
+        gold_tf_mat_world_base.block<3, 1>(0, 3) = pos_world_base_gold;
+
+        std::vector<Eigen::Matrix4f> interpolated_poses;
+        int point_per_stage = 150;
+        int point = 600;
+
+        // 初始与目标位置/旋转
+        Eigen::Vector3f pos_init = init_tf_mat_world_base.block<3, 1>(0, 3);
+        Eigen::Vector3f pos_gold = gold_tf_mat_world_base.block<3, 1>(0, 3);
+        Eigen::Matrix3f rot_init = init_tf_mat_world_base.block<3, 3>(0, 0);
+        Eigen::Matrix3f rot_gold = gold_tf_mat_world_base.block<3, 3>(0, 0);
+        Eigen::Quaternionf q_init(rot_init);
+        Eigen::Quaternionf q_gold(rot_gold);
+
+        // 当前状态初始化
+        Eigen::Vector3f pos_current = pos_init;
+        Eigen::Quaternionf q_current = q_init;
+
+        // 阶段1：插值 Z
+        for (int i = 0; i < point_per_stage; ++i)
+        {
+            float t = static_cast<float>(i) / (point_per_stage - 1);
+            pos_current.z() = (1 - t) * pos_init.z() + t * pos_gold.z();
+
+            Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+            tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();  // 初始旋转
+            tf.block<3, 1>(0, 3) = pos_current;
+            interpolated_poses.push_back(tf);
+        }
+
+        // 阶段2：插值旋转（SLERP）
+        for (int i = 0; i < point_per_stage; ++i)
+        {
+            float t = static_cast<float>(i) / (point_per_stage - 1);
+            q_current = q_init.slerp(t, q_gold);
+
+            Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+            tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();
+            tf.block<3, 1>(0, 3) = pos_current;  // Z 插值已完成
+            interpolated_poses.push_back(tf);
+        }
+
+        // 阶段3：插值 Y
+        for (int i = 0; i < point_per_stage; ++i)
+        {
+            float t = static_cast<float>(i) / (point_per_stage - 1);
+            pos_current.y() = (1 - t) * pos_init.y() + t * pos_gold.y();
+
+            Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+            tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();  // 旋转保持 slerp 后的值
+            tf.block<3, 1>(0, 3) = pos_current;
+            interpolated_poses.push_back(tf);
+        }
+
+        // 阶段4：插值 X
+        for (int i = 0; i < point_per_stage; ++i)
+        {
+            float t = static_cast<float>(i) / (point_per_stage - 1);
+            pos_current.x() = (1 - t) * pos_init.x() + t * pos_gold.x();
+
+            Eigen::Matrix4f tf = Eigen::Matrix4f::Identity();
+            tf.block<3, 3>(0, 0) = q_current.toRotationMatrix();  // 保持最终旋转
+            tf.block<3, 1>(0, 3) = pos_current;
+            interpolated_poses.push_back(tf);
+        }
+
+        // **读取 TF 变换**
+        Eigen::Matrix4f tf_mat_world_flan1 = parseTransformMatrix(tf_using_yaml["tf_mat_world_flan1"]);
+        Eigen::Matrix4f tf_mat_world_flan4 = parseTransformMatrix(tf_using_yaml["tf_mat_world_flan4"]);
+        Eigen::Matrix4f tf_mat_base_link1_0 = parseTransformMatrix(tf_using_yaml["tf_mat_base_link1_0"]);
+        Eigen::Matrix4f tf_mat_base_link4_0 = parseTransformMatrix(tf_using_yaml["tf_mat_base_link4_0"]);
+
+        std::vector<Eigen::Matrix4f> all_tf_link1_0_flan1;
+        std::vector<Eigen::Matrix4f> all_tf_link4_0_flan4;
+
+        // **遍历所有插值矩阵，计算 flan1 和 flan4 的变换**
+        for (int i = 0; i < point; ++i)
+        {
+            const Eigen::Matrix4f& tf_interp = interpolated_poses[i];
+
+            // 计算 base 坐标系下 flan1 和 flan4
+            Eigen::Matrix4f tf_mat_base_flan1 = tf_interp.inverse() * tf_mat_world_flan1;
+            Eigen::Matrix4f tf_mat_base_flan4 = tf_interp.inverse() * tf_mat_world_flan4;
+
+            // 计算 link1_0 下的 flan1
+            Eigen::Matrix4f tf_mat_link1_0_flan1 = tf_mat_base_link1_0.inverse() * tf_mat_base_flan1;
+
+            // 计算 link4_0 下的 flan4
+            Eigen::Matrix4f tf_mat_link4_0_flan4 = tf_mat_base_link4_0.inverse() * tf_mat_base_flan4;
+
+            // 将结果存储到向量中
+            all_tf_link1_0_flan1.push_back(tf_mat_link1_0_flan1);
+            all_tf_link4_0_flan4.push_back(tf_mat_link4_0_flan4);
+        }
+
+        // **保存计算结果到 YAML**
+        saveToYAML(output_file, all_tf_link1_0_flan1, all_tf_link4_0_flan4);
+
+        ROS_INFO("All computed transformations saved to leg_ik_cs.yaml!");
+        return true;
+    }
+
 }  // namespace robot_planning
