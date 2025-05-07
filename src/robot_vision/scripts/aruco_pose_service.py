@@ -11,9 +11,9 @@ from std_srvs.srv import Trigger, TriggerResponse
 class ArucoPoseServer:
     def __init__(self):
         rospy.init_node("aruco_pose_service")
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(6)
         if not self.cap.isOpened():
-            rospy.logerr("无法打开摄像头")
+            rospy.logerr("Unable to open camera")
             exit()
 
         # 相机内参
@@ -36,7 +36,7 @@ class ArucoPoseServer:
         self.yaml_path = os.path.join(config_dir, "aruco_pose.yaml")
 
         self.service = rospy.Service("/detect_aruco_and_save", Trigger, self.handle_request)
-        rospy.loginfo("服务已启动：/detect_aruco_and_save")
+        rospy.loginfo("Service started:/detect_aruco_and_save")
 
     def handle_request(self, req):
         ret, frame = self.cap.read()
@@ -49,27 +49,30 @@ class ArucoPoseServer:
         if ids is None:
             return TriggerResponse(success=False, message="未检测到 ArUco 标记")
 
-        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, self.marker_length,
-                                                              self.camera_matrix, self.dist_coeffs)
+        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
+            corners, self.marker_length, self.camera_matrix, self.dist_coeffs)
 
-        result = {}
-        for i in range(len(ids)):
-            rmat, _ = cv2.Rodrigues(rvecs[i])
-            pose_matrix = np.eye(4)
-            pose_matrix[:3, :3] = rmat
-            pose_matrix[:3, 3] = tvecs[i].flatten()
+        # 只处理第一个 ArUco
+        rmat, _ = cv2.Rodrigues(rvecs[0])
+        position = [float(x) for x in tvecs[0].flatten()]
+        orientation = [[float(rmat[i, j]) for j in range(3)] for i in range(3)]
 
-            result[int(ids[i][0])] = {
-                "position": tvecs[i].flatten().tolist(),
-                "rvec": rvecs[i].flatten().tolist(),
-                "pose_matrix": pose_matrix.tolist()
+        result = {
+            "tf_mat_camera_obj": {
+                "target_pose": {
+                    "position": position,
+                    "orientation": orientation
+                }
             }
+        }
 
+        # 写入 YAML，确保 flow style（列表在一行）
         with open(self.yaml_path, "w") as f:
-            yaml.dump(result, f)
+            yaml.dump(result, f, sort_keys=False, default_flow_style=None)
 
         rospy.loginfo("检测完成，已保存至：%s", self.yaml_path)
         return TriggerResponse(success=True, message="检测完成，已保存 ArUco 位姿")
+
 
     def shutdown(self):
         self.cap.release()

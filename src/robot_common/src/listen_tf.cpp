@@ -186,6 +186,7 @@ int main(int argc, char** argv)
         tf::StampedTransform tf_link2_0_flan2, tf_link3_0_flan3;
         tf::StampedTransform tf_world_cube_l, tf_world_cube_r;
         tf::StampedTransform tf_base_link2_0, tf_base_link3_0;
+        tf::StampedTransform tf_base_camera_link;
         try
         {
             listener.lookupTransform("world", "dummy_point3", ros::Time(0), transform);
@@ -203,6 +204,7 @@ int main(int argc, char** argv)
             listener.lookupTransform("Link3_0", "flan3", ros::Time(0), tf_link3_0_flan3);
             listener.lookupTransform("world", "cube_l", ros::Time(0), tf_world_cube_l);
             listener.lookupTransform("world", "cube_r", ros::Time(0), tf_world_cube_r);
+            listener.lookupTransform("base_link", "camera_link", ros::Time(0), tf_base_camera_link);
 
             Eigen::Matrix4f transform_matrix = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f transform_matrix2 = Eigen::Matrix4f::Identity();
@@ -219,6 +221,7 @@ int main(int argc, char** argv)
             Eigen::Matrix4f tf_mat_link3_0_flan3 = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f tf_mat_world_cube_l = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f tf_mat_world_cube_r = Eigen::Matrix4f::Identity();
+            Eigen::Matrix4f tf_mat_base_camera_link = Eigen::Matrix4f::Identity();
 
             tf::Matrix3x3 rotation_matrix(transform.getRotation());
             tf::Matrix3x3 rotation_matrix2(transform2.getRotation());
@@ -235,6 +238,7 @@ int main(int argc, char** argv)
             tf::Matrix3x3 rot_mat_link3_0_flan3(tf_link3_0_flan3.getRotation());
             tf::Matrix3x3 rot_mat_world_cube_l(tf_world_cube_l.getRotation());
             tf::Matrix3x3 rot_mat_world_cube_r(tf_world_cube_r.getRotation());
+            tf::Matrix3x3 rot_mat_base_camera_link(tf_base_camera_link.getRotation());
 
             for (int i = 0; i < 3; ++i)
             {
@@ -255,6 +259,7 @@ int main(int argc, char** argv)
                     tf_mat_link3_0_flan3(i, j) = rot_mat_link3_0_flan3[i][j];
                     tf_mat_world_cube_l(i, j) = rot_mat_world_cube_l[i][j];
                     tf_mat_world_cube_r(i, j) = rot_mat_world_cube_r[i][j];
+                    tf_mat_base_camera_link(i, j) = rot_mat_base_camera_link[i][j];
                 }
             }
 
@@ -318,6 +323,10 @@ int main(int argc, char** argv)
             tf_mat_world_cube_r(1, 3) = tf_world_cube_r.getOrigin().y();
             tf_mat_world_cube_r(2, 3) = tf_world_cube_r.getOrigin().z();
 
+            tf_mat_base_camera_link(0, 3) = tf_base_camera_link.getOrigin().x();
+            tf_mat_base_camera_link(1, 3) = tf_base_camera_link.getOrigin().y();
+            tf_mat_base_camera_link(2, 3) = tf_base_camera_link.getOrigin().z();
+
             saveTransformToYAML(yaml_path, transform_matrix, transform_matrix2);
             saveTransformToYAML(path_tf_double_arm_float, transform_matrix, transform_matrix2);
             saveTFToYAML(path_tf_using, tf_mat_world_flan1, "tf_mat_world_flan1");
@@ -328,6 +337,7 @@ int main(int argc, char** argv)
             saveTFToYAML(path_tf_using, tf_mat_base_link3_0, "tf_mat_base_link3_0");
             saveTFToYAML(path_tf_using, tf_mat_link2_0_flan2, "tf_mat_link2_0_flan2");
             saveTFToYAML(path_tf_using, tf_mat_link3_0_flan3, "tf_mat_link3_0_flan3");
+            saveTFToYAML(path_tf_using, tf_mat_base_camera_link, "tf_mat_base_camera_link");
 
             saveTFToYAML(path_tf_obj, tf_mat_base_link1_0, "tf_mat_base_link1_0");
             saveTFToYAML(path_tf_obj, tf_mat_base_link2_0, "tf_mat_base_link2_0");
@@ -338,6 +348,7 @@ int main(int argc, char** argv)
             saveTFToYAML(path_tf_obj, tf_mat_world_obj_2, "tf_mat_world_obj_2");
             saveTFToYAML(path_tf_obj, tf_mat_world_cube_l, "tf_mat_world_cube_l");
             saveTFToYAML(path_tf_obj, tf_mat_world_cube_r, "tf_mat_world_cube_r");
+            saveTFToYAML(path_tf_obj, tf_mat_base_camera_link, "tf_mat_base_camera_link");
         }
         catch (tf::TransformException& ex)
         {

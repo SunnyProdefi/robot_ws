@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
   rospy
   std_srvs
+  roscpp
 )
 
 ## System dependencies are found with CMake's conventions
@@ -208,3 +209,8 @@ catkin_install_python(PROGRAMS
   scripts/aruco_pose_service.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+find_package(yaml-cpp REQUIRED)
+
+add_executable(aruco_pose_client src/aruco_pose_client.cpp)
+target_link_libraries(aruco_pose_client ${catkin_LIBRARIES} yaml-cpp)
