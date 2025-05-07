@@ -387,6 +387,69 @@ int main(int argc, char **argv)
         }
     };
 
+    auto mergeBranch2Only = [&](const std::vector<double> &traj2, std::vector<std::vector<double>> &merged)
+    {
+        const int n_j = MOTOR_BRANCHN_N - 1;  // 每个分支的关节数
+        size_t num_pts = traj2.size() / n_j;
+
+        merged.clear();
+        for (size_t i = 0; i < num_pts; ++i)
+        {
+            std::vector<double> pt(BRANCHN_N * n_j, 0.0);
+
+            // 分支2填入轨迹
+            for (int j = 0; j < n_j; ++j)
+            {
+                pt[1 * n_j + j] = traj2[i * n_j + j];  // 注意：分支2的索引是 1
+            }
+
+            // 其他分支保持原样
+            for (int b = 0; b < BRANCHN_N; ++b)
+            {
+                if (b != 1)
+                {
+                    for (int j = 0; j < n_j; ++j)
+                    {
+                        pt[b * n_j + j] = q_recv[b][j];
+                    }
+                }
+            }
+            merged.push_back(pt);
+        }
+    };
+
+    auto mergeBranch3Only = [&](const std::vector<double> &traj3, std::vector<std::vector<double>> &merged)
+    {
+        const int n_j = MOTOR_BRANCHN_N - 1;  // 每个分支的关节数
+        size_t num_pts = traj3.size() / n_j;
+
+        merged.clear();
+        for (size_t i = 0; i < num_pts; ++i)
+        {
+            std::vector<double> pt(BRANCHN_N * n_j, 0.0);
+
+            // 分支3填入轨迹
+            for (int j = 0; j < n_j; ++j)
+            {
+                pt[2 * n_j + j] = traj3[i * n_j + j];  // 注意：分支3的索引是 2
+            }
+
+            // 其他分支保持原样
+            for (int b = 0; b < BRANCHN_N; ++b)
+            {
+                if (b != 2)
+                {
+                    for (int j = 0; j < n_j; ++j)
+                    {
+                        pt[b * n_j + j] = q_recv[b][j];
+                    }
+                }
+            }
+
+            merged.push_back(pt);
+        }
+    };
+
     /* --- 单步执行 merged 轨迹（保持原发布 / 发送逻辑） --- */
     auto executeStep = [&](size_t idx)
     {
@@ -772,50 +835,12 @@ int main(int argc, char **argv)
                 // link2_0 → obj
                 Eigen::Matrix4d tf_mat_link2_0_obj = tf_mat_base_link2_0.inverse() * tf_mat_base_obj;
 
-                // std::cout << "tf_mat_world_base:\n" << tf_mat_world_base << std::endl;
-                // std::cout << "tf_mat_base_obj:\n" << tf_mat_base_obj << std::endl;
-                // std::cout << "tf_mat_link2_0_obj:\n" << tf_mat_link2_0_obj << std::endl;
-
-                // 请求获取分支2末端的位姿（相对于link2_0)）（link2_0 -> flan2）
-                robot_planning::RobotPose srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.source_frame = "link2_0";
-                srv.request.target_frame = "branch2_end";
-
-                Eigen::Matrix4d tf_mat_link3_0_flan3;
-
-                if (pose_client.call(srv))
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
                 {
-                    if (srv.response.success)
-                    {
-                        std::vector<double> transform = srv.response.transform;
-                        // std::cout << "[link2_0 → branch2_end] Transform (xyz + quat):\n";
-                        // std::cout << "Position: [" << transform[0] << ", " << transform[1] << ", " << transform[2] << "]\n";
-                        // std::cout << "Orientation (quat): [" << transform[3] << ", " << transform[4] << ", " << transform[5] << ", " << transform[6] << "]\n";
-
-                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
-                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
-                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
-                        quat.normalize();                                                                 // 防止精度误差
-
-                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
-                        tf_iso.linear() = quat.toRotationMatrix();
-                        tf_iso.translation() = position;
-
-                        // 转换为 Matrix4d 显示
-                        tf_mat_link3_0_flan3 = tf_iso.matrix();
-                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link3_0_flan3 << std::endl;
-                    }
-                    else
-                    {
-                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                    control_flag = 0;
+                    return 0;
                 }
 
                 // 获取变换矩阵中的位置和四元数
@@ -831,9 +856,9 @@ int main(int argc, char **argv)
                 };
 
                 // 获取变换矩阵中的位置和四元数
-                Eigen::Vector3d position_flan2 = tf_mat_link3_0_flan3.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+                Eigen::Vector3d position_flan2 = tf_mat_link2_0_flan2.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
 
-                Eigen::Quaterniond quat_flan2(tf_mat_link3_0_flan3.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Quaterniond quat_flan2(tf_mat_link2_0_flan2.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
                 Eigen::Vector4d quaternion_flan2 = quat_flan2.coeffs();                 // 获取四元数 [qx, qy, qz, qw]
 
                 // 将位姿信息存储到 std::vector<double> 中
@@ -842,126 +867,29 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                robot_planning::CartesianInterpolation interp_srv;
-                interp_srv.request.branch_id = 2;
-
-                // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-
-                interp_srv.request.start_pose = start_pose;
-                interp_srv.request.goal_pose = goal_pose;
-
-                // 设置插值参数
-                interp_srv.request.duration = 3.0;     // 2 秒
-                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
-
-                // 发送请求
-                if (interp_client.call(interp_srv))
+                std::vector<double> traj2;
+                try
                 {
-                    if (interp_srv.response.success)
-                    {
-                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
-                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
-
-                        // for (int i = 0; i < interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size(); ++i)
-                        // {
-                        //     std::cout << "Trajectory point " << i << ": ";
-                        //     for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                        //     {
-                        //         std::cout << interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j] << " ";
-                        //     }
-                        //     std::cout << std::endl;
-                        // }
-
-                        // 保存轨迹
-                        planned_joint_trajectory.clear();
-                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
-                        for (int i = 0; i < num_points; ++i)
-                        {
-                            // 创建一个包含所有分支的轨迹点
-                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
-
-                            // 复制当前分支的轨迹点
-                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                            {
-                                point[1 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
-                            }
-
-                            // 保持其他分支的关节角度不变
-                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
-                            {
-                                if (branchi != 1)  // 不是当前分支
-                                {
-                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
-                                    {
-                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
-                                    }
-                                }
-                            }
-
-                            planned_joint_trajectory.push_back(point);
-                        }
-                        planning_requested = true;
-                        trajectory_index = 0;
-                    }
-                    else
-                    {
-                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
-                        control_flag = 0;  // 回到初始状态
-                    }
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
                 }
-                else
+                catch (const std::exception &e)
                 {
-                    ROS_ERROR("Failed to call service cartesian_interpolation");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
                 }
+                mergeBranch2Only(traj2, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
-                // 设置目标关节角度
-                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                {
-                    q_send[1][motorj] = planned_joint_trajectory[trajectory_index][1 * (MOTOR_BRANCHN_N - 1) + motorj];
-                }
-
-                // for (int i = 0; i < 6; i++)
-                // {
-                //     std::cout << q_send[1][i] << " ";
-                // }
-                // std::cout << std::endl;
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_recv[1][motorj] = q_send[1][motorj];
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
+                executeStep(trajectory_index++);
             }
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 4;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1001,47 +929,15 @@ int main(int argc, char **argv)
             {
                 std::cout << "Control flag 4 received" << std::endl;
 
-                // 请求获取分支2末端的位姿（相对于link2_0)）（link2_0 -> flan2）
-                robot_planning::RobotPose srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.source_frame = "link2_0";
-                srv.request.target_frame = "branch2_end";
-
-                Eigen::Matrix4d tf_mat_link2_0_flan2;
-
-                if (pose_client.call(srv))
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
                 {
-                    if (srv.response.success)
-                    {
-                        std::vector<double> transform = srv.response.transform;
-                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
-                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
-                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
-                        quat.normalize();                                                                 // 防止精度误差
-
-                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
-                        tf_iso.linear() = quat.toRotationMatrix();
-                        tf_iso.translation() = position;
-
-                        // 转换为 Matrix4d 显示
-                        tf_mat_link2_0_flan2 = tf_iso.matrix();
-                        // std::cout << "tf_mat_link3_0_flan3:\n" << tf_mat_link2_0_flan2 << std::endl;
-                    }
-                    else
-                    {
-                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                    control_flag = 0;
+                    return 0;
                 }
 
                 Eigen::Matrix4d tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2;
 
-                // 构造平移矩阵
                 Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
                 translation(2, 3) = -0.115;
 
@@ -1072,105 +968,24 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                robot_planning::CartesianInterpolation interp_srv;
-                interp_srv.request.branch_id = 2;
-
-                // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-
-                interp_srv.request.start_pose = start_pose;
-                interp_srv.request.goal_pose = goal_pose;
-
-                // 设置插值参数
-                interp_srv.request.duration = 3.0;     // 2 秒
-                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
-
-                // 发送请求
-                if (interp_client.call(interp_srv))
+                std::vector<double> traj2;
+                try
                 {
-                    if (interp_srv.response.success)
-                    {
-                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
-                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
-
-                        // 保存轨迹
-                        planned_joint_trajectory.clear();
-                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
-                        for (int i = 0; i < num_points; ++i)
-                        {
-                            // 创建一个包含所有分支的轨迹点
-                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
-
-                            // 复制当前分支的轨迹点
-                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                            {
-                                point[1 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
-                            }
-
-                            // 保持其他分支的关节角度不变
-                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
-                            {
-                                if (branchi != 1)  // 不是当前分支
-                                {
-                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
-                                    {
-                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
-                                    }
-                                }
-                            }
-
-                            planned_joint_trajectory.push_back(point);
-                        }
-                        planning_requested = true;
-                        trajectory_index = 0;
-                    }
-                    else
-                    {
-                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
-                        control_flag = 0;  // 回到初始状态
-                    }
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
                 }
-                else
+                catch (const std::exception &e)
                 {
-                    ROS_ERROR("Failed to call service cartesian_interpolation");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
                 }
+                mergeBranch2Only(traj2, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
-                // 设置目标关节角度
-                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                {
-                    q_send[1][motorj] = planned_joint_trajectory[trajectory_index][1 * (MOTOR_BRANCHN_N - 1) + motorj];
-                }
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_recv[1][motorj] = q_send[1][motorj];
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
+                executeStep(trajectory_index++);
             }
             else
             {
@@ -1210,50 +1025,20 @@ int main(int argc, char **argv)
                 Eigen::Matrix4d tf_mat_base_obj_1 = tf_mat_world_base.inverse() * tf_mat_world_obj_1;
 
                 // link2_0 → obj1
-                Eigen::Matrix4d tf_mat_link3_0_flan3_goal = tf_mat_base_link2_0.inverse() * tf_mat_base_obj_1;
+                Eigen::Matrix4d tf_mat_link2_0_flan2_goal = tf_mat_base_link2_0.inverse() * tf_mat_base_obj_1;
 
-                // 请求获取分支2末端的位姿（相对于link2_0)）（link2_0 -> flan2）
-                robot_planning::RobotPose srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.source_frame = "link2_0";
-                srv.request.target_frame = "branch2_end";
-
-                Eigen::Matrix4d tf_mat_link3_0_flan3;
-
-                if (pose_client.call(srv))
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
                 {
-                    if (srv.response.success)
-                    {
-                        std::vector<double> transform = srv.response.transform;
-
-                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
-                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
-                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
-                        quat.normalize();                                                                 // 防止精度误差
-
-                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
-                        tf_iso.linear() = quat.toRotationMatrix();
-                        tf_iso.translation() = position;
-
-                        // 转换为 Matrix4d 显示
-                        tf_mat_link3_0_flan3 = tf_iso.matrix();
-                    }
-                    else
-                    {
-                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                    control_flag = 0;
+                    return 0;
                 }
 
                 // 获取变换矩阵中的位置和四元数
-                Eigen::Vector3d position = tf_mat_link3_0_flan3_goal.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+                Eigen::Vector3d position = tf_mat_link2_0_flan2_goal.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
 
-                Eigen::Quaterniond quat(tf_mat_link3_0_flan3_goal.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Quaterniond quat(tf_mat_link2_0_flan2_goal.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
                 Eigen::Vector4d quaternion = quat.coeffs();                            // 获取四元数 [qx, qy, qz, qw]
 
                 // 将位姿信息存储到 std::vector<double> 中
@@ -1263,9 +1048,9 @@ int main(int argc, char **argv)
                 };
 
                 // 获取变换矩阵中的位置和四元数
-                Eigen::Vector3d position_flan2 = tf_mat_link3_0_flan3.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+                Eigen::Vector3d position_flan2 = tf_mat_link2_0_flan2.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
 
-                Eigen::Quaterniond quat_flan2(tf_mat_link3_0_flan3.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Quaterniond quat_flan2(tf_mat_link2_0_flan2.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
                 Eigen::Vector4d quaternion_flan2 = quat_flan2.coeffs();                 // 获取四元数 [qx, qy, qz, qw]
 
                 // 将位姿信息存储到 std::vector<double> 中
@@ -1274,105 +1059,24 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                robot_planning::CartesianInterpolation interp_srv;
-                interp_srv.request.branch_id = 2;
-
-                // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-
-                interp_srv.request.start_pose = start_pose;
-                interp_srv.request.goal_pose = goal_pose;
-
-                // 设置插值参数
-                interp_srv.request.duration = 3.0;     // 2 秒
-                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
-
-                // 发送请求
-                if (interp_client.call(interp_srv))
+                std::vector<double> traj2;
+                try
                 {
-                    if (interp_srv.response.success)
-                    {
-                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
-                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
-
-                        // 保存轨迹
-                        planned_joint_trajectory.clear();
-                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
-                        for (int i = 0; i < num_points; ++i)
-                        {
-                            // 创建一个包含所有分支的轨迹点
-                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
-
-                            // 复制当前分支的轨迹点
-                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                            {
-                                point[1 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
-                            }
-
-                            // 保持其他分支的关节角度不变
-                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
-                            {
-                                if (branchi != 1)  // 不是当前分支
-                                {
-                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
-                                    {
-                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
-                                    }
-                                }
-                            }
-
-                            planned_joint_trajectory.push_back(point);
-                        }
-                        planning_requested = true;
-                        trajectory_index = 0;
-                    }
-                    else
-                    {
-                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
-                        control_flag = 0;  // 回到初始状态
-                    }
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
                 }
-                else
+                catch (const std::exception &e)
                 {
-                    ROS_ERROR("Failed to call service cartesian_interpolation");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
                 }
+                mergeBranch2Only(traj2, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
-                // 设置目标关节角度
-                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                {
-                    q_send[1][motorj] = planned_joint_trajectory[trajectory_index][1 * (MOTOR_BRANCHN_N - 1) + motorj];
-                }
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_recv[1][motorj] = q_send[1][motorj];
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
+                executeStep(trajectory_index++);
             }
             else
             {
@@ -1390,42 +1094,12 @@ int main(int argc, char **argv)
             {
                 std::cout << "Control flag 6 received" << std::endl;
 
-                // 请求获取分支3末端的位姿（相对于link3_0)）（link3_0 -> flan3）
-                robot_planning::RobotPose srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.source_frame = "link3_0";
-                srv.request.target_frame = "branch3_end";
-
-                Eigen::Matrix4d tf_mat_link3_0_flan3;
-
-                if (pose_client.call(srv))
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
                 {
-                    if (srv.response.success)
-                    {
-                        std::vector<double> transform = srv.response.transform;
-
-                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
-                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
-                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
-                        quat.normalize();                                                                 // 防止精度误差
-
-                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
-                        tf_iso.linear() = quat.toRotationMatrix();
-                        tf_iso.translation() = position;
-
-                        // 转换为 Matrix4d 显示
-                        tf_mat_link3_0_flan3 = tf_iso.matrix();
-                    }
-                    else
-                    {
-                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                    control_flag = 0;
+                    return 0;
                 }
 
                 Eigen::Matrix4d tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3;
@@ -1461,105 +1135,24 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                robot_planning::CartesianInterpolation interp_srv;
-                interp_srv.request.branch_id = 2;
-
-                // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-
-                interp_srv.request.start_pose = start_pose;
-                interp_srv.request.goal_pose = goal_pose;
-
-                // 设置插值参数
-                interp_srv.request.duration = 3.0;     // 2 秒
-                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
-
-                // 发送请求
-                if (interp_client.call(interp_srv))
+                std::vector<double> traj3;
+                try
                 {
-                    if (interp_srv.response.success)
-                    {
-                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
-                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
-
-                        // 保存轨迹
-                        planned_joint_trajectory.clear();
-                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
-                        for (int i = 0; i < num_points; ++i)
-                        {
-                            // 创建一个包含所有分支的轨迹点
-                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
-
-                            // 复制当前分支的轨迹点
-                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                            {
-                                point[2 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
-                            }
-
-                            // 保持其他分支的关节角度不变
-                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
-                            {
-                                if (branchi != 2)  // 不是当前分支
-                                {
-                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
-                                    {
-                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
-                                    }
-                                }
-                            }
-
-                            planned_joint_trajectory.push_back(point);
-                        }
-                        planning_requested = true;
-                        trajectory_index = 0;
-                    }
-                    else
-                    {
-                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
-                        control_flag = 0;  // 回到初始状态
-                    }
+                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 3.0, traj3);
                 }
-                else
+                catch (const std::exception &e)
                 {
-                    ROS_ERROR("Failed to call service cartesian_interpolation");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
                 }
+                mergeBranch3Only(traj3, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
-                // 设置目标关节角度
-                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                {
-                    q_send[2][motorj] = planned_joint_trajectory[trajectory_index][2 * (MOTOR_BRANCHN_N - 1) + motorj];
-                }
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_recv[2][motorj] = q_send[2][motorj];
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
+                executeStep(trajectory_index++);
             }
             else
             {
@@ -1598,42 +1191,12 @@ int main(int argc, char **argv)
             {
                 std::cout << "Control flag 7 received" << std::endl;
 
-                // 请求获取分支2末端的位姿（相对于link2_0)）（link2_0 -> flan2）
-                robot_planning::RobotPose srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.source_frame = "link2_0";
-                srv.request.target_frame = "branch2_end";
-
-                Eigen::Matrix4d tf_mat_link2_0_flan2;
-
-                if (pose_client.call(srv))
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
                 {
-                    if (srv.response.success)
-                    {
-                        std::vector<double> transform = srv.response.transform;
-
-                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
-                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
-                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
-                        quat.normalize();                                                                 // 防止精度误差
-
-                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
-                        tf_iso.linear() = quat.toRotationMatrix();
-                        tf_iso.translation() = position;
-
-                        // 转换为 Matrix4d 显示
-                        tf_mat_link2_0_flan2 = tf_iso.matrix();
-                    }
-                    else
-                    {
-                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                    control_flag = 0;
+                    return 0;
                 }
 
                 Eigen::Matrix4d tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2;
@@ -1669,105 +1232,24 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                robot_planning::CartesianInterpolation interp_srv;
-                interp_srv.request.branch_id = 2;
-
-                // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-
-                interp_srv.request.start_pose = start_pose;
-                interp_srv.request.goal_pose = goal_pose;
-
-                // 设置插值参数
-                interp_srv.request.duration = 3.0;     // 2 秒
-                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
-
-                // 发送请求
-                if (interp_client.call(interp_srv))
+                std::vector<double> traj2;
+                try
                 {
-                    if (interp_srv.response.success)
-                    {
-                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
-                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
-
-                        // 保存轨迹
-                        planned_joint_trajectory.clear();
-                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
-                        for (int i = 0; i < num_points; ++i)
-                        {
-                            // 创建一个包含所有分支的轨迹点
-                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
-
-                            // 复制当前分支的轨迹点
-                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                            {
-                                point[1 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
-                            }
-
-                            // 保持其他分支的关节角度不变
-                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
-                            {
-                                if (branchi != 1)  // 不是当前分支
-                                {
-                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
-                                    {
-                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
-                                    }
-                                }
-                            }
-
-                            planned_joint_trajectory.push_back(point);
-                        }
-                        planning_requested = true;
-                        trajectory_index = 0;
-                    }
-                    else
-                    {
-                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
-                        control_flag = 0;  // 回到初始状态
-                    }
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
                 }
-                else
+                catch (const std::exception &e)
                 {
-                    ROS_ERROR("Failed to call service cartesian_interpolation");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
                 }
+                mergeBranch2Only(traj2, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
-                // 设置目标关节角度
-                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                {
-                    q_send[1][motorj] = planned_joint_trajectory[trajectory_index][1 * (MOTOR_BRANCHN_N - 1) + motorj];
-                }
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_recv[1][motorj] = q_send[1][motorj];
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
+                executeStep(trajectory_index++);
             }
             else
             {
@@ -1807,42 +1289,12 @@ int main(int argc, char **argv)
                 // link3_0 → obj2
                 Eigen::Matrix4d tf_mat_link3_0_obj = tf_mat_base_link3_0.inverse() * tf_mat_base_obj;
 
-                // 请求获取分支3末端的位姿（相对于link3_0)）（link3_0 -> flan3）
-                robot_planning::RobotPose srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.source_frame = "link3_0";
-                srv.request.target_frame = "branch3_end";
-
-                Eigen::Matrix4d tf_mat_link3_0_flan3;
-
-                if (pose_client.call(srv))
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
                 {
-                    if (srv.response.success)
-                    {
-                        std::vector<double> transform = srv.response.transform;
-
-                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
-                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
-                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
-                        quat.normalize();                                                                 // 防止精度误差
-
-                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
-                        tf_iso.linear() = quat.toRotationMatrix();
-                        tf_iso.translation() = position;
-
-                        // 转换为 Matrix4d 显示
-                        tf_mat_link3_0_flan3 = tf_iso.matrix();
-                    }
-                    else
-                    {
-                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                    control_flag = 0;
+                    return 0;
                 }
 
                 // 获取变换矩阵中的位置和四元数
@@ -1869,105 +1321,24 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                robot_planning::CartesianInterpolation interp_srv;
-                interp_srv.request.branch_id = 2;
-
-                // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-
-                interp_srv.request.start_pose = start_pose;
-                interp_srv.request.goal_pose = goal_pose;
-
-                // 设置插值参数
-                interp_srv.request.duration = 3.0;     // 2 秒
-                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
-
-                // 发送请求
-                if (interp_client.call(interp_srv))
+                std::vector<double> traj3;
+                try
                 {
-                    if (interp_srv.response.success)
-                    {
-                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
-                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
-
-                        // 保存轨迹
-                        planned_joint_trajectory.clear();
-                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
-                        for (int i = 0; i < num_points; ++i)
-                        {
-                            // 创建一个包含所有分支的轨迹点
-                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
-
-                            // 复制当前分支的轨迹点
-                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                            {
-                                point[2 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
-                            }
-
-                            // 保持其他分支的关节角度不变
-                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
-                            {
-                                if (branchi != 2)  // 不是当前分支
-                                {
-                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
-                                    {
-                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
-                                    }
-                                }
-                            }
-
-                            planned_joint_trajectory.push_back(point);
-                        }
-                        planning_requested = true;
-                        trajectory_index = 0;
-                    }
-                    else
-                    {
-                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
-                        control_flag = 0;  // 回到初始状态
-                    }
+                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 3.0, traj3);
                 }
-                else
+                catch (const std::exception &e)
                 {
-                    ROS_ERROR("Failed to call service cartesian_interpolation");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
                 }
+                mergeBranch3Only(traj3, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
-                // 设置目标关节角度
-                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                {
-                    q_send[2][motorj] = planned_joint_trajectory[trajectory_index][2 * (MOTOR_BRANCHN_N - 1) + motorj];
-                }
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_recv[2][motorj] = q_send[2][motorj];
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
+                executeStep(trajectory_index++);
             }
             else
             {
@@ -1985,42 +1356,12 @@ int main(int argc, char **argv)
             {
                 std::cout << "Control flag 9 received" << std::endl;
 
-                // 请求获取分支3末端的位姿（相对于link3_0)）（link3_0 -> flan3）
-                robot_planning::RobotPose srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.source_frame = "link3_0";
-                srv.request.target_frame = "branch3_end";
-
-                Eigen::Matrix4d tf_mat_link3_0_flan3;
-
-                if (pose_client.call(srv))
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
                 {
-                    if (srv.response.success)
-                    {
-                        std::vector<double> transform = srv.response.transform;
-
-                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
-                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
-                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
-                        quat.normalize();                                                                 // 防止精度误差
-
-                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
-                        tf_iso.linear() = quat.toRotationMatrix();
-                        tf_iso.translation() = position;
-
-                        // 转换为 Matrix4d 显示
-                        tf_mat_link3_0_flan3 = tf_iso.matrix();
-                    }
-                    else
-                    {
-                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                    control_flag = 0;
+                    return 0;
                 }
 
                 Eigen::Matrix4d tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3;
@@ -2056,105 +1397,24 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                robot_planning::CartesianInterpolation interp_srv;
-                interp_srv.request.branch_id = 2;
-
-                // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-
-                interp_srv.request.start_pose = start_pose;
-                interp_srv.request.goal_pose = goal_pose;
-
-                // 设置插值参数
-                interp_srv.request.duration = 3.0;     // 2 秒
-                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
-
-                // 发送请求
-                if (interp_client.call(interp_srv))
+                std::vector<double> traj3;
+                try
                 {
-                    if (interp_srv.response.success)
-                    {
-                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
-                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
-
-                        // 保存轨迹
-                        planned_joint_trajectory.clear();
-                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
-                        for (int i = 0; i < num_points; ++i)
-                        {
-                            // 创建一个包含所有分支的轨迹点
-                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
-
-                            // 复制当前分支的轨迹点
-                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                            {
-                                point[2 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
-                            }
-
-                            // 保持其他分支的关节角度不变
-                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
-                            {
-                                if (branchi != 2)  // 不是当前分支
-                                {
-                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
-                                    {
-                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
-                                    }
-                                }
-                            }
-
-                            planned_joint_trajectory.push_back(point);
-                        }
-                        planning_requested = true;
-                        trajectory_index = 0;
-                    }
-                    else
-                    {
-                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
-                        control_flag = 0;  // 回到初始状态
-                    }
+                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 3.0, traj3);
                 }
-                else
+                catch (const std::exception &e)
                 {
-                    ROS_ERROR("Failed to call service cartesian_interpolation");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
                 }
+                mergeBranch3Only(traj3, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
-                // 设置目标关节角度
-                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                {
-                    q_send[2][motorj] = planned_joint_trajectory[trajectory_index][2 * (MOTOR_BRANCHN_N - 1) + motorj];
-                }
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_recv[2][motorj] = q_send[2][motorj];
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
+                executeStep(trajectory_index++);
             }
             else
             {
@@ -2353,42 +1613,12 @@ int main(int argc, char **argv)
                 // link3_0 → cube_r
                 Eigen::Matrix4d tf_mat_link3_0_cube_r = tf_mat_base_link3_0.inverse() * tf_mat_base_cube_r;
 
-                // 请求获取分支3末端的位姿（相对于link3_0)）（link3_0 -> flan3）
-                robot_planning::RobotPose srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.source_frame = "link3_0";
-                srv.request.target_frame = "branch3_end";
-
-                Eigen::Matrix4d tf_mat_link3_0_flan3;
-
-                if (pose_client.call(srv))
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
                 {
-                    if (srv.response.success)
-                    {
-                        std::vector<double> transform = srv.response.transform;
-
-                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
-                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
-                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
-                        quat.normalize();                                                                 // 防止精度误差
-
-                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
-                        tf_iso.linear() = quat.toRotationMatrix();
-                        tf_iso.translation() = position;
-
-                        // 转换为 Matrix4d 显示
-                        tf_mat_link3_0_flan3 = tf_iso.matrix();
-                    }
-                    else
-                    {
-                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                    control_flag = 0;
+                    return 0;
                 }
 
                 // 获取变换矩阵中的位置和四元数
@@ -2415,105 +1645,24 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                robot_planning::CartesianInterpolation interp_srv;
-                interp_srv.request.branch_id = 2;
-
-                // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-
-                interp_srv.request.start_pose = start_pose;
-                interp_srv.request.goal_pose = goal_pose;
-
-                // 设置插值参数
-                interp_srv.request.duration = 3.0;     // 2 秒
-                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
-
-                // 发送请求
-                if (interp_client.call(interp_srv))
+                std::vector<double> traj3;
+                try
                 {
-                    if (interp_srv.response.success)
-                    {
-                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
-                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
-
-                        // 保存轨迹
-                        planned_joint_trajectory.clear();
-                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
-                        for (int i = 0; i < num_points; ++i)
-                        {
-                            // 创建一个包含所有分支的轨迹点
-                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
-
-                            // 复制当前分支的轨迹点
-                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                            {
-                                point[2 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
-                            }
-
-                            // 保持其他分支的关节角度不变
-                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
-                            {
-                                if (branchi != 2)  // 不是当前分支
-                                {
-                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
-                                    {
-                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
-                                    }
-                                }
-                            }
-
-                            planned_joint_trajectory.push_back(point);
-                        }
-                        planning_requested = true;
-                        trajectory_index = 0;
-                    }
-                    else
-                    {
-                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
-                        control_flag = 0;  // 回到初始状态
-                    }
+                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 3.0, traj3);
                 }
-                else
+                catch (const std::exception &e)
                 {
-                    ROS_ERROR("Failed to call service cartesian_interpolation");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
                 }
+                mergeBranch3Only(traj3, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
-                // 设置目标关节角度
-                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                {
-                    q_send[2][motorj] = planned_joint_trajectory[trajectory_index][2 * (MOTOR_BRANCHN_N - 1) + motorj];
-                }
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_recv[2][motorj] = q_send[2][motorj];
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
+                executeStep(trajectory_index++);
             }
             else
             {
@@ -2553,42 +1702,12 @@ int main(int argc, char **argv)
                 // link2_0 → cube_l
                 Eigen::Matrix4d tf_mat_link2_0_cube_l = tf_mat_base_link2_0.inverse() * tf_mat_base_cube_l;
 
-                // 请求获取分支3末端的位姿（相对于link3_0)）（link3_0 -> flan3）
-                robot_planning::RobotPose srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.source_frame = "link2_0";
-                srv.request.target_frame = "branch2_end";
-
-                Eigen::Matrix4d tf_mat_link2_0_flan2;
-
-                if (pose_client.call(srv))
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
                 {
-                    if (srv.response.success)
-                    {
-                        std::vector<double> transform = srv.response.transform;
-
-                        // 用 position 和 quaternion 构造 Eigen::Isometry3d
-                        Eigen::Vector3d position(transform[0], transform[1], transform[2]);
-                        Eigen::Quaterniond quat(transform[6], transform[3], transform[4], transform[5]);  // w, x, y, z
-                        quat.normalize();                                                                 // 防止精度误差
-
-                        Eigen::Isometry3d tf_iso = Eigen::Isometry3d::Identity();
-                        tf_iso.linear() = quat.toRotationMatrix();
-                        tf_iso.translation() = position;
-
-                        // 转换为 Matrix4d 显示
-                        tf_mat_link2_0_flan2 = tf_iso.matrix();
-                    }
-                    else
-                    {
-                        std::cerr << "Service call failed: " << srv.response.message << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << "Failed to call service /robot_pose" << std::endl;
+                    control_flag = 0;
+                    return 0;
                 }
 
                 // 获取变换矩阵中的位置和四元数
@@ -2615,105 +1734,24 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                robot_planning::CartesianInterpolation interp_srv;
-                interp_srv.request.branch_id = 1;
-
-                // 设置初始关节角度（float64[]）
-                interp_srv.request.joint_angles.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-
-                interp_srv.request.start_pose = start_pose;
-                interp_srv.request.goal_pose = goal_pose;
-
-                // 设置插值参数
-                interp_srv.request.duration = 3.0;     // 2 秒
-                interp_srv.request.frequency = 200.0;  // 每秒 50 帧
-
-                // 发送请求
-                if (interp_client.call(interp_srv))
+                std::vector<double> traj2;
+                try
                 {
-                    if (interp_srv.response.success)
-                    {
-                        ROS_INFO_STREAM("Interpolation success: " << interp_srv.response.message);
-                        ROS_INFO("Trajectory point count: %lu", interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size());
-
-                        // 保存轨迹
-                        planned_joint_trajectory.clear();
-                        int num_points = interp_srv.response.joint_trajectory.size() / interp_srv.request.joint_angles.size();
-                        for (int i = 0; i < num_points; ++i)
-                        {
-                            // 创建一个包含所有分支的轨迹点
-                            std::vector<double> point(BRANCHN_N * (MOTOR_BRANCHN_N - 1), 0.0);
-
-                            // 复制当前分支的轨迹点
-                            for (int j = 0; j < interp_srv.request.joint_angles.size(); ++j)
-                            {
-                                point[1 * (MOTOR_BRANCHN_N - 1) + j] = interp_srv.response.joint_trajectory[i * interp_srv.request.joint_angles.size() + j];
-                            }
-
-                            // 保持其他分支的关节角度不变
-                            for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
-                            {
-                                if (branchi != 1)  // 不是当前分支
-                                {
-                                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj)
-                                    {
-                                        point[branchi * (MOTOR_BRANCHN_N - 1) + motorj] = q_recv[branchi][motorj];
-                                    }
-                                }
-                            }
-
-                            planned_joint_trajectory.push_back(point);
-                        }
-                        planning_requested = true;
-                        trajectory_index = 0;
-                    }
-                    else
-                    {
-                        ROS_WARN_STREAM("Interpolation failed: " << interp_srv.response.message);
-                        control_flag = 0;  // 回到初始状态
-                    }
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
                 }
-                else
+                catch (const std::exception &e)
                 {
-                    ROS_ERROR("Failed to call service cartesian_interpolation");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
                 }
+                mergeBranch2Only(traj2, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
-                // 设置目标关节角度
-                for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                {
-                    q_send[1][motorj] = planned_joint_trajectory[trajectory_index][1 * (MOTOR_BRANCHN_N - 1) + motorj];
-                }
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_recv[1][motorj] = q_send[1][motorj];
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
+                executeStep(trajectory_index++);
             }
             else
             {
@@ -2914,85 +1952,6 @@ int main(int argc, char **argv)
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
                 ROS_INFO("All 3 segments completed.");
-            }
-        }
-
-        else if (control_flag == 20)
-        {
-            if (trajectory_index < planned_joint_trajectory.size())
-            {
-                // 设置目标关节角度
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                    {
-                        q_send[branchi][motorj] = planned_joint_trajectory[planned_joint_trajectory.size() - trajectory_index - 1][branchi * (MOTOR_BRANCHN_N - 1) + motorj];
-                    }
-                }
-
-                // 执行规划轨迹
-                if (!isSimulation)
-                {
-                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
-                }
-                else
-                {
-                    // 仿真模式直接使用 q_send
-                    for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                    {
-                        for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
-                        {
-                            q_recv[branchi][motorj] = q_send[branchi][motorj];
-                        }
-                    }
-                    // ==== 请求 base_link 位姿 ====
-                    robot_control::GetBaseLinkPose srv;
-
-                    // 提取 JOINT1_1 ~ JOINT1_6 和 JOINT4_1 ~ JOINT4_6
-                    for (int j = 0; j < 6; ++j)
-                    {
-                        // 分支1：JOINT1_1 ~ JOINT1_6 在 planned_joint_trajectory 中的索引是 0~5
-                        srv.request.joint_angles_branch1.push_back(planned_joint_trajectory[planned_joint_trajectory.size() - trajectory_index - 1][j]);
-
-                        // 分支4：JOINT4_1 ~ JOINT4_6 在 planned_joint_trajectory 中的索引是 18~23（共24个角）
-                        srv.request.joint_angles_branch4.push_back(planned_joint_trajectory[planned_joint_trajectory.size() - trajectory_index - 1][18 + j]);
-                    }
-
-                    if (client.call(srv))
-                    {
-                        ROS_INFO("Base link pose calculated: Position (x: %f, y: %f, z: %f), Orientation (x: %f, y: %f, z: %f, w: %f)", srv.response.base_link_pose.position.x, srv.response.base_link_pose.position.y, srv.response.base_link_pose.position.z, srv.response.base_link_pose.orientation.x,
-                                 srv.response.base_link_pose.orientation.y, srv.response.base_link_pose.orientation.z, srv.response.base_link_pose.orientation.w);
-
-                        // 可选：你可以将此 Pose 发布给 RViz 或浮动基座控制模块
-                        float_base_pub.publish(srv.response.base_link_pose);
-                    }
-                    else
-                    {
-                        ROS_ERROR("Failed to call service get_base_link_pose");
-                    }
-                }
-
-                // 发布电机位置状态
-                std_msgs::Float64MultiArray motor_state;
-                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
-                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
-                {
-                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
-                    {
-                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
-                    }
-                }
-                motor_state_pub.publish(motor_state);
-
-                trajectory_index++;
-            }
-            else
-            {
-                ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
-                planning_requested = false;
-                planning_completed = false;
-                trajectory_index = 0;
             }
         }
 
