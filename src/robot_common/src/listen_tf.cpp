@@ -320,19 +320,19 @@ int main(int argc, char** argv)
 
             saveTransformToYAML(yaml_path, transform_matrix, transform_matrix2);
             saveTransformToYAML(path_tf_double_arm_float, transform_matrix, transform_matrix2);
-            // saveTFToYAML(path_tf_using, tf_mat_world_flan1, "tf_mat_world_flan1");
-            // saveTFToYAML(path_tf_using, tf_mat_world_flan4, "tf_mat_world_flan4");
-            // saveTFToYAML(path_tf_using, tf_mat_base_link1_0, "tf_mat_base_link1_0");
-            // saveTFToYAML(path_tf_using, tf_mat_base_link4_0, "tf_mat_base_link4_0");
+            saveTFToYAML(path_tf_using, tf_mat_world_flan1, "tf_mat_world_flan1");
+            saveTFToYAML(path_tf_using, tf_mat_world_flan4, "tf_mat_world_flan4");
+            saveTFToYAML(path_tf_using, tf_mat_base_link1_0, "tf_mat_base_link1_0");
+            saveTFToYAML(path_tf_using, tf_mat_base_link4_0, "tf_mat_base_link4_0");
             // saveTFToYAML(path_tf_using, tf_mat_base_link2_0, "tf_mat_base_link2_0");
             // saveTFToYAML(path_tf_using, tf_mat_base_link3_0, "tf_mat_base_link3_0");
             saveTFToYAML(path_tf_using, tf_mat_link2_0_flan2, "tf_mat_link2_0_flan2");
             saveTFToYAML(path_tf_using, tf_mat_link3_0_flan3, "tf_mat_link3_0_flan3");
 
-            // saveTFToYAML(path_tf_obj, tf_mat_base_link1_0, "tf_mat_base_link1_0");
+            saveTFToYAML(path_tf_obj, tf_mat_base_link1_0, "tf_mat_base_link1_0");
             // saveTFToYAML(path_tf_obj, tf_mat_base_link2_0, "tf_mat_base_link2_0");
             // saveTFToYAML(path_tf_obj, tf_mat_base_link3_0, "tf_mat_base_link3_0");
-            // saveTFToYAML(path_tf_obj, tf_mat_base_link4_0, "tf_mat_base_link4_0");
+            saveTFToYAML(path_tf_obj, tf_mat_base_link4_0, "tf_mat_base_link4_0");
             saveTFToYAML(path_tf_obj, tf_mat_world_obj, "tf_mat_world_obj");
             saveTFToYAML(path_tf_obj, tf_mat_world_obj_1, "tf_mat_world_obj_1");
             saveTFToYAML(path_tf_obj, tf_mat_world_obj_2, "tf_mat_world_obj_2");
