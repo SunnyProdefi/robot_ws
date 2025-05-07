@@ -162,3 +162,10 @@ rosrun robot_rrt collision_check_node
 roslaunch robot_description init_robot_display.launch
 rosrun robot_common listen_tf
 rosrun robot_common listen_tf_workspace
+
+夹爪抓取距离：0.13-0.15m (ikfast解析解：0.1m,距离六维力传感器末端)
+
+相机到base_link转换矩阵：
+P：
+R：
+T：
