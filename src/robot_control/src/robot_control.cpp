@@ -331,6 +331,8 @@ int main(int argc, char **argv)
     // 创建运动规划服务客户端
     planning_client = nh.serviceClient<robot_planning::PlanPath>("/plan_path");
 
+    ros::ServiceClient planning_client = nh.serviceClient<robot_planning::PlanPathHome>("/plan_path_home");
+
     // 创建 service client
     pose_client = nh.serviceClient<robot_planning::RobotPose>("/robot_pose");
 
@@ -3093,40 +3095,47 @@ int main(int argc, char **argv)
         {
             if (!planning_requested)
             {
-                // 发送运动规划请求
-                robot_planning::PlanPath srv;
+                robot_planning::PlanPathHome srv;
+                std::vector<double> init_floating_base = float_base_position;
+                std::vector<double> init_joint_angles;
+                init_joint_angles.insert(init_joint_angles.end(), q_recv[1].begin(), q_recv[1].begin() + 6);  // 左臂6个
+                init_joint_angles.insert(init_joint_angles.end(), q_recv[2].begin(), q_recv[2].begin() + 6);  // 右臂6个
+                std::vector<double> gold_floating_base = {0, 0, 0.45, 0, 0.7071, 0, 0.7071};
+                std::vector<double> gold_joint_angles = {-1.18542, -1.84009, -1.90918, 1.5428, 1.18639, -2.28165, 1.20091, -1.84009, -1.90918, -1.54403, 1.20184, -0.859485};
+
+                srv.request.init_floating_base = init_floating_base;
+                srv.request.init_joint_angles = init_joint_angles;
+                srv.request.gold_floating_base = gold_floating_base;
+                srv.request.gold_joint_angles = gold_joint_angles;
+
                 if (planning_client.call(srv))
                 {
                     if (srv.response.success)
                     {
-                        ROS_INFO("Planning request sent successfully");
+                        ROS_INFO("Planning request sent and completed successfully");
                         planning_requested = true;
                     }
                     else
                     {
                         ROS_ERROR("Planning request failed: %s", srv.response.message.c_str());
-                        control_flag = 0;  // 回到初始状态
+                        control_flag = 0;
                     }
                 }
                 else
                 {
-                    ROS_ERROR("Failed to call planning service");
-                    control_flag = 0;  // 回到初始状态
+                    ROS_ERROR("Failed to call plan_path_home service");
+                    control_flag = 0;
                 }
             }
             else if (!planning_completed)
             {
-                // 使用 ros::package::getPath() 获取路径
                 std::string robot_planning_path = ros::package::getPath("robot_planning");
                 std::string planning_result_path = robot_planning_path + "/config/planning_result.yaml";
-
-                // 检查规划结果文件是否存在
                 std::ifstream file(planning_result_path);
                 if (file.good())
                 {
                     YAML::Node config = YAML::LoadFile(planning_result_path);
 
-                    // 读取 joint_angle_sequence
                     if (config["joint_angle_sequence"])
                     {
                         planned_joint_trajectory.clear();
@@ -3142,7 +3151,6 @@ int main(int argc, char **argv)
                         ROS_INFO("Loaded %zu joint angle points", planned_joint_trajectory.size());
                     }
 
-                    // 读取 floating_base_sequence
                     if (config["floating_base_sequence"])
                     {
                         floating_base_sequence.clear();
@@ -3158,7 +3166,6 @@ int main(int argc, char **argv)
                         ROS_INFO("Loaded %zu floating base poses", floating_base_sequence.size());
                     }
 
-                    // 成功标志
                     planning_completed = true;
                     trajectory_index = 0;
                 }

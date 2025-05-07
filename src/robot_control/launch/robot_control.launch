@@ -15,6 +15,7 @@
     <param name="joint_limits_path" value="$(find robot_planning)/config/joint_limits.yaml"/>
     <param name="init_config_path" value="$(find robot_planning)/config/ik_urdf_double_arm_float.yaml"/>
   </node>
+  <node pkg="robot_planning" type="robot_planning_home" name="robot_planning_home" output="screen"/>
 
   <node pkg="robot_planning" type="get_base_link_pose" name="get_base_link_pose" output="screen" />
   <node pkg="robot_planning" type="cartesian_interpolation_server" name="cartesian_interpolation_server" output="screen" />
