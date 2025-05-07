@@ -187,6 +187,8 @@ int main(int argc, char** argv)
         tf::StampedTransform tf_world_cube_l, tf_world_cube_r;
         tf::StampedTransform tf_base_link2_0, tf_base_link3_0;
         tf::StampedTransform tf_base_camera_link;
+        tf::StampedTransform tf_world_cube_m;
+        tf::StampedTransform tf_cube_m_r, tf_cube_m_l;
         try
         {
             listener.lookupTransform("world", "dummy_point3", ros::Time(0), transform);
@@ -205,6 +207,9 @@ int main(int argc, char** argv)
             listener.lookupTransform("world", "cube_l", ros::Time(0), tf_world_cube_l);
             listener.lookupTransform("world", "cube_r", ros::Time(0), tf_world_cube_r);
             listener.lookupTransform("base_link", "camera_link", ros::Time(0), tf_base_camera_link);
+            listener.lookupTransform("world", "cube_m", ros::Time(0), tf_world_cube_m);
+            listener.lookupTransform("cube_m", "cube_r", ros::Time(0), tf_cube_m_r);
+            listener.lookupTransform("cube_m", "cube_l", ros::Time(0), tf_cube_m_l);
 
             Eigen::Matrix4f transform_matrix = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f transform_matrix2 = Eigen::Matrix4f::Identity();
@@ -222,6 +227,9 @@ int main(int argc, char** argv)
             Eigen::Matrix4f tf_mat_world_cube_l = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f tf_mat_world_cube_r = Eigen::Matrix4f::Identity();
             Eigen::Matrix4f tf_mat_base_camera_link = Eigen::Matrix4f::Identity();
+            Eigen::Matrix4f tf_mat_world_cube_m = Eigen::Matrix4f::Identity();
+            Eigen::Matrix4f tf_mat_cube_m_r = Eigen::Matrix4f::Identity();
+            Eigen::Matrix4f tf_mat_cube_m_l = Eigen::Matrix4f::Identity();
 
             tf::Matrix3x3 rotation_matrix(transform.getRotation());
             tf::Matrix3x3 rotation_matrix2(transform2.getRotation());
@@ -239,6 +247,9 @@ int main(int argc, char** argv)
             tf::Matrix3x3 rot_mat_world_cube_l(tf_world_cube_l.getRotation());
             tf::Matrix3x3 rot_mat_world_cube_r(tf_world_cube_r.getRotation());
             tf::Matrix3x3 rot_mat_base_camera_link(tf_base_camera_link.getRotation());
+            tf::Matrix3x3 rot_mat_world_cube_m(tf_world_cube_m.getRotation());
+            tf::Matrix3x3 rot_mat_cube_m_r(tf_cube_m_r.getRotation());
+            tf::Matrix3x3 rot_mat_cube_m_l(tf_cube_m_l.getRotation());
 
             for (int i = 0; i < 3; ++i)
             {
@@ -260,6 +271,9 @@ int main(int argc, char** argv)
                     tf_mat_world_cube_l(i, j) = rot_mat_world_cube_l[i][j];
                     tf_mat_world_cube_r(i, j) = rot_mat_world_cube_r[i][j];
                     tf_mat_base_camera_link(i, j) = rot_mat_base_camera_link[i][j];
+                    tf_mat_world_cube_m(i, j) = rot_mat_world_cube_m[i][j];
+                    tf_mat_cube_m_r(i, j) = rot_mat_cube_m_r[i][j];
+                    tf_mat_cube_m_l(i, j) = rot_mat_cube_m_l[i][j];
                 }
             }
 
@@ -327,6 +341,18 @@ int main(int argc, char** argv)
             tf_mat_base_camera_link(1, 3) = tf_base_camera_link.getOrigin().y();
             tf_mat_base_camera_link(2, 3) = tf_base_camera_link.getOrigin().z();
 
+            tf_mat_world_cube_m(0, 3) = tf_world_cube_m.getOrigin().x();
+            tf_mat_world_cube_m(1, 3) = tf_world_cube_m.getOrigin().y();
+            tf_mat_world_cube_m(2, 3) = tf_world_cube_m.getOrigin().z();
+
+            tf_mat_cube_m_r(0, 3) = tf_cube_m_r.getOrigin().x();
+            tf_mat_cube_m_r(1, 3) = tf_cube_m_r.getOrigin().y();
+            tf_mat_cube_m_r(2, 3) = tf_cube_m_r.getOrigin().z();
+
+            tf_mat_cube_m_l(0, 3) = tf_cube_m_l.getOrigin().x();
+            tf_mat_cube_m_l(1, 3) = tf_cube_m_l.getOrigin().y();
+            tf_mat_cube_m_l(2, 3) = tf_cube_m_l.getOrigin().z();
+
             saveTransformToYAML(yaml_path, transform_matrix, transform_matrix2);
             saveTransformToYAML(path_tf_double_arm_float, transform_matrix, transform_matrix2);
             saveTFToYAML(path_tf_using, tf_mat_world_flan1, "tf_mat_world_flan1");
@@ -338,6 +364,9 @@ int main(int argc, char** argv)
             saveTFToYAML(path_tf_using, tf_mat_link2_0_flan2, "tf_mat_link2_0_flan2");
             saveTFToYAML(path_tf_using, tf_mat_link3_0_flan3, "tf_mat_link3_0_flan3");
             saveTFToYAML(path_tf_using, tf_mat_base_camera_link, "tf_mat_base_camera_link");
+            saveTFToYAML(path_tf_using, tf_mat_world_cube_m, "tf_mat_world_cube_m");
+            saveTFToYAML(path_tf_using, tf_mat_cube_m_r, "tf_mat_cube_m_r");
+            saveTFToYAML(path_tf_using, tf_mat_cube_m_l, "tf_mat_cube_m_l");
 
             saveTFToYAML(path_tf_obj, tf_mat_base_link1_0, "tf_mat_base_link1_0");
             saveTFToYAML(path_tf_obj, tf_mat_base_link2_0, "tf_mat_base_link2_0");
@@ -349,6 +378,9 @@ int main(int argc, char** argv)
             saveTFToYAML(path_tf_obj, tf_mat_world_cube_l, "tf_mat_world_cube_l");
             saveTFToYAML(path_tf_obj, tf_mat_world_cube_r, "tf_mat_world_cube_r");
             saveTFToYAML(path_tf_obj, tf_mat_base_camera_link, "tf_mat_base_camera_link");
+            saveTFToYAML(path_tf_obj, tf_mat_world_cube_m, "tf_mat_world_cube_m");
+            saveTFToYAML(path_tf_obj, tf_mat_cube_m_r, "tf_mat_cube_m_r");
+            saveTFToYAML(path_tf_obj, tf_mat_cube_m_l, "tf_mat_cube_m_l");
         }
         catch (tf::TransformException& ex)
         {

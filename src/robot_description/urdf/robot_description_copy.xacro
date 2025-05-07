@@ -131,7 +131,7 @@
     <child link="object1"/>
     <!-- 如果需要在 truss_link 坐标系中给 base_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
     <!-- 转换到joint2_6______0.1 -->
-    <origin xyz="-0.1 0.215 0.085" rpy="0 3.1416 0"/>
+    <origin xyz="-0.1 0.215 0.085" rpy="0 3.1416 -3.1416"/>
   </joint>
 
   <link name="object1"></link>
@@ -153,6 +153,15 @@
     <!-- 如果需要在 truss_link 坐标系中给 base_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
     <!-- 转换到joint2_6______0.1 -->
     <origin xyz="-0.1175 0.12 0.2325" rpy="0 3.1416 0"/>
+  </joint>
+
+  <link name="cube_m"></link>
+  <joint name="truss_link_to_cube_m" type="fixed">
+    <parent link="truss_link"/>
+    <child link="cube_m"/>
+    <!-- 如果需要在 truss_link 坐标系中给 base_link 设置一个平移或姿态偏移，可以在这里修改 xyz / rpy -->
+    <!-- 转换到joint2_6______0.1 -->
+    <origin xyz="-0.1175 0.12 0" rpy="0 0 0"/>
   </joint>
 
   <link name="cube_r"></link>

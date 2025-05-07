@@ -564,12 +564,12 @@ int main(int argc, char **argv)
 
                 // 发布夹爪指令
                 std_msgs::Float64MultiArray gripper_command;
-                gripper_command.data = {0.0, 0.5, 0.5, 0.0};
+                gripper_command.data = {0.0, 1.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
                 q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.5;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.5;
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
                 q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
@@ -582,6 +582,8 @@ int main(int argc, char **argv)
                     }
                 }
                 motor_state_pub.publish(motor_state);
+                // 延时
+                ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
             }
 
             // 发布电机位置状态
@@ -896,13 +898,13 @@ int main(int argc, char **argv)
 
                 // 发布夹爪指令
                 std_msgs::Float64MultiArray gripper_command;
-                gripper_command.data = {0.0, 0.0, 0.5, 0.0};
+                gripper_command.data = {0.0, 0.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.8;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.8;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.8;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -914,11 +916,11 @@ int main(int argc, char **argv)
                     }
                 }
                 motor_state_pub.publish(motor_state);
-                // 延时
+                ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
             }
         }
 
-        else if (control_flag == 401)
+        else if (control_flag == 301)
         {
             // rrt服务
         }
@@ -939,7 +941,82 @@ int main(int argc, char **argv)
                 Eigen::Matrix4d tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2;
 
                 Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
-                translation(2, 3) = -0.115;
+                translation(0, 3) = -0.10;
+                // translation(2, 3) = -0.115;
+
+                // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
+                tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2 * translation;
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position = tf_mat_link2_0_flan2_goal.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat(tf_mat_link2_0_flan2_goal.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion = quat.coeffs();                            // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> goal_pose = {
+                    position.x(),   position.y(),   position.z(),                   // [x, y, z]
+                    quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()  // [qx, qy, qz, qw]
+                };
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position_flan2 = tf_mat_link2_0_flan2.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat_flan2(tf_mat_link2_0_flan2.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion_flan2 = quat_flan2.coeffs();                 // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> start_pose = {
+                    position_flan2.x(),   position_flan2.y(),   position_flan2.z(),                         // [x, y, z]
+                    quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
+                };
+
+                std::vector<double> traj2;
+                try
+                {
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
+                }
+                catch (const std::exception &e)
+                {
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
+                }
+                mergeBranch2Only(traj2, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                executeStep(trajectory_index++);
+            }
+            else
+            {
+                ROS_INFO("Trajectory execution completed");
+                control_flag = 401;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+
+        else if (control_flag == 401)
+        {
+            if (!planning_requested)
+            {
+                std::cout << "Control flag 4 received" << std::endl;
+
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
+                {
+                    control_flag = 0;
+                    return 0;
+                }
+
+                Eigen::Matrix4d tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2;
+
+                Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
+                translation(2, 3) = -0.15;
 
                 // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
                 tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2 * translation;
@@ -1164,11 +1241,11 @@ int main(int argc, char **argv)
 
                 // 发布夹爪指令
                 std_msgs::Float64MultiArray gripper_command;
-                gripper_command.data = {0.0, 0.5, 0.0, 0.0};
+                gripper_command.data = {0.0, 0.0, 0.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
                 q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.5;
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
                 q_recv[2][MOTOR_BRANCHN_N - 1] = 0.0;
                 q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
                 // 发布电机位置状态
@@ -1182,6 +1259,26 @@ int main(int argc, char **argv)
                     }
                 }
                 motor_state_pub.publish(motor_state);
+                ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
+                                             // 发布夹爪指令
+                gripper_command.data = {0.0, 1.0, 0.0, 0.0};
+                gripper_pub.publish(gripper_command);
+
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                // 发布电机位置状态
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+                ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
             }
         }
 
@@ -1426,12 +1523,12 @@ int main(int argc, char **argv)
 
                 // 发布夹爪指令
                 std_msgs::Float64MultiArray gripper_command;
-                gripper_command.data = {0.0, 0.5, 0.5, 0.0};
+                gripper_command.data = {0.0, 1.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
                 q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.5;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.5;
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
                 q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
@@ -1444,6 +1541,7 @@ int main(int argc, char **argv)
                     }
                 }
                 motor_state_pub.publish(motor_state);
+                ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
             }
         }
 
@@ -1763,6 +1861,75 @@ int main(int argc, char **argv)
             }
         }
 
+        else if (control_flag == 16)
+        {
+            if (!planning_requested)
+            {
+                ROS_INFO("=== flag 16 : rotate 45 deg around center ===");
+
+                Eigen::Matrix4d T2_cur, T3_cur;
+                if (!getCurrentEEPose(T2_cur, T3_cur))
+                {
+                    control_flag = 0;
+                    return 0;
+                }
+
+                // 两末端位置和中点
+                Eigen::Vector3d p2 = T2_cur.block<3, 1>(0, 3);
+                Eigen::Vector3d p3 = T3_cur.block<3, 1>(0, 3);
+                Eigen::Vector3d center = 0.5 * (p2 + p3);
+                Eigen::Vector3d axis = (p3 - p2).normalized();  // 旋转轴
+
+                double angle_rad = M_PI / 4.0;                 // 45°
+                Eigen::AngleAxisd R2(-0.5 * angle_rad, axis);  // Branch2: -22.5°
+                Eigen::AngleAxisd R3(0.5 * angle_rad, axis);   // Branch3: +22.5°
+                Eigen::Matrix3d R2_mat = R2.toRotationMatrix();
+                Eigen::Matrix3d R3_mat = R3.toRotationMatrix();
+
+                // 构造 T2_goal 和 T3_goal：围绕中心点旋转
+                Eigen::Matrix4d T2_goal = Eigen::Matrix4d::Identity();
+                Eigen::Matrix4d T3_goal = Eigen::Matrix4d::Identity();
+
+                // 相对center的位姿（旋转 + 平移）
+                Eigen::Vector3d rel_p2 = p2 - center;
+                Eigen::Vector3d rel_p3 = p3 - center;
+                Eigen::Vector3d new_p2 = R2_mat * rel_p2 + center;
+                Eigen::Vector3d new_p3 = R3_mat * rel_p3 + center;
+
+                T2_goal.block<3, 3>(0, 0) = R2_mat * T2_cur.block<3, 3>(0, 0);  // 方向也旋转
+                T3_goal.block<3, 3>(0, 0) = R3_mat * T3_cur.block<3, 3>(0, 0);
+                T2_goal.block<3, 1>(0, 3) = new_p2;
+                T3_goal.block<3, 1>(0, 3) = new_p3;
+
+                std::vector<double> traj2, traj3;
+                try
+                {
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), 4.0, traj2);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), 4.0, traj3);
+                }
+                catch (const std::exception &e)
+                {
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
+                }
+
+                mergeTraj(traj2, traj3, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
+            }
+            if (trajectory_index < planned_joint_trajectory.size())
+            {
+                executeStep(trajectory_index++);
+            }
+            else
+            {
+                control_flag = 0;  // 或其他后续 flag
+                planning_requested = planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+
         else if (control_flag == 12)
         {
             if (!planning_requested)
@@ -1948,7 +2115,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                control_flag = 0;  // 回到空闲
+                control_flag = 16;  // 回到空闲
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
                 ROS_INFO("All 3 segments completed.");
