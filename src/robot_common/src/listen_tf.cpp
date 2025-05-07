@@ -226,8 +226,8 @@ int main(int argc, char** argv)
             tf::Matrix3x3 rot_mat_world_flan4(tf_world_flan4.getRotation());
             tf::Matrix3x3 rot_mat_base_link1_0(tf_base_link1_0.getRotation());
             tf::Matrix3x3 rot_mat_base_link4_0(tf_base_link4_0.getRotation());
-            tf::Matrix3x3 rot_mat_base_link2_0(tf_base_link1_0.getRotation());
-            tf::Matrix3x3 rot_mat_base_link3_0(tf_base_link4_0.getRotation());
+            tf::Matrix3x3 rot_mat_base_link2_0(tf_base_link2_0.getRotation());
+            tf::Matrix3x3 rot_mat_base_link3_0(tf_base_link3_0.getRotation());
             tf::Matrix3x3 rot_mat_world_obj(tf_world_obj.getRotation());
             tf::Matrix3x3 rot_mat_world_obj_1(tf_world_obj_1.getRotation());
             tf::Matrix3x3 rot_mat_world_obj_2(tf_world_obj_2.getRotation());
@@ -324,14 +324,14 @@ int main(int argc, char** argv)
             saveTFToYAML(path_tf_using, tf_mat_world_flan4, "tf_mat_world_flan4");
             saveTFToYAML(path_tf_using, tf_mat_base_link1_0, "tf_mat_base_link1_0");
             saveTFToYAML(path_tf_using, tf_mat_base_link4_0, "tf_mat_base_link4_0");
-            // saveTFToYAML(path_tf_using, tf_mat_base_link2_0, "tf_mat_base_link2_0");
-            // saveTFToYAML(path_tf_using, tf_mat_base_link3_0, "tf_mat_base_link3_0");
+            saveTFToYAML(path_tf_using, tf_mat_base_link2_0, "tf_mat_base_link2_0");
+            saveTFToYAML(path_tf_using, tf_mat_base_link3_0, "tf_mat_base_link3_0");
             saveTFToYAML(path_tf_using, tf_mat_link2_0_flan2, "tf_mat_link2_0_flan2");
             saveTFToYAML(path_tf_using, tf_mat_link3_0_flan3, "tf_mat_link3_0_flan3");
 
             saveTFToYAML(path_tf_obj, tf_mat_base_link1_0, "tf_mat_base_link1_0");
-            // saveTFToYAML(path_tf_obj, tf_mat_base_link2_0, "tf_mat_base_link2_0");
-            // saveTFToYAML(path_tf_obj, tf_mat_base_link3_0, "tf_mat_base_link3_0");
+            saveTFToYAML(path_tf_obj, tf_mat_base_link2_0, "tf_mat_base_link2_0");
+            saveTFToYAML(path_tf_obj, tf_mat_base_link3_0, "tf_mat_base_link3_0");
             saveTFToYAML(path_tf_obj, tf_mat_base_link4_0, "tf_mat_base_link4_0");
             saveTFToYAML(path_tf_obj, tf_mat_world_obj, "tf_mat_world_obj");
             saveTFToYAML(path_tf_obj, tf_mat_world_obj_1, "tf_mat_world_obj_1");
