@@ -19,42 +19,45 @@ Eigen::Matrix4d loadTransformFromYAML(const std::string& file_path, const std::s
     {
         YAML::Node config = YAML::LoadFile(file_path);
         if (!config[transform_name])
-            throw std::runtime_error("Transform name '" + transform_name + "' not found in YAML file");
+            throw std::runtime_error("Missing transform: " + transform_name);
 
         YAML::Node target_pose = config[transform_name]["target_pose"];
         if (!target_pose)
-            throw std::runtime_error("Missing 'target_pose' under '" + transform_name + "'");
+            throw std::runtime_error("Missing target_pose for: " + transform_name);
 
-        // 读取 position
         YAML::Node position = target_pose["position"];
         if (!position || position.size() != 3)
-            throw std::runtime_error("Position must be a list of 3 elements under '" + transform_name + "'");
+            throw std::runtime_error("Position invalid size in: " + transform_name);
 
-        transform(0, 3) = position[0].as<double>();
-        transform(1, 3) = position[1].as<double>();
-        transform(2, 3) = position[2].as<double>();
+        for (int i = 0; i < 3; ++i)
+        {
+            double val = position[i].as<double>();
+            ROS_INFO_STREAM(transform_name << ".position[" << i << "] = " << val);
+            transform(i, 3) = val;
+        }
 
-        // 读取 orientation（3x3）
         YAML::Node orientation = target_pose["orientation"];
         if (!orientation || orientation.size() != 3)
-            throw std::runtime_error("Orientation must be a 3x3 matrix under '" + transform_name + "'");
+            throw std::runtime_error("Orientation invalid size in: " + transform_name);
 
         for (int i = 0; i < 3; ++i)
         {
             YAML::Node row = orientation[i];
             if (!row || row.size() != 3)
-                throw std::runtime_error("Orientation row " + std::to_string(i) + " must have 3 elements");
+                throw std::runtime_error("Orientation[" + std::to_string(i) + "] invalid in: " + transform_name);
 
             for (int j = 0; j < 3; ++j)
             {
                 try
                 {
-                    transform(i, j) = row[j].as<double>();
+                    double val = row[j].as<double>();
+                    ROS_INFO_STREAM(transform_name << ".orientation[" << i << "][" << j << "] = " << val);
+                    transform(i, j) = val;
                 }
                 catch (const YAML::TypedBadConversion<double>& e)
                 {
                     std::ostringstream oss;
-                    oss << "Bad conversion at orientation[" << i << "][" << j << "] = '" << row[j] << "'";
+                    oss << "Bad conversion at orientation[" << i << "][" << j << "]: raw=" << row[j];
                     throw std::runtime_error(oss.str());
                 }
             }
@@ -62,8 +65,8 @@ Eigen::Matrix4d loadTransformFromYAML(const std::string& file_path, const std::s
     }
     catch (const std::exception& e)
     {
-        ROS_ERROR_STREAM("[loadTransformFromYAML] Error parsing '" << transform_name << "' in " << file_path << ": " << e.what());
-        throw;  // 向上传递错误
+        ROS_ERROR_STREAM("[loadTransformFromYAML] Failed for " << transform_name << ": " << e.what());
+        throw;
     }
 
     return transform;
@@ -113,49 +116,65 @@ Eigen::Matrix4d parseMatrix(const geometry_msgs::Transform& tf_msg)
 }
 
 // 工具函数：保存插值点到 YAML
-void saveInterpolatedPosesToYAML(const std::string& path, const std::vector<Eigen::Matrix4d>& poses, const Eigen::Matrix4d& tf_mat_cube_m_l, const Eigen::Matrix4d& tf_mat_cube_m_r,
-                                 const Eigen::Matrix4d& tf_mat_world_base_link,  // ← from req.float_base_pose
-                                 const Eigen::Matrix4d& tf_mat_base_link2_0,     // ← from tf_using.yaml
-                                 const Eigen::Matrix4d& tf_mat_base_link3_0)     // ← from tf_using.yaml
+void saveInterpolatedPosesToYAML(const std::string& path, const std::vector<Eigen::Matrix4d>& poses, const Eigen::Matrix4d& tf_mat_cube_m_l, const Eigen::Matrix4d& tf_mat_cube_m_r, const Eigen::Matrix4d& tf_mat_world_base_link, const Eigen::Matrix4d& tf_mat_base_link2_0,
+                                 const Eigen::Matrix4d& tf_mat_base_link3_0)
 {
     YAML::Node root;
 
-    for (const auto& pose : poses)
+    for (size_t i = 0; i < poses.size(); ++i)
     {
-        // 世界坐标系下的 flan2 / flan3
+        const auto& pose = poses[i];
+
         Eigen::Matrix4d tf_world_flan2 = pose * tf_mat_cube_m_l;
         Eigen::Matrix4d tf_world_flan3 = pose * tf_mat_cube_m_r;
 
-        // 链式反向变换：linkX_0 → flanX
         Eigen::Matrix4d tf_link2_0_flan2 = tf_mat_base_link2_0.inverse() * tf_mat_world_base_link.inverse() * tf_world_flan2;
-
         Eigen::Matrix4d tf_link3_0_flan3 = tf_mat_base_link3_0.inverse() * tf_mat_world_base_link.inverse() * tf_world_flan3;
 
-        // 写入 YAML，格式为嵌套矩阵
-        YAML::Node node;
-        YAML::Node left_matrix, right_matrix;
-        for (int i = 0; i < 4; ++i)
-        {
-            std::vector<float> row_l, row_r;
-            for (int j = 0; j < 4; ++j)
-            {
-                row_l.push_back(tf_link2_0_flan2(i, j));
-                row_r.push_back(tf_link3_0_flan3(i, j));
-            }
-            left_matrix.push_back(row_l);
-            right_matrix.push_back(row_r);
-        }
+        // 构建 step_i 节点
+        std::string step_key = "step_" + std::to_string(i);
+        YAML::Node step_node;
 
-        node["tf_mat_link2_0_flan2"] = left_matrix;
-        node["tf_mat_link3_0_flan3"] = right_matrix;
-        root.push_back(node);
+        auto buildTargetPose = [](const Eigen::Matrix4d& tf) -> YAML::Node
+        {
+            YAML::Node target_pose;
+            // position 一行表示
+            YAML::Node pos;
+            pos.SetStyle(YAML::EmitterStyle::Flow);
+            pos.push_back(tf(0, 3));
+            pos.push_back(tf(1, 3));
+            pos.push_back(tf(2, 3));
+            target_pose["position"] = pos;
+
+            // orientation 三行嵌套，每行一行表示
+            YAML::Node ori;
+            for (int r = 0; r < 3; ++r)
+            {
+                YAML::Node row;
+                row.SetStyle(YAML::EmitterStyle::Flow);
+                for (int c = 0; c < 3; ++c)
+                {
+                    row.push_back(tf(r, c));
+                }
+                ori.push_back(row);
+            }
+            target_pose["orientation"] = ori;
+            return target_pose;
+        };
+
+        step_node["tf_mat_link2_0_flan2"]["target_pose"] = buildTargetPose(tf_link2_0_flan2);
+        step_node["tf_mat_link3_0_flan3"]["target_pose"] = buildTargetPose(tf_link3_0_flan3);
+
+        root[step_key] = step_node;
     }
 
     std::ofstream fout(path);
     if (!fout.is_open())
-        throw std::runtime_error("Failed to open file: " + path);
+        throw std::runtime_error("Failed to open file for writing: " + path);
+
     fout << root;
     fout.close();
+    ROS_INFO_STREAM("Successfully wrote interpolated poses to " << path);
 }
 
 bool planDualArmPath(robot_planning::PlanDualArmPath::Request& req, robot_planning::PlanDualArmPath::Response& res)
@@ -216,9 +235,10 @@ bool planDualArmPath(robot_planning::PlanDualArmPath::Request& req, robot_planni
     std::string tf_link2_0_flan2 = "tf_mat_link2_0_flan2";
     std::string tf_link3_0_flan3 = "tf_mat_link3_0_flan3";
 
-    ArmIKResult ik_result = solveArmIK(pose_yaml_path, result_yaml_path, tf_link2_0_flan2, tf_link3_0_flan3);
-
-    //
+    // 从请求中获取分支2和3的初始关节角度
+    const std::vector<double> q_init2 = req.branch2_joints;
+    const std::vector<double> q_init3 = req.branch3_joints;
+    ArmIKResult ik_result = solveArmIK(pose_yaml_path, result_yaml_path, tf_link2_0_flan2, tf_link3_0_flan3, q_init2, q_init3);
 
     // === 5. 返回结果 ===
     res.success = ik_result.success;

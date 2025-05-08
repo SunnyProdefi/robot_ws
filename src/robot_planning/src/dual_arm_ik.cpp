@@ -3,67 +3,145 @@
 #include <fstream>
 #include <limits>
 #include <cmath>
+#include <Eigen/Dense>
 #include <yaml-cpp/yaml.h>
 #include "robot_planning/ikfast_wrapper_single_arm.h"
 
 namespace robot_planning
 {
-    std::vector<std::vector<float>> loadEEPosesFromYAML(const std::string& filename, const std::string& key)
+    std::vector<std::vector<float>> loadEEPosesFromYAML(const std::string& filename, const std::string& tf_name)
     {
-        YAML::Node yaml_data = YAML::LoadFile(filename);
-        std::vector<std::vector<float>> poses;
-
-        for (const auto& node : yaml_data)
+        YAML::Node yaml_data;
+        try
         {
-            if (!node[key])
-            {
-                std::cerr << "Missing key: " << key << std::endl;
-                continue;
-            }
-            std::vector<float> pose = node[key].as<std::vector<float>>();
-            if (pose.size() != 16)
-            {
-                std::cerr << "Invalid pose size for key: " << key << std::endl;
-                continue;
-            }
-            poses.push_back(pose);
+            yaml_data = YAML::LoadFile(filename);
         }
-        return poses;
+        catch (const std::exception& e)
+        {
+            std::cerr << "Error loading YAML file: " << e.what() << std::endl;
+            return {};
+        }
+
+        std::vector<std::vector<float>> all_poses;
+
+        // 逐步解析 YAML 文件中的步骤
+        for (const auto& step : yaml_data)
+        {
+            // 确保目标矩阵（tf_name）存在于当前步骤
+            if (step.second[tf_name])
+            {
+                YAML::Node pose_data = step.second[tf_name]["target_pose"];
+
+                // 解析 position 和 orientation
+                std::vector<float> position;
+                for (int i = 0; i < 3; ++i)
+                {
+                    position.push_back(pose_data["position"][i].as<float>());
+                }
+
+                // 解析旋转矩阵（orientation）
+                std::vector<float> rotation_matrix;
+                for (int i = 0; i < 3; ++i)
+                {
+                    for (int j = 0; j < 3; ++j)
+                    {
+                        rotation_matrix.push_back(pose_data["orientation"][i][j].as<float>());
+                    }
+                }
+
+                // 组合 position 和 rotation_matrix 成 3x4 矩阵
+                std::vector<float> ee_pose;
+                for (int row = 0; row < 3; ++row)
+                {
+                    for (int col = 0; col < 3; ++col)
+                    {
+                        ee_pose.push_back(rotation_matrix[row * 3 + col]);
+                    }
+                    ee_pose.push_back(position[row]);
+                }
+
+                all_poses.push_back(ee_pose);
+            }
+            else
+            {
+                std::cerr << "Error: " << tf_name << " not found in step " << step.first.as<std::string>() << std::endl;
+            }
+        }
+
+        return all_poses;
     }
 
-    void saveResultToYAML(const std::string& path, const std::vector<std::vector<std::vector<float>>>& all_left, const std::vector<std::vector<float>>& best_left, const std::vector<std::vector<std::vector<float>>>& all_right, const std::vector<std::vector<float>>& best_right)
+    void saveResultToYAML(const std::string& filename, const std::vector<std::vector<std::vector<float>>>& all_left_solutions, const std::vector<std::vector<float>>& best_left_solutions, const std::vector<std::vector<std::vector<float>>>& all_right_solutions,
+                          const std::vector<std::vector<float>>& best_right_solutions)
     {
-        YAML::Node root;
+        YAML::Node result;
 
-        YAML::Node all_left_node;
-        for (const auto& group : all_left)
+        // === 左臂所有解 ===
+        YAML::Node left_arm_solutions;
+        for (const auto& solution_group : all_left_solutions)
         {
             YAML::Node group_node;
-            for (const auto& sol : group) group_node.push_back(sol);
-            all_left_node.push_back(group_node);
+            for (const auto& sol : solution_group)
+            {
+                YAML::Node joint_set;
+                for (float val : sol) joint_set.push_back(val);
+                joint_set.SetStyle(YAML::EmitterStyle::Flow);
+                group_node.push_back(joint_set);
+            }
+            left_arm_solutions.push_back(group_node);
         }
-        root["all_left_solutions"] = all_left_node;
+        result["left_arm_solutions"] = left_arm_solutions;
 
-        YAML::Node best_left_node;
-        for (const auto& sol : best_left) best_left_node.push_back(sol);
-        root["best_left_solutions"] = best_left_node;
+        // === 左臂最优解 ===
+        YAML::Node best_left_arm_solutions;
+        for (const auto& sol : best_left_solutions)
+        {
+            YAML::Node joint_set;
+            for (float val : sol) joint_set.push_back(val);
+            joint_set.SetStyle(YAML::EmitterStyle::Flow);
+            best_left_arm_solutions.push_back(joint_set);
+        }
+        result["best_left_arm_solutions"] = best_left_arm_solutions;
 
-        YAML::Node all_right_node;
-        for (const auto& group : all_right)
+        // === 右臂所有解 ===
+        YAML::Node right_arm_solutions;
+        for (const auto& solution_group : all_right_solutions)
         {
             YAML::Node group_node;
-            for (const auto& sol : group) group_node.push_back(sol);
-            all_right_node.push_back(group_node);
+            for (const auto& sol : solution_group)
+            {
+                YAML::Node joint_set;
+                for (float val : sol) joint_set.push_back(val);
+                joint_set.SetStyle(YAML::EmitterStyle::Flow);
+                group_node.push_back(joint_set);
+            }
+            right_arm_solutions.push_back(group_node);
         }
-        root["all_right_solutions"] = all_right_node;
+        result["right_arm_solutions"] = right_arm_solutions;
 
-        YAML::Node best_right_node;
-        for (const auto& sol : best_right) best_right_node.push_back(sol);
-        root["best_right_solutions"] = best_right_node;
+        // === 右臂最优解 ===
+        YAML::Node best_right_arm_solutions;
+        for (const auto& sol : best_right_solutions)
+        {
+            YAML::Node joint_set;
+            for (float val : sol) joint_set.push_back(val);
+            joint_set.SetStyle(YAML::EmitterStyle::Flow);
+            best_right_arm_solutions.push_back(joint_set);
+        }
+        result["best_right_arm_solutions"] = best_right_arm_solutions;
 
-        std::ofstream fout(path);
-        fout << root;
-        fout.close();
+        // === 写入 YAML 文件 ===
+        std::ofstream fout(filename);
+        if (fout.is_open())
+        {
+            fout << result;
+            fout.close();
+            std::cout << "IK results saved to " << filename << std::endl;
+        }
+        else
+        {
+            std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        }
     }
 
     float calculateDistance(const std::vector<float>& a, const std::vector<float>& b)
@@ -107,7 +185,7 @@ namespace robot_planning
         return {all, best};
     }
 
-    ArmIKResult solveArmIK(const std::string& yaml_file, const std::string& result_path, const std::string& tf_mat_link2_0_flan2, const std::string& tf_mat_link3_0_flan3)
+    ArmIKResult solveArmIK(const std::string& yaml_file, const std::string& result_path, const std::string& tf_mat_link2_0_flan2, const std::string& tf_mat_link3_0_flan3, const std::vector<double>& branch2_init, const std::vector<double>& branch3_init)
     {
         ArmIKResult result;
         result.success = false;
@@ -122,8 +200,9 @@ namespace robot_planning
         }
 
         robots::Kinematics kin;
-        std::vector<float> q_l_init = {0.0, -1.2, 0.9, 1.5, -0.5, 0.0};
-        std::vector<float> q_r_init = {0.0, -1.2, 0.9, -1.5, 0.5, 0.0};
+
+        std::vector<float> q_l_init(branch2_init.begin(), branch2_init.end());
+        std::vector<float> q_r_init(branch3_init.begin(), branch3_init.end());
 
         for (size_t i = 0; i < ee_poses_l.size(); ++i)
         {

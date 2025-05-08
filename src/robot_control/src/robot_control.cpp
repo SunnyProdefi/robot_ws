@@ -1894,7 +1894,7 @@ int main(int argc, char **argv)
 
                 Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m;
                 // 构造绕Y轴旋转30度的齐次变换
-                Eigen::AngleAxisd rotation_y(30.0 * M_PI / 180.0, Eigen::Vector3d::UnitY());
+                Eigen::AngleAxisd rotation_y(20.0 * M_PI / 180.0, Eigen::Vector3d::UnitY());
                 Eigen::Matrix4d rotation_mat = Eigen::Matrix4d::Identity();
                 rotation_mat.block<3, 3>(0, 0) = rotation_y.toRotationMatrix();
 
