@@ -577,7 +577,7 @@ int main(int argc, char **argv)
                 start_interp = false;
             }
 
-            const int total_steps = 200;  // 10秒，200Hz
+            const int total_steps = 6000;  // 30秒，200Hz
             double ratio = static_cast<double>(interp_step) / total_steps;
 
             // 插值计算 q_send = q_temp + ratio * (q_init - q_temp)
@@ -923,7 +923,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1025,7 +1025,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1099,7 +1099,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1190,7 +1190,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1266,7 +1266,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 3.0, traj3);
+                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1383,7 +1383,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1472,7 +1472,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 3.0, traj3);
+                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1548,7 +1548,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 3.0, traj3);
+                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1567,7 +1567,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 10;
+                control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
