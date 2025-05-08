@@ -240,9 +240,46 @@ bool planDualArmPath(robot_planning::PlanDualArmPath::Request& req, robot_planni
     const std::vector<double> q_init3 = req.branch3_joints;
     ArmIKResult ik_result = solveArmIK(pose_yaml_path, result_yaml_path, tf_link2_0_flan2, tf_link3_0_flan3, q_init2, q_init3);
 
-    // === 5. 返回结果 ===
-    res.success = ik_result.success;
-    res.message = ik_result.message;
+    // 从 YAML 文件加载 IK 结果 并保存到响应float64[] joint_trajectory 中
+
+    // === 读取最优解轨迹并拼接为 joint_trajectory ===
+    try
+    {
+        YAML::Node result = YAML::LoadFile(result_yaml_path);
+        const auto& best_left = result["best_left_arm_solutions"];
+        const auto& best_right = result["best_right_arm_solutions"];
+
+        if (!best_left || !best_right || best_left.size() != best_right.size())
+        {
+            ROS_ERROR("Mismatch in left/right best solution sizes or missing fields.");
+            res.success = false;
+            res.message = "Invalid or mismatched IK solution size.";
+            return true;
+        }
+
+        for (size_t i = 0; i < best_left.size(); ++i)
+        {
+            const YAML::Node& q_left = best_left[i];
+            const YAML::Node& q_right = best_right[i];
+
+            if (q_left.size() != 6 || q_right.size() != 6)
+            {
+                ROS_WARN_STREAM("One of the joint vectors at step " << i << " is not size 6.");
+                continue;
+            }
+
+            for (size_t j = 0; j < 6; ++j) res.joint_trajectory.push_back(q_left[j].as<double>());
+
+            for (size_t j = 0; j < 6; ++j) res.joint_trajectory.push_back(q_right[j].as<double>());
+        }
+    }
+    catch (const std::exception& e)
+    {
+        ROS_ERROR_STREAM("Failed to parse IK result YAML: " << e.what());
+        res.success = false;
+        res.message = "Failed to parse IK result YAML: " + std::string(e.what());
+        return true;
+    }
 
     return true;
 }

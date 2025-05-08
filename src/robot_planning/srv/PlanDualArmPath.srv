@@ -9,5 +9,6 @@ geometry_msgs/Transform tf_mat_cube_m_r
 int32 num_interpolations
 ---
 # Response
+float64[] joint_trajectory  # Flattened array of joint configurations
 bool success
 string message

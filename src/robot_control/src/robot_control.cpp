@@ -472,6 +472,35 @@ int main(int argc, char **argv)
         }
     };
 
+    auto mergeTrajFromFlat = [&](const std::vector<double> &flat_joint_trajectory, std::vector<std::vector<double>> &merged)
+    {
+        const int n_j = MOTOR_BRANCHN_N - 1;                                  // 每个分支的关节数
+        const size_t total_steps = flat_joint_trajectory.size() / (2 * n_j);  // 每步12维（分支2+3）
+
+        merged.clear();
+        for (size_t i = 0; i < total_steps; ++i)
+        {
+            std::vector<double> pt(BRANCHN_N * n_j, 0.0);
+
+            // 填入分支2（左臂）
+            for (int j = 0; j < n_j; ++j) pt[1 * n_j + j] = flat_joint_trajectory[i * 2 * n_j + j];
+
+            // 填入分支3（右臂）
+            for (int j = 0; j < n_j; ++j) pt[2 * n_j + j] = flat_joint_trajectory[i * 2 * n_j + n_j + j];
+
+            // 其余分支保持不变
+            for (int b = 0; b < BRANCHN_N; ++b)
+            {
+                if (b != 1 && b != 2)
+                {
+                    for (int j = 0; j < n_j; ++j) pt[b * n_j + j] = q_recv[b][j];
+                }
+            }
+
+            merged.push_back(pt);
+        }
+    };
+
     /* --- 单步执行 merged 轨迹（保持原发布 / 发送逻辑） --- */
     auto executeStep = [&](size_t idx)
     {
@@ -1893,13 +1922,13 @@ int main(int argc, char **argv)
                 Eigen::Matrix4d tf_mat_cube_m_l = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_l");
 
                 Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m;
-                // 构造绕Y轴旋转30度的齐次变换
+                // 构造绕Z轴旋转20度的齐次变换
                 Eigen::AngleAxisd rotation_y(20.0 * M_PI / 180.0, Eigen::Vector3d::UnitY());
                 Eigen::Matrix4d rotation_mat = Eigen::Matrix4d::Identity();
                 rotation_mat.block<3, 3>(0, 0) = rotation_y.toRotationMatrix();
 
                 // 得到目标变换
-                Eigen::Matrix4d tf_mat_world_cube_m_goal = rotation_mat * tf_mat_world_cube_m_init;
+                Eigen::Matrix4d tf_mat_world_cube_m_goal = tf_mat_world_cube_m_init * rotation_mat;
 
                 robot_planning::PlanDualArmPath srv;
                 srv.request.float_base_pose = float_base_position;
@@ -1909,24 +1938,249 @@ int main(int argc, char **argv)
                 srv.request.tf_mat_world_cube_m_goal = eigenToTransformMsg(tf_mat_world_cube_m_goal);
                 srv.request.tf_mat_cube_m_l = eigenToTransformMsg(tf_mat_cube_m_l);
                 srv.request.tf_mat_cube_m_r = eigenToTransformMsg(tf_mat_cube_m_r);
-                srv.request.num_interpolations = 10;  // 或任意你想设置的插值点数量
+                srv.request.num_interpolations = 1000;  // 或任意你想设置的插值点数量
                 if (plan_dual_arm_path_client.call(srv))
                 {
-                    ROS_INFO_STREAM("Success: " << srv.response.success);
+                    std::cout << "Service call successful" << std::endl;
                 }
                 else
                 {
                     ROS_ERROR("Failed to call service planDualArmPath");
                 }
+
+                mergeTrajFromFlat(srv.response.joint_trajectory, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
             }
-            // if (trajectory_index < planned_joint_trajectory.size())
-            // {
-            //     executeStep(trajectory_index++);
-            // }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                executeStep(trajectory_index++);
+            }
             else
             {
-                control_flag = 0;  // 或其他后续 flag
+                control_flag = 17;  // 或其他后续 flag
                 planning_requested = planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+
+        else if (control_flag == 17)
+        {
+            if (!planning_requested)
+            {
+                robot_planning::PlanPathHome srv;
+                std::vector<double> init_floating_base = float_base_position;
+                std::vector<double> init_joint_angles;
+                init_joint_angles.insert(init_joint_angles.end(), q_recv[1].begin(), q_recv[1].begin() + 6);  // 左臂6个
+                init_joint_angles.insert(init_joint_angles.end(), q_recv[2].begin(), q_recv[2].begin() + 6);  // 右臂6个
+
+                // gold_floating_base 相对于 init_floating_base 沿 y 轴移动 0.15 米
+                std::vector<double> gold_floating_base = init_floating_base;
+                if (gold_floating_base.size() >= 2)
+                {
+                    gold_floating_base[1] += 0.15;  // y 轴坐标增加 0.15
+                }
+                else
+                {
+                    ROS_WARN_STREAM("init_floating_base size is too small to modify Y component.");
+                }
+
+                std::vector<double> gold_joint_angles = init_joint_angles;
+                srv.request.init_floating_base = init_floating_base;
+                srv.request.init_joint_angles = init_joint_angles;
+                srv.request.gold_floating_base = gold_floating_base;
+                srv.request.gold_joint_angles = gold_joint_angles;
+
+                if (planning_client_home.call(srv))
+                {
+                    if (srv.response.success)
+                    {
+                        ROS_INFO("Planning request sent and completed successfully");
+                        planning_requested = true;
+                    }
+                    else
+                    {
+                        ROS_ERROR("Planning request failed: %s", srv.response.message.c_str());
+                        control_flag = 0;
+                    }
+                }
+                else
+                {
+                    ROS_ERROR("Failed to call plan_path_home service");
+                    control_flag = 0;
+                }
+            }
+            else if (!planning_completed)
+            {
+                std::string robot_planning_path = ros::package::getPath("robot_planning");
+                std::string planning_result_path = robot_planning_path + "/config/planning_result_home.yaml";
+                std::ifstream file(planning_result_path);
+                if (file.good())
+                {
+                    YAML::Node config = YAML::LoadFile(planning_result_path);
+
+                    if (config["joint_angle_sequence"])
+                    {
+                        planned_joint_trajectory.clear();
+                        for (const auto &point : config["joint_angle_sequence"])
+                        {
+                            std::vector<double> angles;
+                            for (const auto &angle : point)
+                            {
+                                angles.push_back(angle.as<double>());
+                            }
+                            planned_joint_trajectory.push_back(angles);
+                        }
+                        ROS_INFO("Loaded %zu joint angle points", planned_joint_trajectory.size());
+                    }
+
+                    if (config["floating_base_sequence"])
+                    {
+                        floating_base_sequence.clear();
+                        for (const auto &pose : config["floating_base_sequence"])
+                        {
+                            std::vector<double> base_state;
+                            for (const auto &val : pose)
+                            {
+                                base_state.push_back(val.as<double>());
+                            }
+                            floating_base_sequence.push_back(base_state);
+                        }
+                        ROS_INFO("Loaded %zu floating base poses", floating_base_sequence.size());
+                    }
+
+                    planning_completed = true;
+                    trajectory_index = 0;
+                }
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                // 设置目标关节角度
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                    {
+                        q_send[branchi][motorj] = planned_joint_trajectory[trajectory_index][branchi * (MOTOR_BRANCHN_N - 1) + motorj];
+                    }
+                }
+
+                // 执行规划轨迹
+                if (!isSimulation)
+                {
+                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+
+                    // ==== 请求 base_link 位姿 ====
+                    robot_control::GetBaseLinkPose srv;
+
+                    // 提取 JOINT1_1 ~ JOINT1_6 和 JOINT4_1 ~ JOINT4_6
+                    for (int j = 0; j < 6; ++j)
+                    {
+                        // 分支1：JOINT1_1 ~ JOINT1_6 在 planned_joint_trajectory 中的索引是 0~5
+                        srv.request.joint_angles_branch1.push_back(planned_joint_trajectory[trajectory_index][j]);
+
+                        // 分支4：JOINT4_1 ~ JOINT4_6 在 planned_joint_trajectory 中的索引是 18~23（共24个角）
+                        srv.request.joint_angles_branch4.push_back(planned_joint_trajectory[trajectory_index][18 + j]);
+                    }
+
+                    if (client.call(srv))
+                    {
+                        ROS_INFO("Base link pose calculated: Position (x: %f, y: %f, z: %f), Orientation (x: %f, y: %f, z: %f, w: %f)", srv.response.base_link_pose.position.x, srv.response.base_link_pose.position.y, srv.response.base_link_pose.position.z, srv.response.base_link_pose.orientation.x,
+                                 srv.response.base_link_pose.orientation.y, srv.response.base_link_pose.orientation.z, srv.response.base_link_pose.orientation.w);
+
+                        // 可选：你可以将此 Pose 发布给 RViz 或浮动基座控制模块
+                        float_base_pub.publish(srv.response.base_link_pose);
+                        // 更新浮动基座位置
+                        float_base_position[0] = srv.response.base_link_pose.position.x;
+                        float_base_position[1] = srv.response.base_link_pose.position.y;
+                        float_base_position[2] = srv.response.base_link_pose.position.z;
+                        float_base_position[3] = srv.response.base_link_pose.orientation.x;
+                        float_base_position[4] = srv.response.base_link_pose.orientation.y;
+                        float_base_position[5] = srv.response.base_link_pose.orientation.z;
+                        float_base_position[6] = srv.response.base_link_pose.orientation.w;
+                    }
+                    else
+                    {
+                        ROS_ERROR("Failed to call service get_base_link_pose");
+                    }
+                }
+                else
+                {
+                    // 仿真模式直接使用 q_send
+                    for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                    {
+                        for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                        {
+                            q_recv[branchi][motorj] = q_send[branchi][motorj];
+                        }
+                    }
+
+                    // 发布浮动基座位置
+                    geometry_msgs::Pose float_base_pose;
+                    float_base_pose.position.x = floating_base_sequence[trajectory_index][0];
+                    float_base_pose.position.y = floating_base_sequence[trajectory_index][1];
+                    float_base_pose.position.z = floating_base_sequence[trajectory_index][2];
+                    float_base_pose.orientation.x = floating_base_sequence[trajectory_index][3];
+                    float_base_pose.orientation.y = floating_base_sequence[trajectory_index][4];
+                    float_base_pose.orientation.z = floating_base_sequence[trajectory_index][5];
+                    float_base_pose.orientation.w = floating_base_sequence[trajectory_index][6];
+                    float_base_pub.publish(float_base_pose);
+                    // // ==== 请求 base_link 位姿 ====
+                    // robot_control::GetBaseLinkPose srv;
+
+                    // // 提取 JOINT1_1 ~ JOINT1_6 和 JOINT4_1 ~ JOINT4_6
+                    // for (int j = 0; j < 6; ++j)
+                    // {
+                    //     // 分支1：JOINT1_1 ~ JOINT1_6 在 planned_joint_trajectory 中的索引是 0~5
+                    //     srv.request.joint_angles_branch1.push_back(planned_joint_trajectory[trajectory_index][j]);
+
+                    //     // 分支4：JOINT4_1 ~ JOINT4_6 在 planned_joint_trajectory 中的索引是 18~23（共24个角）
+                    //     srv.request.joint_angles_branch4.push_back(planned_joint_trajectory[trajectory_index][18 + j]);
+                    // }
+
+                    // if (client.call(srv))
+                    // {
+                    //     ROS_INFO("Base link pose calculated: Position (x: %f, y: %f, z: %f), Orientation (x: %f, y: %f, z: %f, w: %f)", srv.response.base_link_pose.position.x, srv.response.base_link_pose.position.y, srv.response.base_link_pose.position.z,
+                    //     srv.response.base_link_pose.orientation.x,
+                    //              srv.response.base_link_pose.orientation.y, srv.response.base_link_pose.orientation.z, srv.response.base_link_pose.orientation.w);
+
+                    //     // 可选：你可以将此 Pose 发布给 RViz 或浮动基座控制模块
+                    //     float_base_pub.publish(srv.response.base_link_pose);
+                    // }
+                    // else
+                    // {
+                    //     ROS_ERROR("Failed to call service get_base_link_pose");
+                    // }
+
+                    // 更新浮动基座位置
+                    float_base_position[0] = floating_base_sequence[trajectory_index][0];
+                    float_base_position[1] = floating_base_sequence[trajectory_index][1];
+                    float_base_position[2] = floating_base_sequence[trajectory_index][2];
+                    float_base_position[3] = floating_base_sequence[trajectory_index][3];
+                    float_base_position[4] = floating_base_sequence[trajectory_index][4];
+                    float_base_position[5] = floating_base_sequence[trajectory_index][5];
+                    float_base_position[6] = floating_base_sequence[trajectory_index][6];
+                }
+
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+
+                trajectory_index++;
+            }
+            else
+            {
+                ROS_INFO("Trajectory execution completed");
+                control_flag = 0;
+                planning_requested = false;
+                planning_completed = false;
                 trajectory_index = 0;
             }
         }
