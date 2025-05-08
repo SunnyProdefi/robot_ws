@@ -5,6 +5,7 @@
 #include <sensor_msgs/Imu.h>
 #include <robot_planning/PlanPath.h>
 #include <robot_planning/PlanPathHome.h>
+#include <robot_planning/PlanDualArmPath.h>
 #include <robot_planning/RobotPose.h>
 #include <robot_planning/CartesianInterpolation.h>
 #include <yaml-cpp/yaml.h>
@@ -18,6 +19,7 @@
 #include "robot_control/GetBaseLinkPose.h"
 #include <Eigen/Dense>
 #include <algorithm>
+#include <geometry_msgs/Transform.h>
 
 static robots::Kinematics kin_arm3;
 
@@ -59,6 +61,7 @@ ros::ServiceClient planning_client;
 ros::ServiceClient pose_client;
 ros::ServiceClient interp_client;
 ros::ServiceClient planning_client_home;
+ros::ServiceClient plan_dual_arm_path_client;
 ros::Publisher motor_state_pub;
 
 // 在外部定义一个静态变量来计数
@@ -148,6 +151,23 @@ inline void vecToMat4(const std::vector<double> &tf7, Eigen::Matrix4d &M)
     iso.linear() = q.toRotationMatrix();
     iso.translation() = p;
     M = iso.matrix();
+}
+
+geometry_msgs::Transform eigenToTransformMsg(const Eigen::Matrix4d &mat)
+{
+    geometry_msgs::Transform tf;
+    tf.translation.x = mat(0, 3);
+    tf.translation.y = mat(1, 3);
+    tf.translation.z = mat(2, 3);
+
+    Eigen::Matrix3d rot = mat.block<3, 3>(0, 0);
+    Eigen::Quaterniond q(rot);
+    tf.rotation.x = q.x();
+    tf.rotation.y = q.y();
+    tf.rotation.z = q.z();
+    tf.rotation.w = q.w();
+
+    return tf;
 }
 
 /**
@@ -333,6 +353,8 @@ int main(int argc, char **argv)
     planning_client = nh.serviceClient<robot_planning::PlanPath>("/plan_path");
 
     planning_client_home = nh.serviceClient<robot_planning::PlanPathHome>("/plan_path_home");
+
+    plan_dual_arm_path_client = nh.serviceClient<robot_planning::PlanDualArmPath>("/plan_dual_arm_path");
 
     // 创建 service client
     pose_client = nh.serviceClient<robot_planning::RobotPose>("/robot_pose");
@@ -1854,7 +1876,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 12;
+                control_flag = 16;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1865,63 +1887,42 @@ int main(int argc, char **argv)
         {
             if (!planning_requested)
             {
-                ROS_INFO("=== flag 16 : rotate 45 deg around center ===");
+                // 读取YAML中的世界→cube_m，world→cube_m 变换
+                Eigen::Matrix4d tf_mat_world_cube_m = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_m");
+                Eigen::Matrix4d tf_mat_cube_m_r = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_r");
+                Eigen::Matrix4d tf_mat_cube_m_l = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_l");
 
-                Eigen::Matrix4d T2_cur, T3_cur;
-                if (!getCurrentEEPose(T2_cur, T3_cur))
+                Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m;
+                // 构造绕Y轴旋转30度的齐次变换
+                Eigen::AngleAxisd rotation_y(30.0 * M_PI / 180.0, Eigen::Vector3d::UnitY());
+                Eigen::Matrix4d rotation_mat = Eigen::Matrix4d::Identity();
+                rotation_mat.block<3, 3>(0, 0) = rotation_y.toRotationMatrix();
+
+                // 得到目标变换
+                Eigen::Matrix4d tf_mat_world_cube_m_goal = rotation_mat * tf_mat_world_cube_m_init;
+
+                robot_planning::PlanDualArmPath srv;
+                srv.request.float_base_pose = float_base_position;
+                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+                srv.request.tf_mat_world_cube_m_init = eigenToTransformMsg(tf_mat_world_cube_m_init);
+                srv.request.tf_mat_world_cube_m_goal = eigenToTransformMsg(tf_mat_world_cube_m_goal);
+                srv.request.tf_mat_cube_m_l = eigenToTransformMsg(tf_mat_cube_m_l);
+                srv.request.tf_mat_cube_m_r = eigenToTransformMsg(tf_mat_cube_m_r);
+                srv.request.num_interpolations = 10;  // 或任意你想设置的插值点数量
+                if (plan_dual_arm_path_client.call(srv))
                 {
-                    control_flag = 0;
-                    return 0;
+                    ROS_INFO_STREAM("Success: " << srv.response.success);
                 }
-
-                // 两末端位置和中点
-                Eigen::Vector3d p2 = T2_cur.block<3, 1>(0, 3);
-                Eigen::Vector3d p3 = T3_cur.block<3, 1>(0, 3);
-                Eigen::Vector3d center = 0.5 * (p2 + p3);
-                Eigen::Vector3d axis = (p3 - p2).normalized();  // 旋转轴
-
-                double angle_rad = M_PI / 4.0;                 // 45°
-                Eigen::AngleAxisd R2(-0.5 * angle_rad, axis);  // Branch2: -22.5°
-                Eigen::AngleAxisd R3(0.5 * angle_rad, axis);   // Branch3: +22.5°
-                Eigen::Matrix3d R2_mat = R2.toRotationMatrix();
-                Eigen::Matrix3d R3_mat = R3.toRotationMatrix();
-
-                // 构造 T2_goal 和 T3_goal：围绕中心点旋转
-                Eigen::Matrix4d T2_goal = Eigen::Matrix4d::Identity();
-                Eigen::Matrix4d T3_goal = Eigen::Matrix4d::Identity();
-
-                // 相对center的位姿（旋转 + 平移）
-                Eigen::Vector3d rel_p2 = p2 - center;
-                Eigen::Vector3d rel_p3 = p3 - center;
-                Eigen::Vector3d new_p2 = R2_mat * rel_p2 + center;
-                Eigen::Vector3d new_p3 = R3_mat * rel_p3 + center;
-
-                T2_goal.block<3, 3>(0, 0) = R2_mat * T2_cur.block<3, 3>(0, 0);  // 方向也旋转
-                T3_goal.block<3, 3>(0, 0) = R3_mat * T3_cur.block<3, 3>(0, 0);
-                T2_goal.block<3, 1>(0, 3) = new_p2;
-                T3_goal.block<3, 1>(0, 3) = new_p3;
-
-                std::vector<double> traj2, traj3;
-                try
+                else
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), 4.0, traj2);
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), 4.0, traj3);
+                    ROS_ERROR("Failed to call service planDualArmPath");
                 }
-                catch (const std::exception &e)
-                {
-                    ROS_ERROR("%s", e.what());
-                    control_flag = 0;
-                    return 0;
-                }
-
-                mergeTraj(traj2, traj3, planned_joint_trajectory);
-                planning_requested = true;
-                trajectory_index = 0;
             }
-            if (trajectory_index < planned_joint_trajectory.size())
-            {
-                executeStep(trajectory_index++);
-            }
+            // if (trajectory_index < planned_joint_trajectory.size())
+            // {
+            //     executeStep(trajectory_index++);
+            // }
             else
             {
                 control_flag = 0;  // 或其他后续 flag

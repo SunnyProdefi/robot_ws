@@ -1,0 +1,13 @@
+# Request
+float64[] float_base_pose
+float64[] branch2_joints
+float64[] branch3_joints
+geometry_msgs/Transform tf_mat_world_cube_m_init
+geometry_msgs/Transform tf_mat_world_cube_m_goal
+geometry_msgs/Transform tf_mat_cube_m_l
+geometry_msgs/Transform tf_mat_cube_m_r
+int32 num_interpolations
+---
+# Response
+bool success
+string message

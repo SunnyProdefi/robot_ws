@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
   roslib
   message_generation
 )
@@ -20,11 +21,13 @@ add_service_files(
   CartesianInterpolation.srv
   RobotPose.srv
   PlanPathHome.srv
+  PlanDualArmPath.srv
 )
 
 generate_messages(
   DEPENDENCIES
   std_msgs
+  geometry_msgs
 )
 
 # -------------------- catkin Package --------------------
@@ -91,6 +94,7 @@ set(CORE_SRC
   src/ikfast_wrapper_single_arm.cpp
   src/full_body_trajectory.cpp
   src/yaml_common.cpp
+  src/dual_arm_ik.cpp
 )
 
 # -------------------- Core Library --------------------
@@ -109,6 +113,14 @@ target_link_libraries(robot_planning_node
 add_executable(robot_planning_home src/robot_planning_home.cpp)
 add_dependencies(robot_planning_home ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(robot_planning_home
+  ${catkin_LIBRARIES}
+  core
+  ${sim_libs}
+)
+
+add_executable(dual_arm_planning src/dual_arm_planning.cpp)
+add_dependencies(dual_arm_planning ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(dual_arm_planning
   ${catkin_LIBRARIES}
   core
   ${sim_libs}
