@@ -1472,7 +1472,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1548,7 +1548,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1567,7 +1567,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 901;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1596,6 +1596,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // 导纳控制
         else if (control_flag == 21)
         {
             /*----------------------------------------------------
@@ -1734,6 +1735,83 @@ int main(int argc, char **argv)
             motor_state_pub.publish(motor_state);
         }
 
+        else if (control_flag == 901)
+        {
+            if (!planning_requested)
+            {
+                std::cout << "Control flag 901 received" << std::endl;
+
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
+                {
+                    control_flag = 0;
+                    return 0;
+                }
+
+                Eigen::Matrix4d tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3;
+
+                // 构造平移矩阵
+                Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
+                translation(0, 3) = -0.15;
+
+                // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
+                tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3 * translation;
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position = tf_mat_link3_0_flan3_goal.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat(tf_mat_link3_0_flan3_goal.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion = quat.coeffs();                            // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> goal_pose = {
+                    position.x(),   position.y(),   position.z(),                   // [x, y, z]
+                    quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()  // [qx, qy, qz, qw]
+                };
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position_flan2 = tf_mat_link3_0_flan3.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat_flan2(tf_mat_link3_0_flan3.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion_flan2 = quat_flan2.coeffs();                 // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> start_pose = {
+                    position_flan2.x(),   position_flan2.y(),   position_flan2.z(),                         // [x, y, z]
+                    quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
+                };
+
+                std::vector<double> traj3;
+                try
+                {
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
+                }
+                catch (const std::exception &e)
+                {
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
+                }
+                mergeBranch3Only(traj3, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                executeStep(trajectory_index++);
+            }
+            else
+            {
+                ROS_INFO("Trajectory execution completed");
+                control_flag = 10;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+
+        // 双臂操作
         else if (control_flag == 10)
         {
             if (!planning_requested)
@@ -1905,7 +1983,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 16;
+                control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
