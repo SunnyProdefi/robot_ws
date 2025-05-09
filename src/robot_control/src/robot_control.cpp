@@ -51,7 +51,7 @@ int interp_step_end = 0;
 
 bool isSimulation;  // 是否为仿真模式
 
-double plantime = 3.0;
+double plantime = 10.0;
 
 // 运动规划相关变量
 bool planning_requested = false;
@@ -1518,7 +1518,7 @@ int main(int argc, char **argv)
 
                 // 构造平移矩阵
                 Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
-                translation(0, 3) = 0.1;
+                translation(0, 3) = 0.05;
 
                 // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
                 tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3 * translation;
@@ -1926,8 +1926,8 @@ int main(int argc, char **argv)
                 std::vector<double> traj2, traj3;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), 4.0, traj2);
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), 4.0, traj3);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), plantime, traj2);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), plantime, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -2020,7 +2020,7 @@ int main(int argc, char **argv)
                 std::vector<double> gold_floating_base = init_floating_base;
                 if (gold_floating_base.size() >= 2)
                 {
-                    gold_floating_base[1] += 0.15;  // y 轴坐标增加 0.15
+                    gold_floating_base[1] += 0.1;  // y 轴坐标增加 0.15
                 }
                 else
                 {
@@ -2240,7 +2240,7 @@ int main(int argc, char **argv)
 
                 Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
                 TZp(1, 3) = 0.12;
-                TZp(2, 3) = 0.15;
+                TZp(2, 3) = 0.1;
                 Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m * TZp;
 
                 // 构造沿Y轴正向平移0.12米的齐次变换

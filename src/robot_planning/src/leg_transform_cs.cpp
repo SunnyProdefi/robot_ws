@@ -6,8 +6,8 @@
 namespace robot_planning
 {
 
-    int point_per_stage = 150;
-    int point = 600;
+    int point = 6000;
+    int point_per_stage = point / 4;
 
     Eigen::Matrix4f parseTransformMatrix(const YAML::Node& node)
     {
