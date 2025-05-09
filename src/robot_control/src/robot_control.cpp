@@ -1818,64 +1818,51 @@ int main(int argc, char **argv)
             {
                 std::cout << "Control flag 10 received" << std::endl;
 
-                // 读取YAML中的world→cube_r，base→link3_0 变换
-                Eigen::Matrix4d tf_mat_world_cube_r = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_r");
-                Eigen::Matrix4d tf_mat_base_link3_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link3_0");
+                // ==== STEP 1: 加载必要的变换矩阵 ====
+                Eigen::Matrix4d tf_world_cube_r = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_r");
+                Eigen::Matrix4d tf_world_cube_l = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_l");
+                Eigen::Matrix4d tf_base_link3_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link3_0");
+                Eigen::Matrix4d tf_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
 
-                // 构造world→base
+                // ==== STEP 2: 构造 world → base 变换 ====
                 Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
-                Eigen::Quaterniond quat_base(float_base_position[6],  // qw
-                                             float_base_position[3],  // qx
-                                             float_base_position[4],  // qy
-                                             float_base_position[5]   // qz
-                );
+                Eigen::Quaterniond quat_base(float_base_position[6], float_base_position[3], float_base_position[4], float_base_position[5]);
                 Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
-                Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
-                tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
-                tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
+                Eigen::Matrix4d tf_world_base = Eigen::Matrix4d::Identity();
+                tf_world_base.block<3, 3>(0, 0) = rot_base;
+                tf_world_base.block<3, 1>(0, 3) = trans_base;
 
-                // base → cube_r
-                Eigen::Matrix4d tf_mat_base_cube_r = tf_mat_world_base.inverse() * tf_mat_world_cube_r;
+                // ==== STEP 3: 计算 link → cube 变换 ====
+                Eigen::Matrix4d tf_link3_0_cube_r = tf_base_link3_0.inverse() * tf_world_base.inverse() * tf_world_cube_r;
+                Eigen::Matrix4d tf_link2_0_cube_l = tf_base_link2_0.inverse() * tf_world_base.inverse() * tf_world_cube_l;
 
-                // link3_0 → cube_r
-                Eigen::Matrix4d tf_mat_link3_0_cube_r = tf_mat_base_link3_0.inverse() * tf_mat_base_cube_r;
-
-                // 统一调用服务
-                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
-                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
+                // ==== STEP 4: 获取当前末端位姿 ====
+                Eigen::Matrix4d tf_link2_0_flan2, tf_link3_0_flan3;
+                if (!getCurrentEEPose(tf_link2_0_flan2, tf_link3_0_flan3))
                 {
                     control_flag = 0;
                     return 0;
                 }
 
-                // 获取变换矩阵中的位置和四元数
-                Eigen::Vector3d position = tf_mat_link3_0_cube_r.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
-
-                Eigen::Quaterniond quat(tf_mat_link3_0_cube_r.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
-                Eigen::Vector4d quaternion = quat.coeffs();                        // 获取四元数 [qx, qy, qz, qw]
-
-                // 将位姿信息存储到 std::vector<double> 中
-                std::vector<double> goal_pose = {
-                    position.x(),   position.y(),   position.z(),                   // [x, y, z]
-                    quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()  // [qx, qy, qz, qw]
+                auto matrixToPoseVec = [](const Eigen::Matrix4d &tf) -> std::vector<double>
+                {
+                    Eigen::Vector3d position = tf.block<3, 1>(0, 3);
+                    Eigen::Quaterniond quat(tf.block<3, 3>(0, 0));
+                    Eigen::Vector4d q = quat.coeffs();  // [x, y, z, w]
+                    return {position.x(), position.y(), position.z(), q.x(), q.y(), q.z(), q.w()};
                 };
 
-                // 获取变换矩阵中的位置和四元数
-                Eigen::Vector3d position_flan2 = tf_mat_link3_0_flan3.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+                std::vector<double> goal_pose_r = matrixToPoseVec(tf_link3_0_cube_r);
+                std::vector<double> goal_pose_l = matrixToPoseVec(tf_link2_0_cube_l);
+                std::vector<double> start_pose_r = matrixToPoseVec(tf_link3_0_flan3);
+                std::vector<double> start_pose_l = matrixToPoseVec(tf_link2_0_flan2);
 
-                Eigen::Quaterniond quat_flan2(tf_mat_link3_0_flan3.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
-                Eigen::Vector4d quaternion_flan2 = quat_flan2.coeffs();                 // 获取四元数 [qx, qy, qz, qw]
-
-                // 将位姿信息存储到 std::vector<double> 中
-                std::vector<double> start_pose = {
-                    position_flan2.x(),   position_flan2.y(),   position_flan2.z(),                         // [x, y, z]
-                    quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
-                };
-
-                std::vector<double> traj3;
+                // ==== STEP 5: 调用规划函数 ====
+                std::vector<double> traj2, traj3;
                 try
                 {
-                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 3.0, traj3);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose_l, goal_pose_l, 10.0, traj2);  // 左臂
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose_r, goal_pose_r, 10.0, traj3);  // 右臂
                 }
                 catch (const std::exception &e)
                 {
@@ -1883,96 +1870,9 @@ int main(int argc, char **argv)
                     control_flag = 0;
                     return 0;
                 }
-                mergeBranch3Only(traj3, planned_joint_trajectory);
-                planning_requested = true;
-                trajectory_index = 0;
-            }
-            else if (trajectory_index < planned_joint_trajectory.size())
-            {
-                executeStep(trajectory_index++);
-            }
-            else
-            {
-                ROS_INFO("Trajectory execution completed");
-                control_flag = 11;
-                planning_requested = false;
-                planning_completed = false;
-                trajectory_index = 0;
-            }
-        }
 
-        else if (control_flag == 11)
-        {
-            if (!planning_requested)
-            {
-                std::cout << "Control flag 11 received" << std::endl;
-
-                // 读取YAML中的world→cube_l，base→link2_0 变换
-                Eigen::Matrix4d tf_mat_world_cube_l = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_l");
-                Eigen::Matrix4d tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
-
-                // 构造world→base
-                Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
-                Eigen::Quaterniond quat_base(float_base_position[6],  // qw
-                                             float_base_position[3],  // qx
-                                             float_base_position[4],  // qy
-                                             float_base_position[5]   // qz
-                );
-                Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
-                Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
-                tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
-                tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
-
-                // base → cube_l
-                Eigen::Matrix4d tf_mat_base_cube_l = tf_mat_world_base.inverse() * tf_mat_world_cube_l;
-
-                // link2_0 → cube_l
-                Eigen::Matrix4d tf_mat_link2_0_cube_l = tf_mat_base_link2_0.inverse() * tf_mat_base_cube_l;
-
-                // 统一调用服务
-                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
-                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
-                {
-                    control_flag = 0;
-                    return 0;
-                }
-
-                // 获取变换矩阵中的位置和四元数
-                Eigen::Vector3d position = tf_mat_link2_0_cube_l.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
-
-                Eigen::Quaterniond quat(tf_mat_link2_0_cube_l.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
-                Eigen::Vector4d quaternion = quat.coeffs();                        // 获取四元数 [qx, qy, qz, qw]
-
-                // 将位姿信息存储到 std::vector<double> 中
-                std::vector<double> goal_pose = {
-                    position.x(),   position.y(),   position.z(),                   // [x, y, z]
-                    quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()  // [qx, qy, qz, qw]
-                };
-
-                // 获取变换矩阵中的位置和四元数
-                Eigen::Vector3d position_flan2 = tf_mat_link2_0_flan2.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
-
-                Eigen::Quaterniond quat_flan2(tf_mat_link2_0_flan2.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
-                Eigen::Vector4d quaternion_flan2 = quat_flan2.coeffs();                 // 获取四元数 [qx, qy, qz, qw]
-
-                // 将位姿信息存储到 std::vector<double> 中
-                std::vector<double> start_pose = {
-                    position_flan2.x(),   position_flan2.y(),   position_flan2.z(),                         // [x, y, z]
-                    quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
-                };
-
-                std::vector<double> traj2;
-                try
-                {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 3.0, traj2);
-                }
-                catch (const std::exception &e)
-                {
-                    ROS_ERROR("%s", e.what());
-                    control_flag = 0;
-                    return 0;
-                }
-                mergeBranch2Only(traj2, planned_joint_trajectory);
+                // ==== STEP 6: 合并两个分支的轨迹 ====
+                mergeTraj(traj2, traj3, planned_joint_trajectory);
                 planning_requested = true;
                 trajectory_index = 0;
             }
