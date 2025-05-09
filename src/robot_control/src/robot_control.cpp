@@ -1998,6 +1998,59 @@ int main(int argc, char **argv)
             }
             else
             {
+                control_flag = 121;
+                planning_requested = planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+
+        else if (control_flag == 121)
+        {
+            if (!planning_requested)
+            {
+                std::cout << "Control flag 121 received" << std::endl;
+                // 读取YAML中的世界→cube_m，world→cube_m 变换
+                Eigen::Matrix4d tf_mat_world_cube_m = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_m");
+                Eigen::Matrix4d tf_mat_cube_m_r = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_r");
+                Eigen::Matrix4d tf_mat_cube_m_l = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_l");
+
+                Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m;
+                // 构造沿X轴正向平移0.015米的齐次变换
+                Eigen::Matrix4d translation_mat = Eigen::Matrix4d::Identity();
+                translation_mat(1, 3) = 0.12;
+                translation_mat(0, 3) = 0.015;
+
+                // 得到目标变换
+                Eigen::Matrix4d tf_mat_world_cube_m_goal = tf_mat_world_cube_m_init * translation_mat;
+
+                robot_planning::PlanDualArmPath srv;
+                srv.request.float_base_pose = float_base_position;
+                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+                srv.request.tf_mat_world_cube_m_init = eigenToTransformMsg(tf_mat_world_cube_m_init);
+                srv.request.tf_mat_world_cube_m_goal = eigenToTransformMsg(tf_mat_world_cube_m_goal);
+                srv.request.tf_mat_cube_m_l = eigenToTransformMsg(tf_mat_cube_m_l);
+                srv.request.tf_mat_cube_m_r = eigenToTransformMsg(tf_mat_cube_m_r);
+                srv.request.num_interpolations = 1000;  // 或任意你想设置的插值点数量
+                if (plan_dual_arm_path_client.call(srv))
+                {
+                    std::cout << "Service call successful" << std::endl;
+                }
+                else
+                {
+                    ROS_ERROR("Failed to call service planDualArmPath");
+                }
+
+                mergeTrajFromFlat(srv.response.joint_trajectory, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                executeStep(trajectory_index++);
+            }
+            else
+            {
                 control_flag = 13;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
@@ -2240,6 +2293,7 @@ int main(int argc, char **argv)
 
                 Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
                 TZp(1, 3) = 0.12;
+                TZp(0, 3) = 0.015;
                 TZp(2, 3) = 0.1;
                 Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m * TZp;
 
