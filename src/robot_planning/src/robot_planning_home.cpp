@@ -8,6 +8,9 @@
 #include <Eigen/Dense>
 #include <ros/package.h>
 
+int TOTAL_POINT_NUM = 600;
+int POINT_NUM = TOTAL_POINT_NUM / 4;
+
 // 将 SE(3) 位姿数组 [x, y, z, qx, qy, qz, qw] 转换为 4x4 矩阵
 Eigen::Matrix4f vectorToMatrix(const std::vector<double>& pose_vec)
 {
@@ -71,13 +74,13 @@ bool planCallback(robot_planning::PlanPathHome::Request& req, robot_planning::Pl
     }
 
     // 整合4个分支与float_base的结果
-    std::vector<std::vector<double>> joint_angles(600, std::vector<double>(24, 0.0));
+    std::vector<std::vector<double>> joint_angles(TOTAL_POINT_NUM, std::vector<double>(24, 0.0));
     // 例如 1000 帧，每帧有 TOTAL_JOINT_NUM 个关节
 
     robot_planning::loadJointAngles(init_config_file, gold_config_file, result_cs_file, joint_angles);
 
     // 插值floating base
-    std::vector<Eigen::Matrix4f> base_sequence = robot_planning::interpolateFloatingBase_home(init_config_file, gold_config_file, 150);
+    std::vector<Eigen::Matrix4f> base_sequence = robot_planning::interpolateFloatingBase_home(init_config_file, gold_config_file, POINT_NUM);
 
     // 将结果写出
     robot_planning::saveFullBodyTrajectoryToYAML(planning_result_file, joint_angles, base_sequence);

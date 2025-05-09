@@ -6,6 +6,9 @@
 namespace robot_planning
 {
 
+    int point_per_stage = 150;
+    int point = 600;
+
     Eigen::Matrix4f parseTransformMatrix(const YAML::Node& node)
     {
         Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
@@ -137,8 +140,6 @@ namespace robot_planning
         gold_tf_mat_world_base.block<3, 1>(0, 3) = pos_world_base_gold;
 
         std::vector<Eigen::Matrix4f> interpolated_poses;
-        int point_per_stage = 1500;
-        int point = 6000;
 
         // 初始与目标位置/旋转
         Eigen::Vector3f pos_init = init_tf_mat_world_base.block<3, 1>(0, 3);
@@ -265,8 +266,6 @@ namespace robot_planning
         gold_tf_mat_world_base.block<3, 1>(0, 3) = pos_world_base_gold;
 
         std::vector<Eigen::Matrix4f> interpolated_poses;
-        int point_per_stage = 150;
-        int point = 600;
 
         // 初始与目标位置/旋转
         Eigen::Vector3f pos_init = init_tf_mat_world_base.block<3, 1>(0, 3);

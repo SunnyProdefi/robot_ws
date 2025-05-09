@@ -51,6 +51,8 @@ int interp_step_end = 0;
 
 bool isSimulation;  // 是否为仿真模式
 
+double plantime = 3.0;
+
 // 运动规划相关变量
 bool planning_requested = false;
 bool planning_completed = false;
@@ -577,7 +579,7 @@ int main(int argc, char **argv)
                 start_interp = false;
             }
 
-            const int total_steps = 6000;  // 30秒，200Hz
+            const int total_steps = 600;  // 30秒，200Hz
             double ratio = static_cast<double>(interp_step) / total_steps;
 
             // 插值计算 q_send = q_temp + ratio * (q_init - q_temp)
@@ -923,7 +925,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, plantime, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1025,7 +1027,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, plantime, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1099,7 +1101,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, plantime, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1190,7 +1192,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, plantime, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1266,7 +1268,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
+                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, plantime, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1383,7 +1385,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj2;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, 10.0, traj2);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, plantime, traj2);
                 }
                 catch (const std::exception &e)
                 {
@@ -1472,7 +1474,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, plantime, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1548,7 +1550,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, plantime, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1735,6 +1737,7 @@ int main(int argc, char **argv)
             motor_state_pub.publish(motor_state);
         }
 
+        // 单臂操作-分支3移动到最终位姿
         else if (control_flag == 901)
         {
             if (!planning_requested)
@@ -1785,7 +1788,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, 10.0, traj3);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, plantime, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1811,7 +1814,7 @@ int main(int argc, char **argv)
             }
         }
 
-        // 双臂操作
+        // 双臂操作-分支2、3移动到准备位姿
         else if (control_flag == 10)
         {
             if (!planning_requested)
@@ -1836,6 +1839,13 @@ int main(int argc, char **argv)
                 Eigen::Matrix4d tf_link3_0_cube_r = tf_base_link3_0.inverse() * tf_world_base.inverse() * tf_world_cube_r;
                 Eigen::Matrix4d tf_link2_0_cube_l = tf_base_link2_0.inverse() * tf_world_base.inverse() * tf_world_cube_l;
 
+                Eigen::Matrix4d T2_goal, T3_goal;
+                /* ---- 目标位姿 (+Z) ---- */
+                Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
+                TZp(2, 3) = -0.03;
+                T2_goal = tf_link2_0_cube_l * TZp;
+                T3_goal = tf_link3_0_cube_r * TZp;
+
                 // ==== STEP 4: 获取当前末端位姿 ====
                 Eigen::Matrix4d tf_link2_0_flan2, tf_link3_0_flan3;
                 if (!getCurrentEEPose(tf_link2_0_flan2, tf_link3_0_flan3))
@@ -1852,8 +1862,8 @@ int main(int argc, char **argv)
                     return {position.x(), position.y(), position.z(), q.x(), q.y(), q.z(), q.w()};
                 };
 
-                std::vector<double> goal_pose_r = matrixToPoseVec(tf_link3_0_cube_r);
-                std::vector<double> goal_pose_l = matrixToPoseVec(tf_link2_0_cube_l);
+                std::vector<double> goal_pose_r = matrixToPoseVec(T3_goal);
+                std::vector<double> goal_pose_l = matrixToPoseVec(T2_goal);
                 std::vector<double> start_pose_r = matrixToPoseVec(tf_link3_0_flan3);
                 std::vector<double> start_pose_l = matrixToPoseVec(tf_link2_0_flan2);
 
@@ -1861,8 +1871,8 @@ int main(int argc, char **argv)
                 std::vector<double> traj2, traj3;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose_l, goal_pose_l, 10.0, traj2);  // 左臂
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose_r, goal_pose_r, 10.0, traj3);  // 右臂
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose_l, goal_pose_l, plantime, traj2);  // 左臂
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose_r, goal_pose_r, plantime, traj3);  // 右臂
                 }
                 catch (const std::exception &e)
                 {
@@ -1883,30 +1893,82 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 11;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
             }
         }
 
-        else if (control_flag == 16)
+        // 双臂操作-分支2、3移动到抓取位姿
+        else if (control_flag == 11)
         {
             if (!planning_requested)
             {
+                std::cout << "Control flag 11 received" << std::endl;
+                ROS_INFO("=== flag 11 : Z +0.03 ===");
+
+                /* ---- 当前位姿 ---- */
+                Eigen::Matrix4d T2_cur, T3_cur;
+                if (!getCurrentEEPose(T2_cur, T3_cur))
+                {
+                    control_flag = 0;
+                    return 0;
+                }
+
+                /* ---- 目标位姿 (+Z) ---- */
+                Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
+                TZp(2, 3) = 0.03;
+                Eigen::Matrix4d T2_goal = T2_cur * TZp;
+                Eigen::Matrix4d T3_goal = T3_cur * TZp;
+
+                /* ---- 规划两分支 ---- */
+                std::vector<double> traj2, traj3;
+                try
+                {
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), 4.0, traj2);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), 4.0, traj3);
+                }
+                catch (const std::exception &e)
+                {
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
+                }
+                mergeTraj(traj2, traj3, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
+            }
+            if (trajectory_index < planned_joint_trajectory.size())
+            {
+                executeStep(trajectory_index++);
+            }
+            else
+            {
+                control_flag = 12;
+                planning_requested = planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+
+        // 双臂操作-物体移动到准备位姿
+        else if (control_flag == 12)
+        {
+            if (!planning_requested)
+            {
+                std::cout << "Control flag 12 received" << std::endl;
                 // 读取YAML中的世界→cube_m，world→cube_m 变换
                 Eigen::Matrix4d tf_mat_world_cube_m = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_m");
                 Eigen::Matrix4d tf_mat_cube_m_r = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_r");
                 Eigen::Matrix4d tf_mat_cube_m_l = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_l");
 
                 Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m;
-                // 构造绕Z轴旋转20度的齐次变换
-                Eigen::AngleAxisd rotation_y(20.0 * M_PI / 180.0, Eigen::Vector3d::UnitY());
-                Eigen::Matrix4d rotation_mat = Eigen::Matrix4d::Identity();
-                rotation_mat.block<3, 3>(0, 0) = rotation_y.toRotationMatrix();
+                // 构造沿Y轴正向平移0.12米的齐次变换
+                Eigen::Matrix4d translation_mat = Eigen::Matrix4d::Identity();
+                translation_mat(1, 3) = 0.12;
 
                 // 得到目标变换
-                Eigen::Matrix4d tf_mat_world_cube_m_goal = tf_mat_world_cube_m_init * rotation_mat;
+                Eigen::Matrix4d tf_mat_world_cube_m_goal = tf_mat_world_cube_m_init * translation_mat;
 
                 robot_planning::PlanDualArmPath srv;
                 srv.request.float_base_pose = float_base_position;
@@ -1936,16 +1998,18 @@ int main(int argc, char **argv)
             }
             else
             {
-                control_flag = 17;  // 或其他后续 flag
+                control_flag = 13;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
             }
         }
 
-        else if (control_flag == 17)
+        // 双臂操作-机身移动到目标位姿
+        else if (control_flag == 13)
         {
             if (!planning_requested)
             {
+                std::cout << "Control flag 13 received" << std::endl;
                 robot_planning::PlanPathHome srv;
                 std::vector<double> init_floating_base = float_base_position;
                 std::vector<double> init_joint_angles;
@@ -2156,202 +2220,67 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 14;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
             }
         }
 
-        else if (control_flag == 12)
-        {
-            if (!planning_requested)
-            {
-                ROS_INFO("=== flag 12 : Y +0.03 ===");
-
-                /* ---- 当前位姿 ---- */
-                Eigen::Matrix4d T2_cur, T3_cur;
-                if (!getCurrentEEPose(T2_cur, T3_cur))
-                {
-                    control_flag = 0;
-                    return 0;
-                }
-
-                /* ---- 目标位姿 (+Y) ---- */
-                Eigen::Matrix4d TYp = Eigen::Matrix4d::Identity();
-                TYp(1, 3) = 0.03;
-                Eigen::Matrix4d T2_goal = T2_cur * TYp;
-                Eigen::Matrix4d T3_goal = T3_cur * TYp;
-
-                /* ---- 规划两分支 ---- */
-                std::vector<double> traj2, traj3;
-                try
-                {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), 4.0, traj2);
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), 4.0, traj3);
-                }
-                catch (const std::exception &e)
-                {
-                    ROS_ERROR("%s", e.what());
-                    control_flag = 0;
-                    return 0;
-                }
-                mergeTraj(traj2, traj3, planned_joint_trajectory);
-                planning_requested = true;
-                trajectory_index = 0;
-            }
-            if (trajectory_index < planned_joint_trajectory.size())
-            {
-                executeStep(trajectory_index++);
-            }
-            else
-            {                       // 完成
-                control_flag = 13;  // → 13
-                planning_requested = planning_completed = false;
-                trajectory_index = 0;
-            }
-        }
-
-        else if (control_flag == 13)
-        {
-            if (!planning_requested)
-            {
-                ROS_INFO("=== flag 13 : X ±0.02 ===");
-
-                Eigen::Matrix4d T2_cur, T3_cur;
-                if (!getCurrentEEPose(T2_cur, T3_cur))
-                {
-                    control_flag = 0;
-                    return 0;
-                }
-
-                Eigen::Matrix4d TZm = Eigen::Matrix4d::Identity();
-                TZm(0, 3) = -0.02;  // branch2
-                Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
-                TZp(0, 3) = 0.02;  // branch3
-                Eigen::Matrix4d T2_goal = T2_cur * TZm;
-                Eigen::Matrix4d T3_goal = T3_cur * TZp;
-
-                std::vector<double> traj2, traj3;
-                try
-                {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), 4.0, traj2);
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), 4.0, traj3);
-                }
-                catch (const std::exception &e)
-                {
-                    ROS_ERROR("%s", e.what());
-                    control_flag = 0;
-                    return 0;
-                }
-                mergeTraj(traj2, traj3, planned_joint_trajectory);
-                planning_requested = true;
-                trajectory_index = 0;
-            }
-            if (trajectory_index < planned_joint_trajectory.size())
-            {
-                executeStep(trajectory_index++);
-            }
-            else
-            {
-                control_flag = 14;  // → 14
-                planning_requested = planning_completed = false;
-                trajectory_index = 0;
-            }
-        }
-
+        // 双臂操作-分支2、3移动到目标位姿
         else if (control_flag == 14)
         {
             if (!planning_requested)
             {
-                ROS_INFO("=== flag 14 : Z ±0.125 ===");
+                std::cout << "Control flag 14 received" << std::endl;
+                // 读取YAML中的世界→cube_m，world→cube_m 变换
+                Eigen::Matrix4d tf_mat_world_cube_m = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_m");
+                Eigen::Matrix4d tf_mat_cube_m_r = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_r");
+                Eigen::Matrix4d tf_mat_cube_m_l = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_l");
 
-                Eigen::Matrix4d T2_cur, T3_cur;
-                if (!getCurrentEEPose(T2_cur, T3_cur))
-                {
-                    control_flag = 0;
-                    return 0;
-                }
-
-                Eigen::Matrix4d TZm = Eigen::Matrix4d::Identity();
-                TZm(2, 3) = 0.125;  // branch2
                 Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
-                TZp(2, 3) = -0.125;  // branch3
-                Eigen::Matrix4d T2_goal = T2_cur * TZm;
-                Eigen::Matrix4d T3_goal = T3_cur * TZp;
+                TZp(1, 3) = 0.12;
+                TZp(2, 3) = 0.15;
+                Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m * TZp;
 
-                std::vector<double> traj2, traj3;
-                try
+                // 构造沿Y轴正向平移0.12米的齐次变换
+                Eigen::Matrix4d translation_mat = Eigen::Matrix4d::Identity();
+                translation_mat(1, 3) = -0.02;
+
+                // 得到目标变换
+                Eigen::Matrix4d tf_mat_world_cube_m_goal = tf_mat_world_cube_m_init * translation_mat;
+
+                robot_planning::PlanDualArmPath srv;
+                srv.request.float_base_pose = float_base_position;
+                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+                srv.request.tf_mat_world_cube_m_init = eigenToTransformMsg(tf_mat_world_cube_m_init);
+                srv.request.tf_mat_world_cube_m_goal = eigenToTransformMsg(tf_mat_world_cube_m_goal);
+                srv.request.tf_mat_cube_m_l = eigenToTransformMsg(tf_mat_cube_m_l);
+                srv.request.tf_mat_cube_m_r = eigenToTransformMsg(tf_mat_cube_m_r);
+                srv.request.num_interpolations = 1000;  // 或任意你想设置的插值点数量
+                if (plan_dual_arm_path_client.call(srv))
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), 4.0, traj2);
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), 4.0, traj3);
+                    std::cout << "Service call successful" << std::endl;
                 }
-                catch (const std::exception &e)
+                else
                 {
-                    ROS_ERROR("%s", e.what());
-                    control_flag = 0;
-                    return 0;
+                    ROS_ERROR("Failed to call service planDualArmPath");
                 }
-                mergeTraj(traj2, traj3, planned_joint_trajectory);
+
+                mergeTrajFromFlat(srv.response.joint_trajectory, planned_joint_trajectory);
                 planning_requested = true;
                 trajectory_index = 0;
             }
-            if (trajectory_index < planned_joint_trajectory.size())
+            else if (trajectory_index < planned_joint_trajectory.size())
             {
                 executeStep(trajectory_index++);
             }
             else
             {
-                control_flag = 15;  // → 14
+                control_flag = 15;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
-            }
-        }
-
-        else if (control_flag == 15)
-        {
-            if (!planning_requested)
-            {
-                ROS_INFO("=== flag 15 : Y -0.03 (return) ===");
-
-                Eigen::Matrix4d T2_cur, T3_cur;
-                if (!getCurrentEEPose(T2_cur, T3_cur))
-                {
-                    control_flag = 0;
-                    return 0;
-                }
-
-                Eigen::Matrix4d TYn = Eigen::Matrix4d::Identity();
-                TYn(1, 3) = -0.03;
-                Eigen::Matrix4d T2_goal = T2_cur * TYn;
-                Eigen::Matrix4d T3_goal = T3_cur * TYn;
-
-                std::vector<double> traj2, traj3;
-                try
-                {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), 4.0, traj2);
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), 4.0, traj3);
-                }
-                catch (const std::exception &e)
-                {
-                    ROS_ERROR("%s", e.what());
-                    control_flag = 0;
-                    return 0;
-                }
-                mergeTraj(traj2, traj3, planned_joint_trajectory);
-                planning_requested = true;
-                trajectory_index = 0;
-            }
-            if (trajectory_index < planned_joint_trajectory.size())
-            {
-                executeStep(trajectory_index++);
-            }
-            else
-            {
-                control_flag = 16;  // 回到空闲
-                planning_requested = planning_completed = false;
-                trajectory_index = 0;
-                ROS_INFO("All 3 segments completed.");
             }
         }
 

@@ -9,6 +9,9 @@
 #include <Eigen/Dense>
 #include <ros/package.h>
 
+int TOTAL_POINT_NUM = 600;
+int POINT_NUM = TOTAL_POINT_NUM / 4;
+
 bool planCallback(robot_planning::PlanPath::Request& req, robot_planning::PlanPath::Response& res)
 {
     ROS_INFO("Received planning request...");
@@ -150,13 +153,13 @@ bool planCallback(robot_planning::PlanPath::Request& req, robot_planning::PlanPa
     std::string result_cs_file = package_path + "/config/result_cs.yaml";
 
     // 整合4个分支与float_base的结果
-    std::vector<std::vector<double>> joint_angles(6000, std::vector<double>(24, 0.0));
+    std::vector<std::vector<double>> joint_angles(TOTAL_POINT_NUM, std::vector<double>(24, 0.0));
     // 例如 1000 帧，每帧有 TOTAL_JOINT_NUM 个关节
 
     robot_planning::loadJointAngles(init_floating_base_file, gold_floating_base_file, result_cs_file, joint_angles);
 
     // 插值floating base
-    std::vector<Eigen::Matrix4f> base_sequence = robot_planning::interpolateFloatingBase(init_floating_base_file, gold_floating_base_file, 1500);
+    std::vector<Eigen::Matrix4f> base_sequence = robot_planning::interpolateFloatingBase(init_floating_base_file, gold_floating_base_file, POINT_NUM);
 
     std::string planning_result_file = package_path + "/config/planning_result.yaml";
     // 将结果写出
