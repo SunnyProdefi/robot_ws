@@ -46,6 +46,31 @@ int main(int argc, char** argv)
     planning_scene_interface.addCollisionObjects({collision_object});
     ROS_INFO("truss_link added to planning scene.");
 
+    // 1️⃣+ 添加地板作为障碍物
+    moveit_msgs::CollisionObject floor_object;
+    floor_object.header.frame_id = "world";
+    floor_object.id = "floor";
+
+    shape_msgs::SolidPrimitive floor_primitive;
+    floor_primitive.type = shape_msgs::SolidPrimitive::BOX;
+    floor_primitive.dimensions.resize(3);
+    floor_primitive.dimensions[shape_msgs::SolidPrimitive::BOX_X] = 5.0;   // 长
+    floor_primitive.dimensions[shape_msgs::SolidPrimitive::BOX_Y] = 5.0;   // 宽
+    floor_primitive.dimensions[shape_msgs::SolidPrimitive::BOX_Z] = 0.01;  // 高（很薄）
+
+    geometry_msgs::Pose floor_pose;
+    floor_pose.position.x = 0.0;
+    floor_pose.position.y = 0.0;
+    floor_pose.position.z = -0.1;  // 让它贴在z=0平面上
+    floor_pose.orientation.w = 1.0;
+
+    floor_object.primitives.push_back(floor_primitive);
+    floor_object.primitive_poses.push_back(floor_pose);
+    floor_object.operation = floor_object.ADD;
+
+    planning_scene_interface.addCollisionObjects({floor_object});
+    ROS_INFO("floor added to planning scene.");
+
     // 2️⃣ 初始化 PlanningSceneMonitor 并启动监听
     planning_scene_monitor::PlanningSceneMonitorPtr psm(new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
     psm->startSceneMonitor();

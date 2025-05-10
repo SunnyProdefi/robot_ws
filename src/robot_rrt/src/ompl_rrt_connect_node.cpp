@@ -183,6 +183,11 @@ int main(int argc, char** argv)
 
     og::SimpleSetup ss(space);
     ss.setStateValidityChecker(isStateValid);
+    ss.getSpaceInformation()->setStateValidityCheckingResolution(0.005);  // 插值分辨率设置
+
+    auto planner = std::make_shared<og::RRTConnect>(ss.getSpaceInformation());
+    planner->setRange(0.2);  // 控制每一步最大扩展距离
+    ss.setPlanner(planner);
 
     // 4️⃣ 设置起点和终点
     ob::ScopedState<> start(space), goal(space);
@@ -198,11 +203,10 @@ int main(int argc, char** argv)
     ROS_INFO("Start state valid. Begin planning...");
 
     ss.setStartAndGoalStates(start, goal);
-    ss.setPlanner(std::make_shared<og::RRTConnect>(ss.getSpaceInformation()));
     ss.setup();
 
     // 5️⃣ 执行规划
-    if (ss.solve(5.0))
+    if (ss.solve(5000.0))
     {
         ROS_INFO("Planning succeeded!");
         // ss.simplifySolution();
