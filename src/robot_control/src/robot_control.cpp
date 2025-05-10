@@ -535,6 +535,7 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
+        // 使能并读取当前位姿
         if (control_flag == 0)
         {
             if (!isSimulation)
@@ -569,6 +570,7 @@ int main(int argc, char **argv)
             float_base_pub.publish(float_base_pose);
         }
 
+        // 单臂操作-运动到初始位姿
         else if (control_flag == 1)
         {
             if (start_interp)
@@ -654,6 +656,7 @@ int main(int argc, char **argv)
             motor_state_pub.publish(motor_state);
         }
 
+        // 单臂操作-运动到抓取准备位姿
         else if (control_flag == 2)
         {
             if (!planning_requested)
@@ -860,6 +863,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // 单臂操作-分支2完成抓取
         else if (control_flag == 3)
         {
             if (!planning_requested)
@@ -973,11 +977,13 @@ int main(int argc, char **argv)
             }
         }
 
+        // 单臂操作-分支2拿出物体（RRT）
         else if (control_flag == 301)
         {
             // rrt服务
         }
 
+        // 单臂操作-分支2拿出物体-1
         else if (control_flag == 4)
         {
             if (!planning_requested)
@@ -1053,6 +1059,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // 单臂操作-分支2拿出物体-2
         else if (control_flag == 401)
         {
             if (!planning_requested)
@@ -1127,6 +1134,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // 单臂操作-分支2运动到交接位姿
         else if (control_flag == 5)
         {
             if (!planning_requested)
@@ -1218,6 +1226,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // 单臂操作-分支3运动到交接位姿完成交接
         else if (control_flag == 6)
         {
             if (!planning_requested)
@@ -1335,6 +1344,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // 单臂操作-分支2离开交接位姿
         else if (control_flag == 7)
         {
             if (!planning_requested)
@@ -1411,6 +1421,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // 单臂操作-分支3运动到放置准备位姿
         else if (control_flag == 8)
         {
             if (!planning_requested)
@@ -1500,6 +1511,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // 单臂操作-分支3完成放置
         else if (control_flag == 9)
         {
             if (!planning_requested)
@@ -1601,9 +1613,7 @@ int main(int argc, char **argv)
         // 导纳控制
         else if (control_flag == 21)
         {
-            /*----------------------------------------------------
-             * 0. 参数
-             *--------------------------------------------------*/
+            // 0. 参数
             const Eigen::Matrix<double, 6, 1> M = (Eigen::Matrix<double, 6, 1>() << 2.0, 2.0, 2.0, 0.2, 0.2, 0.2).finished();
             const Eigen::Matrix<double, 6, 1> B = (Eigen::Matrix<double, 6, 1>() << 40.0, 40.0, 40.0, 3.0, 3.0, 3.0).finished();
             const Eigen::Matrix<double, 6, 1> K = (Eigen::Matrix<double, 6, 1>() << 100.0, 100.0, 100.0, 5.0, 5.0, 5.0).finished();
@@ -1613,9 +1623,7 @@ int main(int argc, char **argv)
             const double MAX_POSVEL = 0.30;                 // m/s
             const double MAX_ANGVEL = 45.0 * M_PI / 180.0;  // rad/s
 
-            /*----------------------------------------------------
-             * 1. 锁定 T_ref
-             *--------------------------------------------------*/
+            // 1. 锁定 T_ref
             static Eigen::Isometry3d T_ref = Eigen::Isometry3d::Identity();
             static bool ref_init = false;
 
@@ -1635,9 +1643,7 @@ int main(int argc, char **argv)
                 ROS_INFO("Admittance: reference pose captured.");
             }
 
-            /*----------------------------------------------------
-             * 2. 导纳内部状态
-             *--------------------------------------------------*/
+            // 2. 导纳内部状态
             static Eigen::Matrix<double, 6, 1> x_int = Eigen::Matrix<double, 6, 1>::Zero();    // 位移
             static Eigen::Matrix<double, 6, 1> x_int_d = Eigen::Matrix<double, 6, 1>::Zero();  // 速度
             static ros::Time last_t = ros::Time::now();
@@ -1647,17 +1653,13 @@ int main(int argc, char **argv)
             if (dt <= 0.)
                 dt = 1e-3;
 
-            /*----------------------------------------------------
-             * 3. 力‑扭矩误差
-             *--------------------------------------------------*/
+            // 3. 力‑扭矩误差
             Eigen::Matrix<double, 6, 1> F_des = Eigen::Matrix<double, 6, 1>::Zero();
             Eigen::Matrix<double, 6, 1> F_meas;
             F_meas << force_data_3.force.x, force_data_3.force.y, force_data_3.force.z, force_data_3.torque.x, force_data_3.torque.y, force_data_3.torque.z;
             Eigen::Matrix<double, 6, 1> F_err = F_des - F_meas;
 
-            /*----------------------------------------------------
-             * 4. 导纳微分方程
-             *--------------------------------------------------*/
+            // 4. 导纳微分方程
             Eigen::Matrix<double, 6, 1> x_dd = (F_err - B.cwiseProduct(x_int_d) - K.cwiseProduct(x_int)).cwiseQuotient(M);
 
             x_int_d += x_dd * dt;
@@ -1672,9 +1674,7 @@ int main(int argc, char **argv)
             x_int.head<3>() = x_int.head<3>().cwiseMax(-MAX_TRANSL).cwiseMin(MAX_TRANSL);
             x_int.tail<3>() = x_int.tail<3>().cwiseMax(-MAX_ANGLE).cwiseMin(MAX_ANGLE);
 
-            /*----------------------------------------------------
-             * 5. 生成目标位姿
-             *--------------------------------------------------*/
+            // 5. 生成目标位姿
             Eigen::Isometry3d T_tgt = T_ref;
             T_tgt.translation() += x_int.head<3>();
 
@@ -1686,18 +1686,16 @@ int main(int argc, char **argv)
             }
 
             /* ---------- 调试打印 ---------- */
-            ROS_INFO_THROTTLE(0.2,
-                              "F  [%.2f %.2f %.2f] N | T  [%.2f %.2f %.2f] Nm | "
-                              "dx [%.4f %.4f %.4f] m | dR [%.2f %.2f %.2f] deg",
-                              F_meas(0), F_meas(1), F_meas(2),  // Fx Fy Fz
-                              F_meas(3), F_meas(4), F_meas(5),  // Tx Ty Tz
-                              x_int(0), x_int(1), x_int(2),     // Δx Δy Δz
-                              x_int(3) * 180.0 / M_PI, x_int(4) * 180.0 / M_PI,
-                              x_int(5) * 180.0 / M_PI);  // ΔRx ΔRy ΔRz
+            // ROS_INFO_THROTTLE(0.2,
+            //                   "F  [%.2f %.2f %.2f] N | T  [%.2f %.2f %.2f] Nm | "
+            //                   "dx [%.4f %.4f %.4f] m | dR [%.2f %.2f %.2f] deg",
+            //                   F_meas(0), F_meas(1), F_meas(2),  // Fx Fy Fz
+            //                   F_meas(3), F_meas(4), F_meas(5),  // Tx Ty Tz
+            //                   x_int(0), x_int(1), x_int(2),     // Δx Δy Δz
+            //                   x_int(3) * 180.0 / M_PI, x_int(4) * 180.0 / M_PI,
+            //                   x_int(5) * 180.0 / M_PI);  // ΔRx ΔRy ΔRz
 
-            /*----------------------------------------------------
-             * 6. IKFast
-             *--------------------------------------------------*/
+            // 6. IKFast
             std::vector<float> ee_pose12 = {(float)T_tgt(0, 0), (float)T_tgt(0, 1), (float)T_tgt(0, 2), (float)T_tgt(0, 3), (float)T_tgt(1, 0), (float)T_tgt(1, 1), (float)T_tgt(1, 2), (float)T_tgt(1, 3), (float)T_tgt(2, 0), (float)T_tgt(2, 1), (float)T_tgt(2, 2), (float)T_tgt(2, 3)};
             std::vector<float> ik_results = kin_arm3.inverse(ee_pose12);
 
@@ -1706,9 +1704,7 @@ int main(int argc, char **argv)
 
             auto [valid_sols, best_sol] = findAllSolutions(ik_results, q_cur_vec, 6);
 
-            /*----------------------------------------------------
-             * 7. 写入 q_send
-             *--------------------------------------------------*/
+            // 7. 写入 q_send
             if (best_sol.empty())
             {
                 ROS_WARN_THROTTLE(1.0, "IKFast 无有效解，保持当前位置");
@@ -1719,17 +1715,13 @@ int main(int argc, char **argv)
                 for (int j = 0; j < 6; ++j) q_send[2][j] = best_sol[j];
             }
 
-            /*----------------------------------------------------
-             * 8. 下发 / 仿真
-             *--------------------------------------------------*/
+            // 8. 下发 / 仿真
             if (!isSimulation)
                 Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
             else
                 for (int j = 0; j < 6; ++j) q_recv[2][j] = q_send[2][j];
 
-            /*----------------------------------------------------
-             * 9. 发布 joint state
-             *--------------------------------------------------*/
+            // 9. 发布 joint state
             std_msgs::Float64MultiArray motor_state;
             motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
             for (int b = 0; b < BRANCHN_N; ++b)
