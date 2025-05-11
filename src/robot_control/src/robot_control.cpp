@@ -938,15 +938,15 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
-                // RRT
-                q_goal_rrt.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                // 打印目标关节角度
-                std::cout << "RRT目标关节角度: ";
-                for (const auto &angle : q_goal_rrt)
-                {
-                    std::cout << angle << " ";
-                }
-                std::cout << std::endl;
+                // // RRT
+                // q_goal_rrt.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                // // 打印目标关节角度
+                // std::cout << "RRT目标关节角度: ";
+                // for (const auto &angle : q_goal_rrt)
+                // {
+                //     std::cout << angle << " ";
+                // }
+                // std::cout << std::endl;
 
                 std::vector<double> traj2;
                 try
@@ -1002,39 +1002,130 @@ int main(int argc, char **argv)
         // 单臂操作-分支2拿出物体（RRT）
         else if (control_flag == 301)
         {
-            robot_rrt::RRTPlanPath srv;
+            if (!planning_requested)
+            {
+                robot_rrt::RRTPlanPath srv;
+                q_init_rrt.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
 
-            q_init_rrt.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-            // 打印初始关节角度
-            std::cout << "RRT初始关节角度: ";
-            for (const auto &angle : q_init_rrt)
-            {
-                std::cout << angle << " ";
-            }
-            std::cout << std::endl;
-            // 示例起点和终点（6维关节）
-            for (int i = 0; i < 6; ++i)
-            {
-                srv.request.start[i] = q_init_rrt[i];
-                srv.request.goal[i] = q_goal_rrt[i];
-            }
+                std::cout << "RRT初始关节角度: ";
+                for (const auto &angle : q_init_rrt) std::cout << angle << " ";
+                std::cout << std::endl;
 
-            if (rrt_plan_client.call(srv))
-            {
-                if (srv.response.success)
+                q_goal_rrt = {-1.3448, -1.81108, -2.4329, 3.1416, 0.23424, -1.31166};
+
+                for (int i = 0; i < 6; ++i)
                 {
-                    ROS_INFO_STREAM("Planning succeeded: " << srv.response.message);
+                    srv.request.start[i] = q_init_rrt[i];
+                    srv.request.goal[i] = q_goal_rrt[i];
+                }
+
+                if (rrt_plan_client.call(srv))
+                {
+                    if (srv.response.success)
+                    {
+                        ROS_INFO_STREAM("Planning succeeded: " << srv.response.message);
+
+                        // 读取 YAML 文件
+                        std::string yaml_path = ros::package::getPath("robot_rrt") + "/config/planned_path.yaml";
+                        YAML::Node path_yaml = YAML::LoadFile(yaml_path);
+
+                        std::vector<std::vector<double>> trajectory;
+                        for (const auto &node : path_yaml) trajectory.push_back(node.as<std::vector<double>>());
+
+                        // 保存原始插值轨迹
+                        planned_joint_trajectory.clear();
+                        const int steps_per_segment = 600;
+                        for (size_t seg = 0; seg + 1 < trajectory.size(); ++seg)
+                        {
+                            const auto &q_start = trajectory[seg];
+                            const auto &q_end = trajectory[seg + 1];
+
+                            for (int step = 0; step <= steps_per_segment; ++step)
+                            {
+                                double ratio = static_cast<double>(step) / steps_per_segment;
+                                std::vector<double> q_interp(6);
+                                for (int j = 0; j < 6; ++j) q_interp[j] = q_start[j] + ratio * (q_end[j] - q_start[j]);
+                                planned_joint_trajectory.push_back(q_interp);
+                            }
+                        }
+
+                        // // 打印插值轨迹
+                        // std::cout << "插值轨迹点数: " << planned_joint_trajectory.size() << std::endl;
+                        // for (const auto &point : planned_joint_trajectory)
+                        // {
+                        //     std::cout << "插值点: ";
+                        //     for (const auto &angle : point) std::cout << angle << " ";
+                        //     std::cout << std::endl;
+                        // }
+                        // // 规划完成，设置标志
+
+                        planning_requested = true;
+                        trajectory_index = 0;
+                    }
+                    else
+                    {
+                        ROS_WARN_STREAM("Planning failed: " << srv.response.message);
+                        control_flag = 0;
+                        return 0;
+                    }
                 }
                 else
                 {
-                    ROS_WARN_STREAM("Planning failed: " << srv.response.message);
-                    return 1;
+                    ROS_ERROR("Failed to call service rrt_plan_path.");
+                    control_flag = 0;
+                    return 0;
                 }
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                for (int j = 0; j < 6; ++j) q_send[1][j] = planned_joint_trajectory[trajectory_index][j];
+
+                if (!isSimulation)
+                {
+                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+                }
+                else
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj) q_recv[1][motorj] = q_send[1][motorj];
+                }
+
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+
+                trajectory_index++;
             }
             else
             {
-                ROS_ERROR("Failed to call service plan_path.");
-                return 1;
+                ROS_INFO("RRT trajectory execution completed.");
+                control_flag = 0;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
+
+                // 可选：发布夹爪指令或状态
+                std_msgs::Float64MultiArray gripper_command;
+                gripper_command.data = {0.0, 0.0, 1.0, 0.0};  // 示例：张开
+                gripper_pub.publish(gripper_command);
+
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.8;
+
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; ++motorj) motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                motor_state_pub.publish(motor_state);
             }
         }
 

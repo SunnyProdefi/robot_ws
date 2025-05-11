@@ -1,3 +1,5 @@
+// ompl_rrt_service_node.cpp
+
 #include <ros/ros.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/AttachedCollisionObject.h>
@@ -18,6 +20,7 @@ planning_scene_monitor::PlanningSceneMonitorPtr psm;
 
 bool isStateValid(const ob::State* state)
 {
+    // psm->requestPlanningSceneState();
     auto scene = psm->getPlanningScene();
     robot_state::RobotState& robot_state = scene->getCurrentStateNonConst();
 
@@ -27,13 +30,13 @@ bool isStateValid(const ob::State* state)
     for (size_t i = 0; i < 6; ++i) joint_values[i + 1] = real_state->values[i];
 
     robot_state.setJointGroupPositions("arm2", joint_values);
+    robot_state.update();  // 必须更新
 
     collision_detection::CollisionRequest req;
     collision_detection::CollisionResult res;
     req.contacts = true;
     req.max_contacts = 1000;
     req.verbose = false;
-    req.group_name = "";
 
     collision_detection::AllowedCollisionMatrix acm = scene->getAllowedCollisionMatrixNonConst();
     acm.setEntry("Link2_0", "Link_platform", true);
@@ -49,13 +52,13 @@ bool isStateValid(const ob::State* state)
         }
         return false;
     }
+
     return true;
 }
 
 void attachBoxObject()
 {
     moveit::planning_interface::PlanningSceneInterface psi;
-
     moveit_msgs::AttachedCollisionObject attached_object;
     attached_object.link_name = "Link2_6";
     attached_object.object.header.frame_id = "Link2_6";
@@ -76,10 +79,8 @@ void attachBoxObject()
     attached_object.object.operation = attached_object.object.ADD;
     attached_object.touch_links = {"Link2_6"};
 
-    // 加入到 PlanningScene
     psi.applyAttachedCollisionObject(attached_object);
 
-    // 同步到 psm 中的 PlanningScene
     if (psm && psm->getPlanningScene())
     {
         psm->getPlanningScene()->processAttachedCollisionObjectMsg(attached_object);
@@ -120,6 +121,10 @@ bool planCallback(robot_rrt::RRTPlanPath::Request& req, robot_rrt::RRTPlanPath::
         goal[i] = req.goal[i];
     }
 
+    psm->startSceneMonitor();
+    psm->startWorldGeometryMonitor();
+    psm->requestPlanningSceneState();  // 确保拿到最新的场景和环境信息
+
     if (!isStateValid(start.get()))
     {
         res.success = false;
@@ -130,9 +135,11 @@ bool planCallback(robot_rrt::RRTPlanPath::Request& req, robot_rrt::RRTPlanPath::
     ss.setStartAndGoalStates(start, goal);
     ss.setup();
 
-    if (ss.solve(5.0))
+    if (ss.solve(5000.0))
     {
         ROS_INFO("Planning succeeded!");
+        // ss.simplifySolution();
+        ss.getSolutionPath().printAsMatrix(std::cout);
         const auto& path = ss.getSolutionPath().getStates();
 
         std::string pkg_path = ros::package::getPath("robot_rrt");
@@ -144,7 +151,7 @@ bool planCallback(robot_rrt::RRTPlanPath::Request& req, robot_rrt::RRTPlanPath::
         {
             auto* s = state->as<ob::RealVectorStateSpace::StateType>();
             std::vector<double> vec(s->values, s->values + 6);
-            out << vec;
+            out << YAML::Flow << YAML::Value << vec;  // ✅ 一行一组数
         }
         out << YAML::EndSeq;
 
@@ -180,12 +187,16 @@ int main(int argc, char** argv)
     psm->startSceneMonitor();
     psm->startWorldGeometryMonitor();
     psm->requestPlanningSceneState();
-    ros::Duration(1.0).sleep();  // 等待更新
+    ros::Duration(1.0).sleep();  // 等待同步完成
 
-    attachBoxObject();  // 🔁 添加附着物体！
+    attachBoxObject();  // 添加附着物体！
+
+    psm->startSceneMonitor();
+    psm->startWorldGeometryMonitor();
+    psm->requestPlanningSceneState();  // 确保拿到最新的场景和环境信息
 
     ros::ServiceServer service = nh.advertiseService("rrt_plan_path", planCallback);
-    ROS_INFO("OMPL RRTConnect planner service ready.");
+    ROS_INFO("OMPL RRTConnect planner service with attached object ready.");
     ros::waitForShutdown();
     return 0;
 }
