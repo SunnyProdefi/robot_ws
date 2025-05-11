@@ -1158,10 +1158,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 0.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.8;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.8;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.8;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -1917,7 +1917,7 @@ int main(int argc, char **argv)
 
                 q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
                 q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
                 q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
@@ -2656,6 +2656,28 @@ int main(int argc, char **argv)
                 control_flag = 0;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
+
+                // 发布夹爪指令
+                std_msgs::Float64MultiArray gripper_command;
+                gripper_command.data = {0.0, 1.0, 1.0, 0.0};
+                gripper_pub.publish(gripper_command);
+
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+                ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
             }
         }
 
