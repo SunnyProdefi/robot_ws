@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   CheckCollision.srv
+  RRTPlanPath.srv
 )
 
 generate_messages(
@@ -84,4 +85,11 @@ target_link_libraries(check_collision_server
 add_dependencies(check_collision_server 
   ${${PROJECT_NAME}_EXPORTED_TARGETS} 
   ${catkin_EXPORTED_TARGETS}
+)
+
+add_executable(ompl_rrt_server src/ompl_rrt_server.cpp)
+target_link_libraries(ompl_rrt_server 
+  ${catkin_LIBRARIES}
+  ${core_libs}
+  pthread
 )

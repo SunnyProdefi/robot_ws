@@ -1,0 +1,7 @@
+# Request
+float64[6] start
+float64[6] goal
+---
+# Response
+bool success
+string message

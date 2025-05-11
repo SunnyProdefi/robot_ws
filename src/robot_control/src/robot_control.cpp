@@ -7,6 +7,7 @@
 #include <robot_planning/PlanPathHome.h>
 #include <robot_planning/PlanDualArmPath.h>
 #include <robot_planning/RobotPose.h>
+#include <robot_rrt/RRTPlanPath.h>
 #include <robot_planning/CartesianInterpolation.h>
 #include <yaml-cpp/yaml.h>
 #include <fstream>
@@ -68,7 +69,10 @@ ros::ServiceClient pose_client;
 ros::ServiceClient interp_client;
 ros::ServiceClient planning_client_home;
 ros::ServiceClient plan_dual_arm_path_client;
+ros::ServiceClient rrt_plan_client;
 ros::Publisher motor_state_pub;
+
+std::vector<double> q_init_rrt, q_goal_rrt;
 
 // 在外部定义一个静态变量来计数
 static int control_flag_3_counter = 0;
@@ -363,6 +367,8 @@ int main(int argc, char **argv)
     planning_client_home = nh.serviceClient<robot_planning::PlanPathHome>("/plan_path_home");
 
     plan_dual_arm_path_client = nh.serviceClient<robot_planning::PlanDualArmPath>("/plan_dual_arm_path");
+
+    rrt_plan_client = nh.serviceClient<robot_rrt::RRTPlanPath>("/rrt_plan_path");
 
     // 创建 service client
     pose_client = nh.serviceClient<robot_planning::RobotPose>("/robot_pose");
@@ -932,6 +938,16 @@ int main(int argc, char **argv)
                     quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
                 };
 
+                // RRT
+                q_goal_rrt.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+                // 打印目标关节角度
+                std::cout << "RRT目标关节角度: ";
+                for (const auto &angle : q_goal_rrt)
+                {
+                    std::cout << angle << " ";
+                }
+                std::cout << std::endl;
+
                 std::vector<double> traj2;
                 try
                 {
@@ -954,7 +970,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 4;
+                control_flag = 301;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -964,10 +980,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 0.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.8;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.8;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -986,7 +1002,40 @@ int main(int argc, char **argv)
         // 单臂操作-分支2拿出物体（RRT）
         else if (control_flag == 301)
         {
-            // rrt服务
+            robot_rrt::RRTPlanPath srv;
+
+            q_init_rrt.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+            // 打印初始关节角度
+            std::cout << "RRT初始关节角度: ";
+            for (const auto &angle : q_init_rrt)
+            {
+                std::cout << angle << " ";
+            }
+            std::cout << std::endl;
+            // 示例起点和终点（6维关节）
+            for (int i = 0; i < 6; ++i)
+            {
+                srv.request.start[i] = q_init_rrt[i];
+                srv.request.goal[i] = q_goal_rrt[i];
+            }
+
+            if (rrt_plan_client.call(srv))
+            {
+                if (srv.response.success)
+                {
+                    ROS_INFO_STREAM("Planning succeeded: " << srv.response.message);
+                }
+                else
+                {
+                    ROS_WARN_STREAM("Planning failed: " << srv.response.message);
+                    return 1;
+                }
+            }
+            else
+            {
+                ROS_ERROR("Failed to call service plan_path.");
+                return 1;
+            }
         }
 
         // 单臂操作-分支2拿出物体-1

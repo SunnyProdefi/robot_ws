@@ -82,7 +82,9 @@
   <node pkg="robot_planning" type="cartesian_interpolation_server" name="cartesian_interpolation_server" output="screen" />
   <node pkg="robot_planning" type="robot_pose_server" name="robot_pose_server" output="screen" />
 
-  <!-- <node pkg="robot_rrt" type="add_truss_link_node" name="add_truss_link_node" output="screen" /> -->
+  <node pkg="robot_rrt" type="ompl_rrt_server" name="ompl_rrt_server" output="screen" />
+
+  <node pkg="robot_rrt" type="add_truss_link_node" name="add_truss_link_node" output="screen" />
 
   <!-- 启动 rosbag，录制所有话题 -->
   <!-- <node name="rosbag_robot" pkg="rosbag" type="record" output="screen"
