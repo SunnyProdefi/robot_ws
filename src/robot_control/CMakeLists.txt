@@ -265,3 +265,15 @@ target_link_libraries(init_angle_pub
    ${catkin_LIBRARIES}
    yaml-cpp
 )
+
+add_executable(force_const src/force_const.cpp)
+add_executable(force_sine src/force_sine.cpp)
+add_executable(torque_disturb src/torque_disturb.cpp)
+add_executable(force_mixed src/force_mixed.cpp)
+add_executable(force_zero src/force_zero.cpp)
+
+target_link_libraries(force_const ${catkin_LIBRARIES})
+target_link_libraries(force_sine ${catkin_LIBRARIES})
+target_link_libraries(torque_disturb ${catkin_LIBRARIES})
+target_link_libraries(force_mixed ${catkin_LIBRARIES})
+target_link_libraries(force_zero ${catkin_LIBRARIES})

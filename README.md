@@ -210,3 +210,15 @@ $$
 0     & 0      & 0      & 1
 \end{bmatrix}
 $$
+
+
+roslaunch robot_control robot_control.launch
+
+rostopic pub /control_flag std_msgs/Int32 "data: 1" -1
+
+rosrun robot_control force_const
+rosrun robot_control force_sine
+rosrun robot_control torque_disturb
+rosrun robot_control force_mixed
+
+rosrun robot_control force_zero

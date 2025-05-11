@@ -51,7 +51,11 @@ int interp_step_end = 0;
 
 bool isSimulation;  // 是否为仿真模式
 
-double plantime = 10.0;
+double plantime = 2.0;
+
+// 导纳相关
+static std::ofstream admittance_log;
+static bool log_initialized = false;
 
 // 运动规划相关变量
 bool planning_requested = false;
@@ -74,6 +78,8 @@ std::vector<double> float_base_position = {0, 0, 0.45, 0, 0.7071, 0, 0.7071};
 
 // yaml路径
 std::string common_tf_path = ros::package::getPath("robot_control") + "/config/common_tf.yaml";
+
+std::string csv_file_path = ros::package::getPath("robot_control") + "/data/admittance_data.csv";
 
 // 从YAML文件加载变换矩阵
 Eigen::Matrix4d loadTransformFromYAML(const std::string &file_path, const std::string &transform_name)
@@ -948,7 +954,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 4;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -958,10 +964,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 0.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.8;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.8;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.8;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -1581,7 +1587,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 901;
+                control_flag = 21;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1593,7 +1599,7 @@ int main(int argc, char **argv)
 
                 q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
                 q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.0;
                 q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
@@ -1643,6 +1649,13 @@ int main(int argc, char **argv)
                 ROS_INFO("Admittance: reference pose captured.");
             }
 
+            if (!log_initialized)
+            {
+                admittance_log.open(csv_file_path, std::ios::out);
+                admittance_log << "time,Fx,Fy,Fz,Tx,Ty,Tz,dx,dy,dz,dRx,dRy,dRz\n";
+                log_initialized = true;
+            }
+
             // 2. 导纳内部状态
             static Eigen::Matrix<double, 6, 1> x_int = Eigen::Matrix<double, 6, 1>::Zero();    // 位移
             static Eigen::Matrix<double, 6, 1> x_int_d = Eigen::Matrix<double, 6, 1>::Zero();  // 速度
@@ -1686,14 +1699,21 @@ int main(int argc, char **argv)
             }
 
             /* ---------- 调试打印 ---------- */
-            // ROS_INFO_THROTTLE(0.2,
-            //                   "F  [%.2f %.2f %.2f] N | T  [%.2f %.2f %.2f] Nm | "
-            //                   "dx [%.4f %.4f %.4f] m | dR [%.2f %.2f %.2f] deg",
-            //                   F_meas(0), F_meas(1), F_meas(2),  // Fx Fy Fz
-            //                   F_meas(3), F_meas(4), F_meas(5),  // Tx Ty Tz
-            //                   x_int(0), x_int(1), x_int(2),     // Δx Δy Δz
-            //                   x_int(3) * 180.0 / M_PI, x_int(4) * 180.0 / M_PI,
-            //                   x_int(5) * 180.0 / M_PI);  // ΔRx ΔRy ΔRz
+            ROS_INFO_THROTTLE(0.2,
+                              "F  [%.2f %.2f %.2f] N | T  [%.2f %.2f %.2f] Nm | "
+                              "dx [%.4f %.4f %.4f] m | dR [%.2f %.2f %.2f] deg",
+                              F_meas(0), F_meas(1), F_meas(2),  // Fx Fy Fz
+                              F_meas(3), F_meas(4), F_meas(5),  // Tx Ty Tz
+                              x_int(0), x_int(1), x_int(2),     // Δx Δy Δz
+                              x_int(3) * 180.0 / M_PI, x_int(4) * 180.0 / M_PI,
+                              x_int(5) * 180.0 / M_PI);  // ΔRx ΔRy ΔRz
+
+            /* ---------- 记录数据 ---------- */
+            static ros::Time t_start = ros::Time::now();
+            double t_now = (ros::Time::now() - t_start).toSec();
+
+            admittance_log << t_now << "," << F_meas(0) << "," << F_meas(1) << "," << F_meas(2) << "," << F_meas(3) << "," << F_meas(4) << "," << F_meas(5) << "," << x_int(0) << "," << x_int(1) << "," << x_int(2) << "," << x_int(3) * 180.0 / M_PI << "," << x_int(4) * 180.0 / M_PI << ","
+                           << x_int(5) * 180.0 / M_PI << "\n";
 
             // 6. IKFast
             std::vector<float> ee_pose12 = {(float)T_tgt(0, 0), (float)T_tgt(0, 1), (float)T_tgt(0, 2), (float)T_tgt(0, 3), (float)T_tgt(1, 0), (float)T_tgt(1, 1), (float)T_tgt(1, 2), (float)T_tgt(1, 3), (float)T_tgt(2, 0), (float)T_tgt(2, 1), (float)T_tgt(2, 2), (float)T_tgt(2, 3)};

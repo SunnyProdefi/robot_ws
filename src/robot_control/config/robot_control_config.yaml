@@ -3,7 +3,7 @@
 # Connection flags
 imu_connect: false
 gripper_connect: false
-force_connect: flase
+force_connect: true
 
 # Operation mode
 simulation_mode: true

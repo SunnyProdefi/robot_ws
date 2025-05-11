@@ -8,7 +8,7 @@
 #include <Eigen/Dense>
 #include <ros/package.h>
 
-int TOTAL_POINT_NUM = 6000;
+int TOTAL_POINT_NUM = 600;
 int POINT_NUM = TOTAL_POINT_NUM / 4;
 
 // 将 SE(3) 位姿数组 [x, y, z, qx, qy, qz, qw] 转换为 4x4 矩阵
