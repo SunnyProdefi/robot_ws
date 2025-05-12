@@ -1854,7 +1854,7 @@ int main(int argc, char **argv)
 
                 // 构造平移矩阵
                 Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
-                translation(0, 3) = 0.05;
+                translation(0, 3) = -0.05;
 
                 // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
                 tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3 * translation;
@@ -2086,7 +2086,7 @@ int main(int argc, char **argv)
 
                 // 构造平移矩阵
                 Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
-                translation(0, 3) = -0.15;
+                translation(0, 3) = 0.05;
 
                 // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
                 tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3 * translation;
