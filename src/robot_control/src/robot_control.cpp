@@ -2954,6 +2954,152 @@ int main(int argc, char **argv)
                 trajectory_index = 0;
             }
         }
+
+        // MPC
+        else if (control_flag == 666)
+        {
+            if (!planning_requested)
+            {
+                std::string log_path = ros::package::getPath("robot_mpc") + "/config/mpc_result_log.yaml";
+                YAML::Node log = YAML::LoadFile(log_path);
+
+                planned_joint_trajectory.clear();
+
+                if (log["trajectory_log"])
+                {
+                    for (const auto &step : log["trajectory_log"])
+                    {
+                        if (step["q"])
+                        {
+                            std::vector<double> q = step["q"].as<std::vector<double>>();
+                            planned_joint_trajectory.push_back(q);
+                        }
+                    }
+                    std::cout << "Loaded " << planned_joint_trajectory.size() << " trajectory steps from log." << std::endl;
+
+                    planning_requested = true;
+                    trajectory_index = 0;
+                }
+                else
+                {
+                    std::cerr << "YAML log does not contain 'trajectory_log'!" << std::endl;
+                    control_flag = 0;
+                    return 0;
+                }
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                for (int j = 0; j < 6; ++j) q_send[1][j] = planned_joint_trajectory[trajectory_index][j];
+
+                if (!isSimulation)
+                {
+                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+                }
+                else
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj) q_recv[1][motorj] = q_send[1][motorj];
+                }
+
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+
+                trajectory_index++;
+            }
+            else
+            {
+                ROS_INFO("MPC trajectory execution completed.");
+                control_flag = 0;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
+            }
+        }
+
+        else if (control_flag == 777)
+        {
+            std::vector<std::vector<double>> q_mpc_goal = {
+                {1.597743, 0.2950242, 2.156446, 3.101645, -0.4948243, -0.01648967, 1.0}, {2.041711, -0.616538, 2.032447, -1.33452, 1.159544, -2.898303, 1.0}, {1.20091, -1.84009, -1.90918, -1.54403, 1.20184, -0.859485, 1.0}, {-1.597743, 0.295025, 2.156445, -0.04025241, 0.4948952, 0.01637039, 1.0}};
+            if (start_interp)
+            {
+                q_temp.resize(BRANCHN_N, std::vector<double>(MOTOR_BRANCHN_N, 0.0));
+                q_temp = q_recv;  // 保存当前位置作为插值起点
+                interp_step = 0;
+                start_interp = false;
+            }
+
+            const int total_steps = 600;  // 30秒，200Hz
+            double ratio = static_cast<double>(interp_step) / total_steps;
+
+            // 插值计算 q_send = q_temp + ratio * (q_mpc_init - q_temp)
+            for (int i = 0; i < BRANCHN_N; ++i)
+            {
+                for (int j = 0; j < MOTOR_BRANCHN_N; ++j)
+                {
+                    double start_val = q_temp[i][j];
+                    double target_val = q_mpc_goal[i][j];
+                    q_send[i][j] = start_val + ratio * (target_val - start_val);
+                }
+            }
+
+            if (!isSimulation)
+            {
+                Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+            }
+            else
+            {
+                // 在仿真模式下，直接使用 q_send,不管夹爪
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; motorj++)
+                    {
+                        q_recv[branchi][motorj] = q_send[branchi][motorj];
+                    }
+                }
+            }
+
+            if (++interp_step >= total_steps)
+            {
+                q_send = q_init;            // 最后一步强制对齐
+                interp_step = total_steps;  // 防止溢出
+                control_flag = 0;
+
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+            }
+
+            // 发布电机位置状态
+            std_msgs::Float64MultiArray motor_state;
+            motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+
+            for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+            {
+                for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                {
+                    motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                }
+            }
+
+            motor_state_pub.publish(motor_state);
+        }
+
         ros::spinOnce();
         loop_rate.sleep();
     }
