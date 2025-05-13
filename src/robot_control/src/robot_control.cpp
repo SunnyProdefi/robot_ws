@@ -3024,6 +3024,7 @@ int main(int argc, char **argv)
             }
         }
 
+        // 插值
         else if (control_flag == 777)
         {
             std::vector<std::vector<double>> q_mpc_goal = {
