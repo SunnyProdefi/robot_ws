@@ -173,6 +173,92 @@
     <origin xyz="-0.1175 0.15 -0.1725" rpy="0 0 0"/>
   </joint>
 
+  <!-- <link name="grasp_object_cube">
+    <inertial>
+      <origin
+        xyz="0.132500000000003 0.132499999999999 -0.0662499999999996"
+        rpy="0 0 0" />
+      <mass
+        value="1.47124857062568" />
+      <inertia
+        ixx="0.0232365321123193"
+        ixy="-7.32404384667322E-17"
+        ixz="2.07830204072989E-16"
+        iyy="0.0232365321123194"
+        iyz="1.96889159156655E-16"
+        izz="0.0387444115770706" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://object_cube/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://object_cube/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link> -->
+
+  <link name="grasp_object">
+    <inertial>
+      <origin
+        xyz="-1.7465753580787E-17 1.31917654026282E-17 0.1"
+        rpy="0 0 0" />
+      <mass
+        value="0.156515805385711" />
+      <inertia
+        ixx="0"
+        ixy="0"
+        ixz="0"
+        iyy="0"
+        iyz="0"
+        izz="0" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://object/meshes/grasp_object.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://object/meshes/grasp_object.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="world_to_grasp_object" type="fixed">
+    <parent link="world"/>
+    <child link="grasp_object"/>
+    <origin xyz="0.59 0.373 -0.07" rpy="0 0 0"/>
+  </joint>
+
   <link name="base_link">
     <inertial>
       <origin xyz="0 0 0.042" rpy="0 0 0" />
