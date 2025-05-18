@@ -52,7 +52,7 @@ int interp_step_end = 0;
 
 bool isSimulation;  // 是否为仿真模式
 
-double plantime = 10.0;
+double plantime = 2.0;
 
 // 导纳相关
 static std::ofstream admittance_log;
@@ -88,7 +88,7 @@ std::string common_tf_path = ros::package::getPath("robot_control") + "/config/c
 
 std::string csv_file_path = ros::package::getPath("robot_control") + "/data/admittance_data.csv";
 
-Eigen::Matrix4d goal_tf_mat_base_link2_0;
+Eigen::Matrix4d goal_tf_mat_base_link2_0, goal_tf_mat_base_link3_0;
 
 // 从YAML文件加载变换矩阵
 Eigen::Matrix4d loadTransformFromYAML(const std::string &file_path, const std::string &transform_name)
@@ -552,6 +552,7 @@ int main(int argc, char **argv)
     };
 
     goal_tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
+    goal_tf_mat_base_link3_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link3_0");
 
     ros::Rate loop_rate(200);  // 200Hz
 
@@ -670,10 +671,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 1.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;  // 更新夹爪状态
                 q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
                 q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -1168,10 +1169,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 0.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.4;
                 q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -1304,10 +1305,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 0.0, 1.0, 0.0};  // 示例：张开
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.8;
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.8;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.8;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.8;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.4;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
 
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -1719,7 +1720,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 6;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1864,10 +1865,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 0.0, 0.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.0;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.4;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.4;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -1884,10 +1885,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 1.0, 0.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;  // 更新夹爪状态
                 q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.0;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.4;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
                 // 发布电机位置状态
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
                 for (int branchi = 0; branchi < BRANCHN_N; branchi++)
@@ -2149,10 +2150,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 1.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;  // 更新夹爪状态
                 q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
                 q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -2165,6 +2166,65 @@ int main(int argc, char **argv)
                 }
                 motor_state_pub.publish(motor_state);
                 ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
+
+                if (isSimulation)
+                {
+                    // 统一调用服务
+                    Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                    if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
+                    {
+                        control_flag = 0;
+                        return 0;
+                    }
+
+                    // 构造世界→base
+                    Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
+                    Eigen::Quaterniond quat_base(float_base_position[6],  // qw
+                                                 float_base_position[3],  // qx
+                                                 float_base_position[4],  // qy
+                                                 float_base_position[5]   // qz
+                    );
+                    Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
+                    Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
+                    tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
+                    tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
+
+                    // tf_mat_flan3_grasp_object
+                    Eigen::Affine3d tf_flan3_grasp_object = Eigen::Affine3d::Identity();
+                    tf_flan3_grasp_object.translate(Eigen::Vector3d(-0.015, 0, 0.08));
+                    tf_flan3_grasp_object.rotate(Eigen::AngleAxisd(M_PI / 2.0, Eigen::Vector3d::UnitZ()));
+                    Eigen::Matrix4d tf_mat_flan3_grasp_object = tf_flan3_grasp_object.matrix();
+
+                    // 计算grasp_object_pose
+                    Eigen::Matrix4d tf_mat_world_grasp_object = tf_mat_world_base * goal_tf_mat_base_link3_0 * tf_mat_link3_0_flan3 * tf_mat_flan3_grasp_object;
+
+                    // 打印tf_mat_world_grasp_object
+                    std::cout << "Transform Matrix (world -> grasp_object):\n" << tf_mat_world_grasp_object << "\n" << std::endl;
+
+                    Eigen::Vector3d position = tf_mat_world_grasp_object.block<3, 1>(0, 3);
+                    Eigen::Matrix3d rotation = tf_mat_world_grasp_object.block<3, 3>(0, 0);
+                    Eigen::Quaterniond quat(rotation.normalized());
+
+                    std::vector<double> grasp_object_position(7);
+                    grasp_object_position[0] = position.x();
+                    grasp_object_position[1] = position.y();
+                    grasp_object_position[2] = position.z();
+                    grasp_object_position[3] = quat.x();
+                    grasp_object_position[4] = quat.y();
+                    grasp_object_position[5] = quat.z();
+                    grasp_object_position[6] = quat.w();
+
+                    // 发布grasp_object位置
+                    geometry_msgs::Pose grasp_object_pose;
+                    grasp_object_pose.position.x = grasp_object_position[0];
+                    grasp_object_pose.position.y = grasp_object_position[1];
+                    grasp_object_pose.position.z = grasp_object_position[2];
+                    grasp_object_pose.orientation.x = grasp_object_position[3];
+                    grasp_object_pose.orientation.y = grasp_object_position[4];
+                    grasp_object_pose.orientation.z = grasp_object_position[5];
+                    grasp_object_pose.orientation.w = grasp_object_position[6];
+                    grasp_object_pub.publish(grasp_object_pose);
+                }
             }
         }
 
@@ -2371,7 +2431,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 10;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -2482,7 +2542,7 @@ int main(int argc, char **argv)
 
                 /* ---- 目标位姿 (+Z) ---- */
                 Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
-                TZp(2, 3) = 0.03;
+                TZp(2, 3) = 0.01;
                 Eigen::Matrix4d T2_goal = T2_cur * TZp;
                 Eigen::Matrix4d T3_goal = T3_cur * TZp;
 
@@ -2518,10 +2578,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 0.0, 0.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
-                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.0;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.0;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.4;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.4;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -2887,7 +2947,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                control_flag = 0;
+                control_flag = 15;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
 
@@ -2896,10 +2956,10 @@ int main(int argc, char **argv)
                 gripper_command.data = {0.0, 1.0, 1.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
-                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.0;  // 更新夹爪状态
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;  // 更新夹爪状态
                 q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
                 q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
-                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;
                 motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
@@ -2912,6 +2972,83 @@ int main(int argc, char **argv)
                 }
                 motor_state_pub.publish(motor_state);
                 ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
+            }
+        }
+
+        // 单臂操作-分支2离开交接位姿
+        else if (control_flag == 15)
+        {
+            if (!planning_requested)
+            {
+                std::cout << "Control flag 7 received" << std::endl;
+
+                // 统一调用服务
+                Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
+                if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
+                {
+                    control_flag = 0;
+                    return 0;
+                }
+
+                Eigen::Matrix4d tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2;
+
+                // 构造平移矩阵
+                Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
+                translation(2, 3) = -0.05;
+
+                // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
+                tf_mat_link2_0_flan2_goal = tf_mat_link2_0_flan2 * translation;
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position = tf_mat_link2_0_flan2_goal.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat(tf_mat_link2_0_flan2_goal.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion = quat.coeffs();                            // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> goal_pose = {
+                    position.x(),   position.y(),   position.z(),                   // [x, y, z]
+                    quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()  // [qx, qy, qz, qw]
+                };
+
+                // 获取变换矩阵中的位置和四元数
+                Eigen::Vector3d position_flan2 = tf_mat_link2_0_flan2.block<3, 1>(0, 3);  // 提取矩阵中的位置（x, y, z）
+
+                Eigen::Quaterniond quat_flan2(tf_mat_link2_0_flan2.block<3, 3>(0, 0));  // 提取旋转部分并构造四元数
+                Eigen::Vector4d quaternion_flan2 = quat_flan2.coeffs();                 // 获取四元数 [qx, qy, qz, qw]
+
+                // 将位姿信息存储到 std::vector<double> 中
+                std::vector<double> start_pose = {
+                    position_flan2.x(),   position_flan2.y(),   position_flan2.z(),                         // [x, y, z]
+                    quaternion_flan2.x(), quaternion_flan2.y(), quaternion_flan2.z(), quaternion_flan2.w()  // [qx, qy, qz, qw]
+                };
+
+                std::vector<double> traj2;
+                try
+                {
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose, goal_pose, plantime, traj2);
+                }
+                catch (const std::exception &e)
+                {
+                    ROS_ERROR("%s", e.what());
+                    control_flag = 0;
+                    return 0;
+                }
+                mergeBranch2Only(traj2, planned_joint_trajectory);
+                planning_requested = true;
+                trajectory_index = 0;
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                executeStep(trajectory_index++);
+            }
+            else
+            {
+                ROS_INFO("Trajectory execution completed");
+                control_flag = 0;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
             }
         }
 
