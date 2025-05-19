@@ -1055,7 +1055,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 3;
+                control_flag = 11;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -2540,7 +2540,7 @@ int main(int argc, char **argv)
 
                 /* ---- 目标位姿 (+Z) ---- */
                 Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
-                TZp(2, 3) = 0.01;
+                TZp(2, 3) = 0.05;
                 Eigen::Matrix4d T2_goal = T2_cur * TZp;
                 Eigen::Matrix4d T3_goal = T3_cur * TZp;
 
