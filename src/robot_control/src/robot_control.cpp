@@ -384,8 +384,6 @@ int main(int argc, char **argv)
     // 创建插值服务客户端
     interp_client = nh.serviceClient<robot_planning::CartesianInterpolation>("/cartesian_interpolation");
 
-    // control_flag = 0 读取上电状态
-
     /* --- 把 4×4 变换矩阵转成 7D pose (x y z qx qy qz qw) --- */
     auto matToPose = [](const Eigen::Matrix4d &M)
     {
