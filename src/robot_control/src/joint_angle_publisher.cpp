@@ -172,14 +172,23 @@ void floatBaseStateCallback(const geometry_msgs::Pose::ConstPtr& msg)
     base_pose_received = true;
 }
 
-// geometry_msgs::Pose latest_grasp_pose;
-// bool grasp_pose_received = false;
+geometry_msgs::Pose latest_grasp_pose;
+bool grasp_pose_received = false;
 
-// void graspPoseCallback(const geometry_msgs::Pose::ConstPtr& msg)
-// {
-//     latest_grasp_pose = *msg;
-//     grasp_pose_received = true;
-// }
+void graspPoseCallback(const geometry_msgs::Pose::ConstPtr& msg)
+{
+    latest_grasp_pose = *msg;
+    grasp_pose_received = true;
+}
+
+geometry_msgs::Pose latest_grasp_cube_pose;
+bool grasp_cube_pose_received = false;
+
+void graspCubePoseCallback(const geometry_msgs::Pose::ConstPtr& msg)
+{
+    latest_grasp_cube_pose = *msg;
+    grasp_cube_pose_received = true;
+}
 
 int main(int argc, char** argv)
 {
@@ -198,8 +207,11 @@ int main(int argc, char** argv)
     // 订阅floating_base_state话题
     ros::Subscriber floating_base_state_sub = nh.subscribe<geometry_msgs::Pose>("/floating_base_state", 10, floatBaseStateCallback);
 
-    // // 订阅grasp_object_state话题
-    // ros::Subscriber grasp_pose_sub = nh.subscribe<geometry_msgs::Pose>("/grasp_object_state", 10, graspPoseCallback);
+    // 订阅grasp_object_state话题
+    ros::Subscriber grasp_pose_sub = nh.subscribe<geometry_msgs::Pose>("/grasp_object_state", 10, graspPoseCallback);
+
+    // 订阅grasp_object_cube_state话题
+    ros::Subscriber grasp_cube_pose_sub = nh.subscribe<geometry_msgs::Pose>("/grasp_object_cube_state", 10, graspCubePoseCallback);
 
     joint_msg.name.resize(JOINT_COUNT);
     joint_msg.position.resize(JOINT_COUNT);
@@ -259,17 +271,29 @@ int main(int argc, char** argv)
             tf_broadcaster.sendTransform(t);
         }
 
-        // if (grasp_pose_received)
-        // {
-        //     tf::Vector3 g_translation(latest_grasp_pose.position.x, latest_grasp_pose.position.y, latest_grasp_pose.position.z);
-        //     tf::Quaternion g_rotation(latest_grasp_pose.orientation.x, latest_grasp_pose.orientation.y, latest_grasp_pose.orientation.z, latest_grasp_pose.orientation.w);
+        if (grasp_pose_received)
+        {
+            tf::Vector3 g_translation(latest_grasp_pose.position.x, latest_grasp_pose.position.y, latest_grasp_pose.position.z);
+            tf::Quaternion g_rotation(latest_grasp_pose.orientation.x, latest_grasp_pose.orientation.y, latest_grasp_pose.orientation.z, latest_grasp_pose.orientation.w);
 
-        //     tf::Transform g_transform;
-        //     g_transform.setOrigin(g_translation);
-        //     g_transform.setRotation(g_rotation);
+            tf::Transform g_transform;
+            g_transform.setOrigin(g_translation);
+            g_transform.setRotation(g_rotation);
 
-        //     tf_broadcaster.sendTransform(tf::StampedTransform(g_transform, ros::Time::now(), "world", "grasp_object"));
-        // }
+            tf_broadcaster.sendTransform(tf::StampedTransform(g_transform, ros::Time::now(), "world", "grasp_object"));
+        }
+
+        if (grasp_cube_pose_received)
+        {
+            tf::Vector3 g_translation(latest_grasp_cube_pose.position.x, latest_grasp_cube_pose.position.y, latest_grasp_cube_pose.position.z);
+            tf::Quaternion g_rotation(latest_grasp_cube_pose.orientation.x, latest_grasp_cube_pose.orientation.y, latest_grasp_cube_pose.orientation.z, latest_grasp_cube_pose.orientation.w);
+
+            tf::Transform g_transform;
+            g_transform.setOrigin(g_translation);
+            g_transform.setRotation(g_rotation);
+
+            tf_broadcaster.sendTransform(tf::StampedTransform(g_transform, ros::Time::now(), "world", "grasp_object_cube"));
+        }
 
         ros::spinOnce();
         loop_rate.sleep();
