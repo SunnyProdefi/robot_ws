@@ -32,7 +32,7 @@ Eigen::Matrix4d loadTransformFromYAML(const std::string& file_path, const std::s
         for (int i = 0; i < 3; ++i)
         {
             double val = position[i].as<double>();
-            ROS_INFO_STREAM(transform_name << ".position[" << i << "] = " << val);
+            // ROS_INFO_STREAM(transform_name << ".position[" << i << "] = " << val);
             transform(i, 3) = val;
         }
 
@@ -51,7 +51,7 @@ Eigen::Matrix4d loadTransformFromYAML(const std::string& file_path, const std::s
                 try
                 {
                     double val = row[j].as<double>();
-                    ROS_INFO_STREAM(transform_name << ".orientation[" << i << "][" << j << "] = " << val);
+                    // ROS_INFO_STREAM(transform_name << ".orientation[" << i << "][" << j << "] = " << val);
                     transform(i, j) = val;
                 }
                 catch (const YAML::TypedBadConversion<double>& e)

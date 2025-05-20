@@ -277,7 +277,7 @@
     <origin xyz="0.59 0.373 -0.07" rpy="0 0 0"/>
   </joint> -->
 
-  <link
+  <!-- <link
     name="grasp_object_cube">
     <inertial>
       <origin
@@ -322,7 +322,7 @@
     <parent link="world"/>
     <child link="grasp_object_cube"/>
     <origin xyz="0.6925 -0.1325 0.15" rpy="0 0 0"/>
-  </joint>
+  </joint> -->
 
   <link name="base_link">
     <inertial>

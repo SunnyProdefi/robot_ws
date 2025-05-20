@@ -1453,7 +1453,7 @@ int main(int argc, char **argv)
         {
             if (!planning_requested)
             {
-                std::cout << "Control flag 4 received" << std::endl;
+                std::cout << "Control flag 401 received" << std::endl;
 
                 Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
                 if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
@@ -1722,64 +1722,6 @@ int main(int argc, char **argv)
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
-                if (isSimulation)
-                {
-                    // 统一调用服务
-                    Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
-                    if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
-                    {
-                        control_flag = 0;
-                        return 0;
-                    }
-
-                    // 构造世界→base
-                    Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
-                    Eigen::Quaterniond quat_base(float_base_position[6],  // qw
-                                                 float_base_position[3],  // qx
-                                                 float_base_position[4],  // qy
-                                                 float_base_position[5]   // qz
-                    );
-                    Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
-                    Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
-                    tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
-                    tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
-
-                    // tf_mat_flan2_grasp_object
-                    Eigen::Affine3d tf_flan2_grasp_object = Eigen::Affine3d::Identity();
-                    tf_flan2_grasp_object.translate(Eigen::Vector3d(-0.015, 0, 0.08));
-                    tf_flan2_grasp_object.rotate(Eigen::AngleAxisd(M_PI / 2.0, Eigen::Vector3d::UnitZ()));
-                    Eigen::Matrix4d tf_mat_flan2_grasp_object = tf_flan2_grasp_object.matrix();
-
-                    // 计算grasp_object_pose
-                    Eigen::Matrix4d tf_mat_world_grasp_object = tf_mat_world_base * goal_tf_mat_base_link2_0 * tf_mat_link2_0_flan2 * tf_mat_flan2_grasp_object;
-
-                    // 打印tf_mat_world_grasp_object
-                    std::cout << "Transform Matrix (world -> grasp_object):\n" << tf_mat_world_grasp_object << "\n" << std::endl;
-
-                    Eigen::Vector3d position = tf_mat_world_grasp_object.block<3, 1>(0, 3);
-                    Eigen::Matrix3d rotation = tf_mat_world_grasp_object.block<3, 3>(0, 0);
-                    Eigen::Quaterniond quat(rotation.normalized());
-
-                    std::vector<double> grasp_object_position(7);
-                    grasp_object_position[0] = position.x();
-                    grasp_object_position[1] = position.y();
-                    grasp_object_position[2] = position.z();
-                    grasp_object_position[3] = quat.x();
-                    grasp_object_position[4] = quat.y();
-                    grasp_object_position[5] = quat.z();
-                    grasp_object_position[6] = quat.w();
-
-                    // 发布grasp_object位置
-                    geometry_msgs::Pose grasp_object_pose;
-                    grasp_object_pose.position.x = grasp_object_position[0];
-                    grasp_object_pose.position.y = grasp_object_position[1];
-                    grasp_object_pose.position.z = grasp_object_position[2];
-                    grasp_object_pose.orientation.x = grasp_object_position[3];
-                    grasp_object_pose.orientation.y = grasp_object_position[4];
-                    grasp_object_pose.orientation.z = grasp_object_position[5];
-                    grasp_object_pose.orientation.w = grasp_object_position[6];
-                    grasp_object_pub.publish(grasp_object_pose);
-                }
             }
         }
 
@@ -1834,7 +1776,7 @@ int main(int argc, char **argv)
                 std::vector<double> traj3;
                 try
                 {
-                    planBranch(1, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, plantime, traj3);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose, goal_pose, plantime, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -2164,65 +2106,6 @@ int main(int argc, char **argv)
                 }
                 motor_state_pub.publish(motor_state);
                 ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
-
-                if (isSimulation)
-                {
-                    // 统一调用服务
-                    Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
-                    if (!getCurrentEEPose(tf_mat_link2_0_flan2, tf_mat_link3_0_flan3))
-                    {
-                        control_flag = 0;
-                        return 0;
-                    }
-
-                    // 构造世界→base
-                    Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
-                    Eigen::Quaterniond quat_base(float_base_position[6],  // qw
-                                                 float_base_position[3],  // qx
-                                                 float_base_position[4],  // qy
-                                                 float_base_position[5]   // qz
-                    );
-                    Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
-                    Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
-                    tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
-                    tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
-
-                    // tf_mat_flan3_grasp_object
-                    Eigen::Affine3d tf_flan3_grasp_object = Eigen::Affine3d::Identity();
-                    tf_flan3_grasp_object.translate(Eigen::Vector3d(-0.015, 0, 0.08));
-                    tf_flan3_grasp_object.rotate(Eigen::AngleAxisd(M_PI / 2.0, Eigen::Vector3d::UnitZ()));
-                    Eigen::Matrix4d tf_mat_flan3_grasp_object = tf_flan3_grasp_object.matrix();
-
-                    // 计算grasp_object_pose
-                    Eigen::Matrix4d tf_mat_world_grasp_object = tf_mat_world_base * goal_tf_mat_base_link3_0 * tf_mat_link3_0_flan3 * tf_mat_flan3_grasp_object;
-
-                    // 打印tf_mat_world_grasp_object
-                    std::cout << "Transform Matrix (world -> grasp_object):\n" << tf_mat_world_grasp_object << "\n" << std::endl;
-
-                    Eigen::Vector3d position = tf_mat_world_grasp_object.block<3, 1>(0, 3);
-                    Eigen::Matrix3d rotation = tf_mat_world_grasp_object.block<3, 3>(0, 0);
-                    Eigen::Quaterniond quat(rotation.normalized());
-
-                    std::vector<double> grasp_object_position(7);
-                    grasp_object_position[0] = position.x();
-                    grasp_object_position[1] = position.y();
-                    grasp_object_position[2] = position.z();
-                    grasp_object_position[3] = quat.x();
-                    grasp_object_position[4] = quat.y();
-                    grasp_object_position[5] = quat.z();
-                    grasp_object_position[6] = quat.w();
-
-                    // 发布grasp_object位置
-                    geometry_msgs::Pose grasp_object_pose;
-                    grasp_object_pose.position.x = grasp_object_position[0];
-                    grasp_object_pose.position.y = grasp_object_position[1];
-                    grasp_object_pose.position.z = grasp_object_position[2];
-                    grasp_object_pose.orientation.x = grasp_object_position[3];
-                    grasp_object_pose.orientation.y = grasp_object_position[4];
-                    grasp_object_pose.orientation.z = grasp_object_position[5];
-                    grasp_object_pose.orientation.w = grasp_object_position[6];
-                    grasp_object_pub.publish(grasp_object_pose);
-                }
             }
         }
 
@@ -2622,7 +2505,7 @@ int main(int argc, char **argv)
                 srv.request.tf_mat_world_cube_m_goal = eigenToTransformMsg(tf_mat_world_cube_m_goal);
                 srv.request.tf_mat_cube_m_l = eigenToTransformMsg(tf_mat_cube_m_l);
                 srv.request.tf_mat_cube_m_r = eigenToTransformMsg(tf_mat_cube_m_r);
-                srv.request.num_interpolations = 1000;  // 或任意你想设置的插值点数量
+                srv.request.num_interpolations = plantime * 200;  // 或任意你想设置的插值点数量
                 if (plan_dual_arm_path_client.call(srv))
                 {
                     std::cout << "Service call successful" << std::endl;
@@ -2677,7 +2560,7 @@ int main(int argc, char **argv)
                 srv.request.tf_mat_world_cube_m_goal = eigenToTransformMsg(tf_mat_world_cube_m_goal);
                 srv.request.tf_mat_cube_m_l = eigenToTransformMsg(tf_mat_cube_m_l);
                 srv.request.tf_mat_cube_m_r = eigenToTransformMsg(tf_mat_cube_m_r);
-                srv.request.num_interpolations = 1000;  // 或任意你想设置的插值点数量
+                srv.request.num_interpolations = plantime * 200;  // 或任意你想设置的插值点数量
                 if (plan_dual_arm_path_client.call(srv))
                 {
                     std::cout << "Service call successful" << std::endl;
@@ -2925,7 +2808,7 @@ int main(int argc, char **argv)
                 srv.request.tf_mat_world_cube_m_goal = eigenToTransformMsg(tf_mat_world_cube_m_goal);
                 srv.request.tf_mat_cube_m_l = eigenToTransformMsg(tf_mat_cube_m_l);
                 srv.request.tf_mat_cube_m_r = eigenToTransformMsg(tf_mat_cube_m_r);
-                srv.request.num_interpolations = 1000;  // 或任意你想设置的插值点数量
+                srv.request.num_interpolations = plantime * 200;  // 或任意你想设置的插值点数量
                 if (plan_dual_arm_path_client.call(srv))
                 {
                     std::cout << "Service call successful" << std::endl;
