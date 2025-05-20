@@ -52,7 +52,7 @@ int interp_step_end = 0;
 
 bool isSimulation;  // 是否为仿真模式
 
-double plantime = 2.0;
+double plantime = 10.0;
 
 // 导纳相关
 static std::ofstream admittance_log;
@@ -2376,8 +2376,8 @@ int main(int argc, char **argv)
                 std::vector<double> traj2, traj3;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose_l, goal_pose_l, 5.0, traj2);  // 左臂
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose_r, goal_pose_r, 5.0, traj3);  // 右臂
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 6}, start_pose_l, goal_pose_l, plantime, traj2);  // 左臂
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 6}, start_pose_r, goal_pose_r, plantime, traj3);  // 右臂
                 }
                 catch (const std::exception &e)
                 {
