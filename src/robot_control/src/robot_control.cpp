@@ -628,7 +628,7 @@ int main(int argc, char **argv)
                 start_interp = false;
             }
 
-            const int total_steps = 600;  // 30秒，200Hz
+            const int total_steps = 6000;  // 30秒，200Hz
             double ratio = static_cast<double>(interp_step) / total_steps;
 
             // 插值计算 q_send = q_temp + ratio * (q_init - q_temp)
