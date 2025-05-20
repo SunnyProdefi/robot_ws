@@ -11,7 +11,7 @@ from std_srvs.srv import Trigger, TriggerResponse
 class ArucoPoseServer:
     def __init__(self):
         rospy.init_node("aruco_pose_service")
-        self.cap = cv2.VideoCapture(6)
+        self.cap = cv2.VideoCapture(4)
         if not self.cap.isOpened():
             rospy.logerr("Unable to open camera")
             exit()

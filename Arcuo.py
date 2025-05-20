@@ -15,7 +15,7 @@ mtx = np.array([[602.85, 0., 324.607],
 dist = np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32)
 
 # 打开 RGB 摄像头
-cap = cv2.VideoCapture(6)
+cap = cv2.VideoCapture(4)
 if not cap.isOpened():
     print("无法打开摄像头")
     exit()
