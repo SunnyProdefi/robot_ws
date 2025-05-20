@@ -21,6 +21,7 @@
 #include <Eigen/Dense>
 #include <algorithm>
 #include <geometry_msgs/Transform.h>
+#include <std_srvs/Trigger.h>
 
 static robots::Kinematics kin_arm3;
 
@@ -58,6 +59,10 @@ double plantime = 10.0;
 static std::ofstream admittance_log;
 static bool log_initialized = false;
 
+// 视觉相关
+bool has_camera;
+bool aruco_detected = false;
+
 // 运动规划相关变量
 bool planning_requested = false;
 bool planning_completed = false;
@@ -89,6 +94,7 @@ std::string common_tf_path = ros::package::getPath("robot_control") + "/config/c
 std::string csv_file_path = ros::package::getPath("robot_control") + "/data/admittance_data.csv";
 
 Eigen::Matrix4d goal_tf_mat_base_link2_0, goal_tf_mat_base_link3_0;
+Eigen::Matrix4d tf_mat_base_camera_link;
 
 // 从YAML文件加载变换矩阵
 Eigen::Matrix4d loadTransformFromYAML(const std::string &file_path, const std::string &transform_name)
@@ -294,6 +300,69 @@ void controlFlagCallback(const std_msgs::Int32::ConstPtr &msg)
     ROS_INFO("Received control_flag: %d", control_flag);
 }
 
+bool detectAndLoadArucoPose(ros::NodeHandle &nh)
+{
+    ros::service::waitForService("/detect_aruco_and_save");
+    ros::ServiceClient client = nh.serviceClient<std_srvs::Trigger>("/detect_aruco_and_save");
+
+    std_srvs::Trigger srv;
+    if (client.call(srv))
+    {
+        if (srv.response.success)
+        {
+            ROS_INFO("Service call successful: %s", srv.response.message.c_str());
+
+            std::string pkg_path = ros::package::getPath("robot_vision");
+            std::string yaml_path = pkg_path + "/config/aruco_pose.yaml";
+
+            try
+            {
+                YAML::Node data = YAML::LoadFile(yaml_path);
+                const auto &tf_node = data["tf_mat_camera_obj"];
+                if (!tf_node)
+                {
+                    ROS_ERROR("Missing key: tf_mat_camera_obj");
+                    return false;
+                }
+
+                const auto &pose = tf_node["target_pose"];
+                const auto &pos = pose["position"];
+                const auto &ori = pose["orientation"];
+
+                std::cout << "\n=== ArUco Pose ===" << std::endl;
+
+                std::cout << "Position: ";
+                for (const auto &val : pos) std::cout << val.as<double>() << " ";
+                std::cout << std::endl;
+
+                std::cout << "Orientation Matrix:" << std::endl;
+                for (const auto &row : ori)
+                {
+                    for (const auto &val : row) std::cout << val.as<double>() << " ";
+                    std::cout << std::endl;
+                }
+
+                return true;
+            }
+            catch (const std::exception &e)
+            {
+                ROS_ERROR("Failed to read YAML file: %s", e.what());
+                return false;
+            }
+        }
+        else
+        {
+            ROS_WARN("Service Failure: %s", srv.response.message.c_str());
+        }
+    }
+    else
+    {
+        ROS_ERROR("Service call failed");
+    }
+
+    return false;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "robot_control");
@@ -306,8 +375,9 @@ int main(int argc, char **argv)
     nh_param.param<bool>("gripper_connect", Gripper_connect_flag, true);
     nh_param.param<bool>("force_connect", Force_connect_flag, false);
     nh_param.param<bool>("simulation_mode", isSimulation, false);
+    nh_param.param<bool>("camera_connect", has_camera, true);
 
-    ROS_INFO("Configuration loaded - IMU: %s, Gripper: %s, Force: %s, Simulation: %s", IMU_connect_flag ? "true" : "false", Gripper_connect_flag ? "true" : "false", Force_connect_flag ? "true" : "false", isSimulation ? "true" : "false");
+    ROS_INFO("Configuration loaded - IMU: %s, Gripper: %s, Force: %s, Simulation: %s", IMU_connect_flag ? "true" : "false", Gripper_connect_flag ? "true" : "false", Force_connect_flag ? "true" : "false", isSimulation ? "true" : "false", has_camera ? "true" : "false");
 
     if (!isSimulation)
     {
@@ -551,6 +621,7 @@ int main(int argc, char **argv)
 
     goal_tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
     goal_tf_mat_base_link3_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link3_0");
+    tf_mat_base_camera_link = loadTransformFromYAML(common_tf_path, "tf_mat_base_camera_link");
 
     ros::Rate loop_rate(200);  // 200Hz
 
@@ -893,7 +964,36 @@ int main(int argc, char **argv)
         // 单臂操作-运动到抓取准备位姿
         else if (control_flag == 2)
         {
-            if (!planning_requested)
+            if (has_camera && !aruco_detected)
+            {
+                aruco_detected = detectAndLoadArucoPose(nh);
+
+                if (aruco_detected)
+                {
+                    ROS_INFO("Aruco marker detected and loaded");
+                    // 获取tf_mat_camera_obj
+                    std::string aruco_tf_path = ros::package::getPath("robot_vision") + "/config/aruco_pose.yaml";
+                    Eigen::Matrix4d tf_mat_camera_obj = loadTransformFromYAML(aruco_tf_path, "tf_mat_camera_obj");
+
+                    // 构造world→base
+                    Eigen::Vector3d trans_base(float_base_position[0], float_base_position[1], float_base_position[2]);
+                    Eigen::Quaterniond quat_base(float_base_position[6], float_base_position[3], float_base_position[4], float_base_position[5]);
+                    Eigen::Matrix3d rot_base = quat_base.normalized().toRotationMatrix();
+                    Eigen::Matrix4d tf_mat_world_base = Eigen::Matrix4d::Identity();
+                    tf_mat_world_base.block<3, 3>(0, 0) = rot_base;
+                    tf_mat_world_base.block<3, 1>(0, 3) = trans_base;
+
+                    // 构造world→object
+                    Eigen::Matrix4d tf_mat_world_obj = tf_mat_world_base * tf_mat_base_camera_link * tf_mat_camera_obj;
+
+                    // 计算目标位姿
+                }
+                else
+                {
+                    ROS_WARN("Aruco marker not detected yet");
+                }
+            }
+            else if (!planning_requested)
             {
                 // 发送运动规划请求
                 robot_planning::PlanPath srv;

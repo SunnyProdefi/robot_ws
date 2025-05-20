@@ -7,3 +7,5 @@ force_connect: false
 
 # Operation mode
 simulation_mode: true
+
+camera_connect: false
