@@ -277,3 +277,9 @@ target_link_libraries(force_sine ${catkin_LIBRARIES})
 target_link_libraries(torque_disturb ${catkin_LIBRARIES})
 target_link_libraries(force_mixed ${catkin_LIBRARIES})
 target_link_libraries(force_zero ${catkin_LIBRARIES})
+
+add_executable(grasp_pose_static_tf_publisher src/grasp_pose_static_tf_publisher.cpp)
+
+target_link_libraries(grasp_pose_static_tf_publisher
+   ${catkin_LIBRARIES}
+)

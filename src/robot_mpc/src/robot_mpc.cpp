@@ -11,7 +11,7 @@ int main()
     MpcController controller(urdf_path, delta_t, horizon);
 
     Eigen::VectorXd init_state(12);                      // 假设 6 自由度
-    init_state.head(6) << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;  // 初始位置
+    init_state.head(6) << -1.18542, -1.84009, -1.90918, 1.5428, 1.18639, -2.28165;  // 初始位置
     init_state.tail(6) << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;  // 初始速度
 
     controller.RunMpcSimulation(init_state, 5000);

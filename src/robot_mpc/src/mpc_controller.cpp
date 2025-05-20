@@ -5,6 +5,9 @@
 #include <pinocchio/algorithm/jacobian.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/aba.hpp>  // aba
+#include <yaml-cpp/yaml.h>
+#include <fstream>
+#include <ros/package.h>
 
 #include <iostream>
 
@@ -17,7 +20,7 @@ MpcController::MpcController(const std::string& urdf_path, double delta_t, int h
     dof_ = model_.nv;
 
     goal_state_.resize(2 * dof_);
-    goal_state_.head(dof_) << 0.87, 0.7, 0.8, 0.4, 1.8, 1.4;
+    goal_state_.head(dof_) << 2.041711, -0.616538, 2.032447, -1.33452, 1.159544, -2.898303;
     goal_state_.tail(dof_) = Eigen::VectorXd::Zero(dof_);
 
     Q_ = Eigen::MatrixXd::Identity(2 * dof_ * horizon_, 2 * dof_ * horizon_) * 1000.0;
@@ -216,19 +219,54 @@ void MpcController::RunMpcSimulation(const Eigen::VectorXd& init_state, int tota
     Eigen::VectorXd qd = init_state.tail(dof_);
     Eigen::VectorXd qdd = Eigen::VectorXd::Zero(dof_);
 
+    // YAML 初始化
+    YAML::Emitter out;
+    out << YAML::BeginMap;
+    out << YAML::Key << "trajectory_log" << YAML::Value << YAML::BeginSeq;
+
     for (int i = 0; i < total_steps; ++i)
     {
         Eigen::VectorXd current_state(2 * dof_);
         current_state.head(dof_) = q;
         current_state.tail(dof_) = qd;
-        UpdateReferenceTrajectory(current_state);  // 🆕 生成新参考轨迹
+
+        UpdateReferenceTrajectory(current_state);
+
+        Eigen::VectorXd target = target_traj_.col(0);
+        double error = (current_state - target).norm();
+
+        // YAML记录当前步骤
+        out << YAML::BeginMap;
+        out << YAML::Key << "step" << YAML::Value << i;
+        out << YAML::Key << "q" << YAML::Value << YAML::Flow << std::vector<double>(q.data(), q.data() + q.size());
+        out << YAML::Key << "qd" << YAML::Value << YAML::Flow << std::vector<double>(qd.data(), qd.data() + qd.size());
+        out << YAML::Key << "error" << YAML::Value << error;
+        out << YAML::EndMap;
+
+        if (error < 0.0001)
+        {
+            std::cout << "Target reached at step " << i << ", error norm = " << error << std::endl;
+            break;
+        }
 
         Eigen::VectorXd tau = SolveOnceMpc(q, qd);
+
         pinocchio::aba(model_, data_, q, qd, tau);
         qdd = data_.ddq;
-
         qd += qdd * delta_t_;
         q += qd * delta_t_;
+
         std::cout << "Step " << i << ", q: " << q.transpose() << std::endl;
     }
+
+    out << YAML::EndSeq;
+    out << YAML::EndMap;
+
+    //使用 ROS 包路径保存
+    std::string log_path = ros::package::getPath("robot_mpc") + "/config/mpc_result_log.yaml";
+    std::ofstream file(log_path);
+    file << out.c_str();
+    file.close();
+
+    std::cout << "MPC simulation result saved to " << log_path << std::endl;
 }

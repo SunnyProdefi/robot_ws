@@ -8,6 +8,7 @@
 
 ```bash
 ssh -X robot@192.168.0.118
+ssh -X robot@192.168.86.58
 ```
 
 确保你在 **同一局域网** 中，Wi-Fi 网络设置如下：
@@ -222,3 +223,9 @@ rosrun robot_control torque_disturb
 rosrun robot_control force_mixed
 
 rosrun robot_control force_zero
+
+roslaunch robot_control robot_control.launch
+
+rostopic pub /control_flag std_msgs/Int32 "data: 1" -1
+
+rosrun robot_control grasp_pose_static_tf_publisher
