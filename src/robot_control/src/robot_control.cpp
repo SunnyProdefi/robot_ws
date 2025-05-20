@@ -686,6 +686,7 @@ int main(int argc, char **argv)
                 motor_state_pub.publish(motor_state);
                 // 延时
                 ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
+                ROS_INFO("Trajectory execution completed");
             }
 
             // 发布电机位置状态
@@ -2411,7 +2412,6 @@ int main(int argc, char **argv)
             if (!planning_requested)
             {
                 std::cout << "Control flag 11 received" << std::endl;
-                ROS_INFO("=== flag 11 : Z +0.03 ===");
 
                 /* ---- 当前位姿 ---- */
                 Eigen::Matrix4d T2_cur, T3_cur;
@@ -2475,6 +2475,8 @@ int main(int argc, char **argv)
                 }
                 motor_state_pub.publish(motor_state);
                 ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
+
+                ROS_INFO("Trajectory execution completed");
             }
         }
 
@@ -2525,6 +2527,7 @@ int main(int argc, char **argv)
             }
             else
             {
+                ROS_INFO("Trajectory execution completed");
                 control_flag = 121;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
@@ -2580,6 +2583,7 @@ int main(int argc, char **argv)
             }
             else
             {
+                ROS_INFO("Trajectory execution completed");
                 control_flag = 13;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
@@ -2853,6 +2857,8 @@ int main(int argc, char **argv)
                 }
                 motor_state_pub.publish(motor_state);
                 ros::Duration(1.0).sleep();  // 延时1秒，确保夹爪运动完成
+
+                ROS_INFO("Trajectory execution completed");
             }
         }
 
