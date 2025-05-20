@@ -2540,7 +2540,7 @@ int main(int argc, char **argv)
 
                 /* ---- 目标位姿 (+Z) ---- */
                 Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
-                TZp(2, 3) = 0.01;
+                TZp(2, 3) = 0.03;
                 Eigen::Matrix4d T2_goal = T2_cur * TZp;
                 Eigen::Matrix4d T3_goal = T3_cur * TZp;
 
@@ -2664,7 +2664,7 @@ int main(int argc, char **argv)
 
                 // 构造沿X轴正向平移0.015米的齐次变换
                 Eigen::Matrix4d translation_mat = Eigen::Matrix4d::Identity();
-                translation_mat(0, 3) = 0.015;
+                translation_mat(0, 3) = 0.03;
 
                 // 得到目标变换
                 Eigen::Matrix4d tf_mat_world_cube_m_goal = tf_mat_world_cube_m_init * translation_mat;
@@ -2719,7 +2719,7 @@ int main(int argc, char **argv)
                 std::vector<double> gold_floating_base = init_floating_base;
                 if (gold_floating_base.size() >= 2)
                 {
-                    gold_floating_base[1] += 0.1;  // y 轴坐标增加 0.15
+                    gold_floating_base[1] += 0.1325;  // y 轴坐标增加 0.15
                 }
                 else
                 {
@@ -2906,8 +2906,8 @@ int main(int argc, char **argv)
 
                 Eigen::Matrix4d TZp = Eigen::Matrix4d::Identity();
                 TZp(1, 3) = 0.12;
-                TZp(0, 3) = 0.015;
-                TZp(2, 3) = 0.1;
+                TZp(0, 3) = 0.03;
+                TZp(2, 3) = 0.1325;
                 Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m * TZp;
 
                 // 构造沿Y轴正向平移0.12米的齐次变换
@@ -2945,7 +2945,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                control_flag = 15;
+                control_flag = 0;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
 
