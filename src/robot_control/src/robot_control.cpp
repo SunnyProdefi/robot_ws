@@ -86,7 +86,10 @@ std::string common_tf_path = ros::package::getPath("robot_control") + "/config/c
 
 std::string csv_file_path = ros::package::getPath("robot_control") + "/data/admittance_data.csv";
 
-Eigen::Matrix4d goal_tf_mat_base_link2_0, goal_tf_mat_base_link3_0;
+Eigen::Matrix4d glob_tf_mat_base_link2_0, glob_tf_mat_base_link3_0;
+Eigen::Matrix4d tf_mat_cube_m_r, tf_mat_cube_m_l;
+
+constexpr double deg2rad(double degrees) { return degrees * M_PI / 180.0; }
 
 // 从YAML文件加载变换矩阵
 Eigen::Matrix4d loadTransformFromYAML(const std::string &file_path, const std::string &transform_name)
@@ -430,6 +433,35 @@ int main(int argc, char **argv)
         }
     };
 
+    auto mergeTrajFromFlat = [&](const std::vector<double> &flat_joint_trajectory, std::vector<std::vector<double>> &merged)
+    {
+        const int n_j = MOTOR_BRANCHN_N - 1;                                  // 每个分支的关节数
+        const size_t total_steps = flat_joint_trajectory.size() / (2 * n_j);  // 每步12维（分支2+3）
+
+        merged.clear();
+        for (size_t i = 0; i < total_steps; ++i)
+        {
+            std::vector<double> pt(BRANCHN_N * n_j, 0.0);
+
+            // 填入分支2（左臂）
+            for (int j = 0; j < n_j; ++j) pt[1 * n_j + j] = flat_joint_trajectory[i * 2 * n_j + j];
+
+            // 填入分支3（右臂）
+            for (int j = 0; j < n_j; ++j) pt[2 * n_j + j] = flat_joint_trajectory[i * 2 * n_j + n_j + j];
+
+            // 其余分支保持不变
+            for (int b = 0; b < BRANCHN_N; ++b)
+            {
+                if (b != 1 && b != 2)
+                {
+                    for (int j = 0; j < n_j; ++j) pt[b * n_j + j] = q_recv[b][j];
+                }
+            }
+
+            merged.push_back(pt);
+        }
+    };
+
     /* --- 单步执行 merged 轨迹（保持原发布 / 发送逻辑） --- */
     auto executeStep = [&](size_t idx)
     {
@@ -457,7 +489,7 @@ int main(int argc, char **argv)
         motor_state_pub.publish(motor_state);
     };
 
-    auto computeAndPublishGraspPose = [&](const Eigen::Matrix4d &goal_tf_mat_base_link2_0)
+    auto computeAndPublishGraspPose = [&](const Eigen::Matrix4d &glob_tf_mat_base_link2_0)
     {
         // 获取 EE Pose
         Eigen::Matrix4d tf_mat_link2_0_flan2, tf_mat_link3_0_flan3;
@@ -488,8 +520,8 @@ int main(int argc, char **argv)
         // std::cout << "tf_mat_flan2_grasp_cube_object:\n" << tf_mat_flan2_grasp_cube_object << std::endl;
 
         // 计算 world → grasp_cube_object
-        Eigen::Matrix4d tf_mat_world_grasp_cube_object = tf_mat_world_base * goal_tf_mat_base_link2_0 * tf_mat_link2_0_flan2 * tf_mat_flan2_grasp_cube_object;
-        // std::cout << "goal_tf_mat_base_link2_0:\n" << goal_tf_mat_base_link2_0 << std::endl;
+        Eigen::Matrix4d tf_mat_world_grasp_cube_object = tf_mat_world_base * glob_tf_mat_base_link2_0 * tf_mat_link2_0_flan2 * tf_mat_flan2_grasp_cube_object;
+        // std::cout << "glob_tf_mat_base_link2_0:\n" << glob_tf_mat_base_link2_0 << std::endl;
         // std::cout << "tf_mat_world_grasp_cube_object:\n" << tf_mat_world_grasp_cube_object << std::endl;
 
         Eigen::Vector3d position = tf_mat_world_grasp_cube_object.block<3, 1>(0, 3);
@@ -675,8 +707,68 @@ int main(int argc, char **argv)
         }
     };
 
-    goal_tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
-    goal_tf_mat_base_link3_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link3_0");
+    // 平移变换：沿 x/y/z 轴平移
+    auto getTranslationMatrix = [](double dx, double dy, double dz) -> Eigen::Matrix4d
+    {
+        Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+        T(0, 3) = dx;
+        T(1, 3) = dy;
+        T(2, 3) = dz;
+        return T;
+    };
+
+    // 欧拉角旋转变换：绕 x/y/z 轴旋转（角度单位：弧度）
+    auto getRotationMatrixFromRPY = [](double roll, double pitch, double yaw) -> Eigen::Matrix4d
+    {
+        Eigen::Matrix3d R;
+        R = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+
+        Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+        T.block<3, 3>(0, 0) = R;
+        return T;
+    };
+
+    // 构造新的目标变换：从初始变换出发，施加平移与旋转
+    auto applyTranslationAndRotation = [&](const Eigen::Matrix4d &init_tf, double dx, double dy, double dz, double roll, double pitch, double yaw) -> Eigen::Matrix4d { return init_tf * getRotationMatrixFromRPY(roll, pitch, yaw) * getTranslationMatrix(dx, dy, dz); };
+
+    auto sendDualArmPlanningRequest = [&](const Eigen::Matrix4d &tf_mat_world_cube_m_init, const Eigen::Matrix4d &tf_mat_world_cube_m_goal, const Eigen::Matrix4d &tf_mat_cube_m_l, const Eigen::Matrix4d &tf_mat_cube_m_r, const std::vector<double> &float_base_position,
+                                          const std::vector<std::vector<double>> &q_recv, int num_interpolations = 1000) -> bool
+    {
+        robot_planning::PlanDualArmPath srv;
+        srv.request.float_base_pose = float_base_position;
+
+        if (q_recv.size() <= 2 || q_recv[1].size() < 6 || q_recv[2].size() < 6)
+        {
+            ROS_ERROR("Invalid q_recv size.");
+            return false;
+        }
+
+        srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
+        srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
+        srv.request.tf_mat_world_cube_m_init = eigenToTransformMsg(tf_mat_world_cube_m_init);
+        srv.request.tf_mat_world_cube_m_goal = eigenToTransformMsg(tf_mat_world_cube_m_goal);
+        srv.request.tf_mat_cube_m_l = eigenToTransformMsg(tf_mat_cube_m_l);
+        srv.request.tf_mat_cube_m_r = eigenToTransformMsg(tf_mat_cube_m_r);
+        srv.request.num_interpolations = num_interpolations;
+
+        if (plan_dual_arm_path_client.call(srv))
+        {
+            std::cout << "Service call successful" << std::endl;
+            mergeTrajFromFlat(srv.response.joint_trajectory, planned_joint_trajectory);
+            return true;
+        }
+        else
+        {
+            ROS_ERROR("Failed to call service planDualArmPath");
+            return false;
+        }
+    };
+
+    glob_tf_mat_base_link2_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link2_0");
+    glob_tf_mat_base_link3_0 = loadTransformFromYAML(common_tf_path, "tf_mat_base_link3_0");
+
+    tf_mat_cube_m_r = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_r");
+    tf_mat_cube_m_l = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_l");
 
     ros::Rate loop_rate(200);  // 200Hz
 
@@ -797,7 +889,7 @@ int main(int argc, char **argv)
             publishMotorState();
         }
 
-        // 双臂操作-运动到抓取准备位姿
+        // 双臂操作-运动到抓取准备位姿（TODO：视觉获取目标位姿）
         else if (control_flag == 2)
         {
             if (!planning_requested)
@@ -912,8 +1004,6 @@ int main(int argc, char **argv)
             if (!planning_requested)
             {
                 std::cout << "Control flag 3 received" << std::endl;
-                ROS_INFO("=== flag 11 : Z +0.03 ===");
-
                 /* ---- 当前位姿 ---- */
                 Eigen::Matrix4d T2_cur, T3_cur;
                 if (!getCurrentEEPose(T2_cur, T3_cur))
@@ -999,11 +1089,12 @@ int main(int argc, char **argv)
                 if (isSimulation)
                 {
                     executeSimStep(trajectory_index);
-                    computeAndPublishGraspPose(goal_tf_mat_base_link2_0);
+                    computeAndPublishGraspPose(glob_tf_mat_base_link2_0);
                 }
                 else
                 {
                     executeRealStep(trajectory_index);
+                    computeAndPublishGraspPose(glob_tf_mat_base_link2_0);
                 }
 
                 publishMotorState();
@@ -1019,64 +1110,54 @@ int main(int argc, char **argv)
             }
         }
 
-        else if (control_flag == 12)
+        // 双臂操作-z 轴转动
+        else if (control_flag == 5)
         {
             if (!planning_requested)
             {
-                std::cout << "Control flag 12 received" << std::endl;
-                // 读取YAML中的世界→cube_m，world→cube_m 变换
-                Eigen::Matrix4d tf_mat_world_cube_m = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_m");
-                Eigen::Matrix4d tf_mat_cube_m_r = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_r");
-                Eigen::Matrix4d tf_mat_cube_m_l = loadTransformFromYAML(common_tf_path, "tf_mat_cube_m_l");
+                std::cout << "Control flag 5 received" << std::endl;
 
-                Eigen::Matrix4d tf_mat_world_cube_m_init = tf_mat_world_cube_m;
-                // 构造沿Y轴正向平移0.12米的齐次变换
-                Eigen::Matrix4d translation_mat = Eigen::Matrix4d::Identity();
-                translation_mat(1, 3) = 0.12;
+                // 读取初始相关变换
+                Eigen::Matrix4d tf_mat_world_cube_m_init = loadTransformFromYAML(common_tf_path, "tf_mat_world_cube_m");
+                // 设置init变换参数 Notice：这里为相对于cube_m坐标系
+                double dx = 0.0, dy = 0.12, dz = 0.0;
+                double droll = deg2rad(0), dpitch = deg2rad(0), dyaw = deg2rad(0);
+                tf_mat_world_cube_m_init = applyTranslationAndRotation(tf_mat_world_cube_m_init, dx, dy, dz, droll, dpitch, dyaw);
 
-                // 得到目标变换
-                Eigen::Matrix4d tf_mat_world_cube_m_goal = tf_mat_world_cube_m_init * translation_mat;
+                // 设置goal变换参数
+                dx = 0.0, dy = 0.0, dz = 0.0;
+                droll = deg2rad(0), dpitch = deg2rad(30), dyaw = deg2rad(0);
 
-                robot_planning::PlanDualArmPath srv;
-                srv.request.float_base_pose = float_base_position;
-                srv.request.branch2_joints.assign(q_recv[1].begin(), q_recv[1].begin() + 6);
-                srv.request.branch3_joints.assign(q_recv[2].begin(), q_recv[2].begin() + 6);
-                srv.request.tf_mat_world_cube_m_init = eigenToTransformMsg(tf_mat_world_cube_m_init);
-                srv.request.tf_mat_world_cube_m_goal = eigenToTransformMsg(tf_mat_world_cube_m_goal);
-                srv.request.tf_mat_cube_m_l = eigenToTransformMsg(tf_mat_cube_m_l);
-                srv.request.tf_mat_cube_m_r = eigenToTransformMsg(tf_mat_cube_m_r);
-                srv.request.num_interpolations = 1000;  // 或任意你想设置的插值点数量
-                if (plan_dual_arm_path_client.call(srv))
+                // 构造目标变换
+                Eigen::Matrix4d tf_mat_world_cube_m_goal = applyTranslationAndRotation(tf_mat_world_cube_m_init, dx, dy, dz, droll, dpitch, dyaw);
+
+                bool success = sendDualArmPlanningRequest(tf_mat_world_cube_m_init, tf_mat_world_cube_m_goal, tf_mat_cube_m_l, tf_mat_cube_m_r, float_base_position, q_recv, 1000);
+
+                if (success)
                 {
-                    std::cout << "Service call successful" << std::endl;
+                    planning_requested = true;
+                    trajectory_index = 0;
                 }
-                else
-                {
-                    ROS_ERROR("Failed to call service planDualArmPath");
-                }
-
-                mergeTrajFromFlat(srv.response.joint_trajectory, planned_joint_trajectory);
-                planning_requested = true;
-                trajectory_index = 0;
             }
             else if (trajectory_index < planned_joint_trajectory.size())
             {
                 executeStep(trajectory_index++);
+                computeAndPublishGraspPose(glob_tf_mat_base_link2_0);
             }
             else
             {
-                control_flag = 121;
+                control_flag = 6;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
             }
         }
 
         // 双臂操作-x 轴移动 -0.03 米
-        else if (control_flag == 5)
+        else if (control_flag == 6)
         {
             if (!planning_requested)
             {
-                std::cout << "Control flag 5 received" << std::endl;
+                std::cout << "Control flag 6 received" << std::endl;
                 planning_requested = requestPlanning(-0.03, 0.0, 0.0);
                 if (!planning_requested)
                     control_flag = 0;
@@ -1095,11 +1176,12 @@ int main(int argc, char **argv)
                 if (isSimulation)
                 {
                     executeSimStep(trajectory_index);
-                    computeAndPublishGraspPose(goal_tf_mat_base_link2_0);
+                    computeAndPublishGraspPose(glob_tf_mat_base_link2_0);
                 }
                 else
                 {
                     executeRealStep(trajectory_index);
+                    computeAndPublishGraspPose(glob_tf_mat_base_link2_0);
                 }
 
                 publishMotorState();
@@ -1108,7 +1190,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 6;
+                control_flag = 7;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1116,11 +1198,11 @@ int main(int argc, char **argv)
         }
 
         // 双臂操作-y 轴移动 0.1325 米
-        else if (control_flag == 6)
+        else if (control_flag == 7)
         {
             if (!planning_requested)
             {
-                std::cout << "Control flag 6 received" << std::endl;
+                std::cout << "Control flag 7 received" << std::endl;
                 planning_requested = requestPlanning(0.0, 0.1325, 0.0);  // y轴 +0.1325m
                 if (!planning_requested)
                     control_flag = 0;
@@ -1143,11 +1225,12 @@ int main(int argc, char **argv)
                 if (isSimulation)
                 {
                     executeSimStep(trajectory_index);
-                    computeAndPublishGraspPose(goal_tf_mat_base_link2_0);
+                    computeAndPublishGraspPose(glob_tf_mat_base_link2_0);
                 }
                 else
                 {
                     executeRealStep(trajectory_index);
+                    computeAndPublishGraspPose(glob_tf_mat_base_link2_0);
                 }
 
                 publishMotorState();
@@ -1156,7 +1239,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 7;
+                control_flag = 8;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1164,11 +1247,11 @@ int main(int argc, char **argv)
         }
 
         // 双臂操作-z 轴移动 -0.02 米
-        else if (control_flag == 7)
+        else if (control_flag == 8)
         {
             if (!planning_requested)
             {
-                std::cout << "Control flag 7 received" << std::endl;
+                std::cout << "Control flag 8 received" << std::endl;
                 planning_requested = requestPlanning(0.0, 0.0, -0.02);  // z轴 -0.02m
                 if (!planning_requested)
                     control_flag = 0;
@@ -1193,11 +1276,12 @@ int main(int argc, char **argv)
                 if (isSimulation)
                 {
                     executeSimStep(trajectory_index);
-                    computeAndPublishGraspPose(goal_tf_mat_base_link2_0);
+                    computeAndPublishGraspPose(glob_tf_mat_base_link2_0);
                 }
                 else
                 {
                     executeRealStep(trajectory_index);
+                    computeAndPublishGraspPose(glob_tf_mat_base_link2_0);
                 }
 
                 publishMotorState();
