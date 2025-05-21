@@ -9,7 +9,7 @@
 #include <Eigen/Dense>
 #include <ros/package.h>
 
-int TOTAL_POINT_NUM = 6000;
+int TOTAL_POINT_NUM = 2000;
 int POINT_NUM = TOTAL_POINT_NUM / 4;
 
 bool planCallback(robot_planning::PlanPath::Request& req, robot_planning::PlanPath::Response& res)
