@@ -869,7 +869,7 @@ int main(int argc, char **argv)
             {
                 q_send = q_init;            // 最后一步强制对齐
                 interp_step = total_steps;  // 防止溢出
-                control_flag = 2;
+                control_flag = 0;
 
                 // 发布夹爪指令
                 gripper_command.data = {0.0, 1.0, 1.0, 0.0};
@@ -991,7 +991,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 3;
+                control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1041,7 +1041,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                control_flag = 4;
+                control_flag = 0;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
 
@@ -1103,7 +1103,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 5;
+                control_flag = 0;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
