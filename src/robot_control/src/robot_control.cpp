@@ -635,31 +635,31 @@ int main(int argc, char **argv)
                 // 读取上电状态
                 Motor_Rec_Func_ALL();
 
-                robot_control::GetBaseLinkPose srv;
-                for (int j = 0; j < 6; ++j)
-                {
-                    srv.request.joint_angles_branch1.push_back(q_recv[0][j]);
-                    srv.request.joint_angles_branch4.push_back(q_recv[3][j]);
-                }
+                // robot_control::GetBaseLinkPose srv;
+                // for (int j = 0; j < 6; ++j)
+                // {
+                //     srv.request.joint_angles_branch1.push_back(q_recv[0][j]);
+                //     srv.request.joint_angles_branch4.push_back(q_recv[3][j]);
+                // }
 
-                if (client.call(srv))
-                {
-                    ROS_INFO("Base link pose calculated: Position (x: %f, y: %f, z: %f), Orientation (x: %f, y: %f, z: %f, w: %f)", srv.response.base_link_pose.position.x, srv.response.base_link_pose.position.y, srv.response.base_link_pose.position.z, srv.response.base_link_pose.orientation.x,
-                             srv.response.base_link_pose.orientation.y, srv.response.base_link_pose.orientation.z, srv.response.base_link_pose.orientation.w);
+                // if (client.call(srv))
+                // {
+                //     ROS_INFO("Base link pose calculated: Position (x: %f, y: %f, z: %f), Orientation (x: %f, y: %f, z: %f, w: %f)", srv.response.base_link_pose.position.x, srv.response.base_link_pose.position.y, srv.response.base_link_pose.position.z, srv.response.base_link_pose.orientation.x,
+                //              srv.response.base_link_pose.orientation.y, srv.response.base_link_pose.orientation.z, srv.response.base_link_pose.orientation.w);
 
-                    float_base_pub.publish(srv.response.base_link_pose);
-                    float_base_position[0] = srv.response.base_link_pose.position.x;
-                    float_base_position[1] = srv.response.base_link_pose.position.y;
-                    float_base_position[2] = srv.response.base_link_pose.position.z;
-                    float_base_position[3] = srv.response.base_link_pose.orientation.x;
-                    float_base_position[4] = srv.response.base_link_pose.orientation.y;
-                    float_base_position[5] = srv.response.base_link_pose.orientation.z;
-                    float_base_position[6] = srv.response.base_link_pose.orientation.w;
-                }
-                else
-                {
-                    ROS_ERROR("Failed to call service get_base_link_pose");
-                }
+                //     float_base_pub.publish(srv.response.base_link_pose);
+                //     float_base_position[0] = srv.response.base_link_pose.position.x;
+                //     float_base_position[1] = srv.response.base_link_pose.position.y;
+                //     float_base_position[2] = srv.response.base_link_pose.position.z;
+                //     float_base_position[3] = srv.response.base_link_pose.orientation.x;
+                //     float_base_position[4] = srv.response.base_link_pose.orientation.y;
+                //     float_base_position[5] = srv.response.base_link_pose.orientation.z;
+                //     float_base_position[6] = srv.response.base_link_pose.orientation.w;
+                // }
+                // else
+                // {
+                //     ROS_ERROR("Failed to call service get_base_link_pose");
+                // }
             }
 
             // 发布电机位置状态
@@ -699,7 +699,7 @@ int main(int argc, char **argv)
                 start_interp = false;
             }
 
-            const int total_steps = 6000;  // 30秒，200Hz
+            const int total_steps = 1000;  // 30秒，200Hz
             double ratio = static_cast<double>(interp_step) / total_steps;
 
             // 插值计算 q_send = q_temp + ratio * (q_init - q_temp)
