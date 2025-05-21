@@ -835,7 +835,7 @@ int main(int argc, char **argv)
                 start_interp = false;
             }
 
-            const int total_steps = 600;  // 30秒，200Hz
+            const int total_steps = 6000;  // 30秒，200Hz
             double ratio = static_cast<double>(interp_step) / total_steps;
 
             // 插值计算 q_send = q_temp + ratio * (q_init - q_temp)
@@ -991,7 +991,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 3;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1041,7 +1041,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                control_flag = 0;
+                control_flag = 4;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
 
@@ -1103,7 +1103,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 6;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
