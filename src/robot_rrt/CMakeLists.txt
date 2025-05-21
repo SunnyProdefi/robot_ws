@@ -30,7 +30,7 @@ generate_messages(
 
 catkin_package(
   CATKIN_DEPENDS roscpp rospy std_msgs roslib message_runtime geometry_msgs visualization_msgs
-  INCLUDE_DIRS include
+  # INCLUDE_DIRS include
   DEPENDS message_generation
 )
 
