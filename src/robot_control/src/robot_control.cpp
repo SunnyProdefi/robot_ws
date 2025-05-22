@@ -1505,6 +1505,14 @@ int main(int argc, char **argv)
             }
         }
 
+        else if (control_flag == 888)
+        {
+            if (isEnable == true)
+            {
+                Set_Motor_ALL_Enable(0);
+            }
+        }
+
         ros::spinOnce();
         loop_rate.sleep();
     }
