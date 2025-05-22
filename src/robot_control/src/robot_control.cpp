@@ -53,7 +53,7 @@ int interp_step_end = 0;
 
 bool isSimulation;  // 是否为仿真模式
 
-double plantime = 10.0;
+double plantime = 3.0;
 
 // 导纳相关
 static std::ofstream admittance_log;
