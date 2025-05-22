@@ -231,7 +231,7 @@
     </collision>
   </link> -->
 
-  <!-- <link name="grasp_object">
+  <link name="grasp_object">
     <inertial>
       <origin
         xyz="-1.7465753580787E-17 1.31917654026282E-17 0.1"
@@ -274,8 +274,8 @@
   <joint name="world_to_grasp_object" type="fixed">
     <parent link="world"/>
     <child link="grasp_object"/>
-    <origin xyz="0.59 0.373 -0.07" rpy="0 0 0"/>
-  </joint> -->
+    <origin xyz="0.59 0.373 -0.07" rpy="0 0 -0.5238"/>
+  </joint>
 
   <!-- <link
     name="grasp_object_cube">

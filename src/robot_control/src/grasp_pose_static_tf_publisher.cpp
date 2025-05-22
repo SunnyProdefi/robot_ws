@@ -13,8 +13,8 @@ int main(int argc, char** argv)
     // 设置时间戳和坐标系
     static_transformStamped.header.stamp = ros::Time::now();
     static_transformStamped.header.frame_id = "world";
-    static_transformStamped.child_frame_id = "grasp_object_cube";
-    // static_transformStamped.child_frame_id = "grasp_object";
+    // static_transformStamped.child_frame_id = "grasp_object_cube";
+    static_transformStamped.child_frame_id = "grasp_object";
 
     // 设置平移部分（例如：x=0.5825, y=0.36, z=-0.07）
     // static_transformStamped.transform.translation.x = 0.5825;
@@ -22,12 +22,12 @@ int main(int argc, char** argv)
     // static_transformStamped.transform.translation.z = -0.07;
 
     // // 初始OK
-    // static_transformStamped.transform.translation.x = 0.59;
-    // static_transformStamped.transform.translation.y = 0.373;
-    // static_transformStamped.transform.translation.z = -0.07;
-    // tf2::Quaternion quat;
-    // quat.setRPY(0, 0, -0.5238);  // Roll, Pitch, Yaw
-    // quat.normalize();
+    static_transformStamped.transform.translation.x = 0.59;
+    static_transformStamped.transform.translation.y = 0.373;
+    static_transformStamped.transform.translation.z = -0.07;
+    tf2::Quaternion quat;
+    quat.setRPY(0, 0, -0.5238);  // Roll, Pitch, Yaw
+    quat.normalize();
 
     // // 交接OK
     // static_transformStamped.transform.translation.x = 0.7775;
@@ -46,12 +46,12 @@ int main(int argc, char** argv)
     // quat.normalize();
 
     // cube初始OK
-    static_transformStamped.transform.translation.x = 0.6625;
-    static_transformStamped.transform.translation.y = 0.0;
-    static_transformStamped.transform.translation.z = 0.265;
-    tf2::Quaternion quat;
-    quat.setRPY(0, 0, 0);  // Roll, Pitch, Yaw
-    quat.normalize();
+    // static_transformStamped.transform.translation.x = 0.6625;
+    // static_transformStamped.transform.translation.y = 0.0;
+    // static_transformStamped.transform.translation.z = 0.265;
+    // tf2::Quaternion quat;
+    // quat.setRPY(0, 0, 0);  // Roll, Pitch, Yaw
+    // quat.normalize();
 
     // // cube放置OK
     // static_transformStamped.transform.translation.x = 0.6925;

@@ -460,11 +460,19 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        cube_l_pre:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         cube_m:
           Alpha: 1
           Show Axes: false
           Show Trail: false
         cube_r:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        cube_r_pre:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -508,7 +516,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        grasp_object_cube:
+        grasp_object:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -702,15 +710,19 @@ Visualization Manager:
         Link_platform:
           Value: false
         base_link:
-          Value: true
+          Value: false
         camera_link:
           Value: false
         cube_l:
-          Value: true
+          Value: false
+        cube_l_pre:
+          Value: false
         cube_m:
-          Value: true
+          Value: false
         cube_r:
-          Value: true
+          Value: false
+        cube_r_pre:
+          Value: false
         dummy_link:
           Value: false
         dummy_point1:
@@ -722,15 +734,15 @@ Visualization Manager:
         dummy_point4:
           Value: false
         flan1:
-          Value: true
+          Value: false
         flan2:
-          Value: true
+          Value: false
         flan3:
-          Value: true
+          Value: false
         flan4:
           Value: false
-        grasp_object_cube:
-          Value: true
+        grasp_object:
+          Value: false
         object:
           Value: false
         object1:
@@ -738,9 +750,9 @@ Visualization Manager:
         object2:
           Value: false
         truss_link:
-          Value: true
+          Value: false
         world:
-          Value: true
+          Value: false
       Marker Alpha: 1
       Marker Scale: 0.5
       Name: TF
@@ -859,14 +871,18 @@ Visualization Manager:
               {}
           dummy_link:
             {}
-          grasp_object_cube:
+          grasp_object:
             {}
           truss_link:
             cube_l:
               {}
+            cube_l_pre:
+              {}
             cube_m:
               {}
             cube_r:
+              {}
+            cube_r_pre:
               {}
             dummy_point1:
               {}
