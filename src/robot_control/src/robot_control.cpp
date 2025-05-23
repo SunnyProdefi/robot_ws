@@ -708,7 +708,7 @@ int main(int argc, char **argv)
 
         // 构造 flan2 → grasp_object 的变换
         Eigen::Affine3d tf_flan2_grasp_object = Eigen::Affine3d::Identity();
-        tf_flan2_grasp_object.translate(Eigen::Vector3d(-0.015, 0, 0.08));
+        tf_flan2_grasp_object.translate(Eigen::Vector3d(-0.015, 0, 0.09));
         tf_flan2_grasp_object.rotate(Eigen::AngleAxisd(M_PI / 2.0, Eigen::Vector3d::UnitZ()));
         Eigen::Matrix4d tf_mat_flan2_grasp_object = tf_flan2_grasp_object.matrix();
 
@@ -759,7 +759,7 @@ int main(int argc, char **argv)
 
         // 构造 flan3 → grasp_object 的变换
         Eigen::Affine3d tf_flan3_grasp_object = Eigen::Affine3d::Identity();
-        tf_flan3_grasp_object.translate(Eigen::Vector3d(-0.115, 0, 0.1));
+        tf_flan3_grasp_object.translate(Eigen::Vector3d(-0.115, 0, 0.085));
         tf_flan3_grasp_object.rotate(Eigen::AngleAxisd(M_PI / 2.0, Eigen::Vector3d::UnitZ()));
         Eigen::Matrix4d tf_mat_flan3_grasp_object = tf_flan3_grasp_object.matrix();
 
@@ -2152,7 +2152,7 @@ int main(int argc, char **argv)
 
                 // 构造平移矩阵
                 Eigen::Matrix4d translation = Eigen::Matrix4d::Identity();
-                translation(0, 3) = -0.05;
+                translation(0, 3) = -0.085;
 
                 // 执行乘法操作，相当于在当前变换的基础上后乘一个纯平移
                 tf_mat_link3_0_flan3_goal = tf_mat_link3_0_flan3 * translation;
