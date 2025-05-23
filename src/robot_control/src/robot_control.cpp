@@ -708,7 +708,8 @@ int main(int argc, char **argv)
 
         // 构造 flan2 → grasp_object 的变换
         Eigen::Affine3d tf_flan2_grasp_object = Eigen::Affine3d::Identity();
-        tf_flan2_grasp_object.translate(Eigen::Vector3d(-0.015, 0, 0.09));
+        // tf_flan2_grasp_object.translate(Eigen::Vector3d(-0.015, 0, 0.09));
+        tf_flan2_grasp_object.translate(Eigen::Vector3d(-0.015, 0, 0.07));  // RRT
         tf_flan2_grasp_object.rotate(Eigen::AngleAxisd(M_PI / 2.0, Eigen::Vector3d::UnitZ()));
         Eigen::Matrix4d tf_mat_flan2_grasp_object = tf_flan2_grasp_object.matrix();
 
@@ -1430,7 +1431,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 4;
+                control_flag = 302;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -1562,6 +1563,95 @@ int main(int argc, char **argv)
                 motor_state_pub.publish(motor_state);
 
                 trajectory_index++;
+            }
+            else
+            {
+                ROS_INFO("RRT trajectory execution completed.");
+                control_flag = 0;
+                planning_requested = false;
+                planning_completed = false;
+                trajectory_index = 0;
+
+                // 可选：发布夹爪指令或状态
+                std_msgs::Float64MultiArray gripper_command;
+                gripper_command.data = {0.0, 0.0, 1.0, 0.0};  // 示例：张开
+                gripper_pub.publish(gripper_command);
+
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 0.4;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
+
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; ++branchi)
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; ++motorj) motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                motor_state_pub.publish(motor_state);
+            }
+        }
+
+        else if (control_flag == 302)
+        {
+            if (!planning_requested)
+            {
+                // 读取 YAML 文件
+                std::string yaml_path = ros::package::getPath("robot_rrt") + "/config/planned_path.yaml";
+                YAML::Node path_yaml = YAML::LoadFile(yaml_path);
+
+                std::vector<std::vector<double>> trajectory;
+                for (const auto &node : path_yaml) trajectory.push_back(node.as<std::vector<double>>());
+
+                // 保存原始插值轨迹
+                planned_joint_trajectory.clear();
+                const int steps_per_segment = 600;
+                for (size_t seg = 0; seg + 1 < trajectory.size(); ++seg)
+                {
+                    const auto &q_start = trajectory[seg];
+                    const auto &q_end = trajectory[seg + 1];
+
+                    for (int step = 0; step <= steps_per_segment; ++step)
+                    {
+                        double ratio = static_cast<double>(step) / steps_per_segment;
+                        std::vector<double> q_interp(6);
+                        for (int j = 0; j < 6; ++j) q_interp[j] = q_start[j] + ratio * (q_end[j] - q_start[j]);
+                        planned_joint_trajectory.push_back(q_interp);
+                    }
+                }
+
+                planning_requested = true;
+                trajectory_index = 0;
+            }
+            else if (trajectory_index < planned_joint_trajectory.size())
+            {
+                for (int j = 0; j < 6; ++j) q_send[1][j] = planned_joint_trajectory[trajectory_index][j];
+
+                if (!isSimulation)
+                {
+                    Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
+                }
+                else
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N - 1; ++motorj) q_recv[1][motorj] = q_send[1][motorj];
+                }
+
+                // 发布电机位置状态
+                std_msgs::Float64MultiArray motor_state;
+                motor_state.data.resize(BRANCHN_N * MOTOR_BRANCHN_N);
+                for (int branchi = 0; branchi < BRANCHN_N; branchi++)
+                {
+                    for (int motorj = 0; motorj < MOTOR_BRANCHN_N; motorj++)
+                    {
+                        motor_state.data[branchi * MOTOR_BRANCHN_N + motorj] = q_recv[branchi][motorj];
+                    }
+                }
+                motor_state_pub.publish(motor_state);
+
+                trajectory_index++;
+
+                if (isSimulation)
+                {
+                    publishGraspObjectPose();
+                }
             }
             else
             {

@@ -5,8 +5,9 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /TF1
-        - /TF1/Frames1
+        - /RobotModel1
+        - /RobotModel1/Links1
+        - /RobotModel1/Links1/grasp_object1
       Splitter Ratio: 0.6120689511299133
     Tree Height: 1231
   - Class: rviz/Selection
@@ -519,7 +520,7 @@ Visualization Manager:
         grasp_object:
           Alpha: 1
           Show Axes: false
-          Show Trail: false
+          Show Trail: true
           Value: true
         object:
           Alpha: 1
