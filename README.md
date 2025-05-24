@@ -229,3 +229,5 @@ roslaunch robot_control robot_control.launch
 rostopic pub /control_flag std_msgs/Int32 "data: 1" -1
 
 rosrun robot_control grasp_pose_static_tf_publisher
+
+rosrun robot_mpc robot_mpc

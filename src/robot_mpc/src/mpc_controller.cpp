@@ -241,6 +241,16 @@ void MpcController::RunMpcSimulation(const Eigen::VectorXd& init_state, int tota
         out << YAML::Key << "q" << YAML::Value << YAML::Flow << std::vector<double>(q.data(), q.data() + q.size());
         out << YAML::Key << "qd" << YAML::Value << YAML::Flow << std::vector<double>(qd.data(), qd.data() + qd.size());
         out << YAML::Key << "error" << YAML::Value << error;
+
+        // 记录参考轨迹
+        out << YAML::Key << "target_traj" << YAML::Value << YAML::BeginSeq;
+        for (int j = 0; j < target_traj_.cols(); ++j)
+        {
+            std::vector<double> traj_step(target_traj_.col(j).data(), target_traj_.col(j).data() + target_traj_.rows());
+            out << YAML::Flow << traj_step;
+        }
+        out << YAML::EndSeq;
+
         out << YAML::EndMap;
 
         if (error < 0.0001)
