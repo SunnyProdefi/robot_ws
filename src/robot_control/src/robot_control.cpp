@@ -56,7 +56,7 @@ int interp_step_end = 0;
 
 bool isSimulation;  // 是否为仿真模式
 
-double plantime = 10.0;
+double plantime = 3.0;
 
 // 运动规划相关变量
 bool planning_requested = false;
@@ -833,7 +833,7 @@ int main(int argc, char **argv)
             {
                 q_send = q_init;            // 最后一步强制对齐
                 interp_step = total_steps;  // 防止溢出
-                control_flag = 0;
+                control_flag = 2;
 
                 // 发布夹爪指令
                 gripper_command.data = {0.0, 1.0, 1.0, 0.0};
@@ -1270,7 +1270,7 @@ int main(int argc, char **argv)
                 publishMotorState();
                 ros::Duration(1.0).sleep();  // 等待夹爪完成
 
-                control_flag = 0;  // 流程结束
+                control_flag = 999;  // 流程结束
             }
         }
 
