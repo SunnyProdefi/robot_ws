@@ -1656,7 +1656,7 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("RRT trajectory execution completed.");
-                control_flag = 0;
+                control_flag = 5;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
@@ -2297,19 +2297,19 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 0;
+                control_flag = 21;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
 
                 // 发布夹爪指令
                 std_msgs::Float64MultiArray gripper_command;
-                gripper_command.data = {0.0, 1.0, 1.0, 0.0};
+                gripper_command.data = {0.0, 1.0, 0.0, 0.0};
                 gripper_pub.publish(gripper_command);
 
                 q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;  // 更新夹爪状态
                 q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
-                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 0.4;
                 q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
                 // 发布电机位置状态
                 std_msgs::Float64MultiArray motor_state;

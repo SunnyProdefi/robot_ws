@@ -520,7 +520,7 @@ Visualization Manager:
         grasp_object:
           Alpha: 1
           Show Axes: false
-          Show Trail: true
+          Show Trail: false
           Value: true
         object:
           Alpha: 1
