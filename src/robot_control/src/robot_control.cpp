@@ -56,7 +56,7 @@ int interp_step_end = 0;
 
 bool isSimulation;  // 是否为仿真模式
 
-double plantime = 3.0;
+double plantime = 10.0;
 
 // 运动规划相关变量
 bool planning_requested = false;
@@ -79,7 +79,7 @@ std::vector<double> float_base_position = {0, 0, 0.45, 0, 0.7071, 0, 0.7071};
 std::vector<double> grasp_object_position = {0.5825, 0.36, -0.07, 0, 0, -0.258734, 0.965946};
 
 // grasp_cube_object位置
-std::vector<double> grasp_cube_object_position = {0.6925, -0.1325, 0.15, 0, 0, 0, 1};
+std::vector<double> grasp_cube_object_position = {0.6625, -0.1325, 0.25, 0, 0, 0, 1};
 
 // yaml路径
 std::string common_tf_path = ros::package::getPath("robot_control") + "/config/common_tf.yaml";
@@ -843,7 +843,7 @@ int main(int argc, char **argv)
             {
                 q_send = q_init;            // 最后一步强制对齐
                 interp_step = total_steps;  // 防止溢出
-                control_flag = 2;
+                control_flag = 0;
 
                 // 发布夹爪指令
                 gripper_command.data = {0.0, 1.0, 1.0, 0.0};
@@ -996,8 +996,8 @@ int main(int argc, char **argv)
                 std::vector<double> traj2, traj3;
                 try
                 {
-                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), plantime, traj2);
-                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), plantime, traj3);
+                    planBranch(1, {q_recv[1].begin(), q_recv[1].begin() + 5}, matToPose(T2_cur), matToPose(T2_goal), plantime - 5, traj2);
+                    planBranch(2, {q_recv[2].begin(), q_recv[2].begin() + 5}, matToPose(T3_cur), matToPose(T3_goal), plantime - 5, traj3);
                 }
                 catch (const std::exception &e)
                 {
@@ -1015,7 +1015,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                control_flag = 4;
+                control_flag = 7;
                 planning_requested = planning_completed = false;
                 trajectory_index = 0;
 
@@ -1213,10 +1213,21 @@ int main(int argc, char **argv)
             else
             {
                 ROS_INFO("Trajectory execution completed");
-                control_flag = 8;
+                control_flag = 999;
                 planning_requested = false;
                 planning_completed = false;
                 trajectory_index = 0;
+                // === 加入夹爪指令 ===
+                gripper_command.data = {0.0, 1.0, 1.0, 0.0};
+                gripper_pub.publish(gripper_command);
+
+                q_recv[0][MOTOR_BRANCHN_N - 1] = 0.4;  // 更新夹爪状态
+                q_recv[1][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[2][MOTOR_BRANCHN_N - 1] = 1.0;
+                q_recv[3][MOTOR_BRANCHN_N - 1] = 0.4;
+
+                publishMotorState();
+                ros::Duration(1.0).sleep();  // 等待夹爪完成
             }
         }
 
@@ -1338,7 +1349,7 @@ int main(int argc, char **argv)
                 init_joint_angles.insert(init_joint_angles.end(), q_recv[1].begin(), q_recv[1].begin() + 6);  // 左臂6个
                 init_joint_angles.insert(init_joint_angles.end(), q_recv[2].begin(), q_recv[2].begin() + 6);  // 右臂6个
                 std::vector<double> gold_floating_base = {0, 0, 0.45, 0, 0.7071, 0, 0.7071};
-                std::vector<double> gold_joint_angles = {-1.18542, -1.84009, -1.90918, 1.5428, 1.18639, -2.28165, 1.20091, -1.84009, -1.90918, -1.54403, 1.20184, -0.859485};
+                std::vector<double> gold_joint_angles = {-0.8, -1.5, -1.9092, 1.5428, 1.1864, -2.2817, 0.8, -1.5, -1.9092, -1.5440, 1.2018, -0.8595};
 
                 srv.request.init_floating_base = init_floating_base;
                 srv.request.init_joint_angles = init_joint_angles;
