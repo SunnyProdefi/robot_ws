@@ -676,35 +676,25 @@ int main(int argc, char **argv)
         // 1. 设置关节命令
         Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
 
-        // 2. 调用 base_link 位姿服务
-        robot_control::GetBaseLinkPose srv;
-        for (int j = 0; j < 6; ++j)
-        {
-            srv.request.joint_angles_branch1.push_back(planned_joint_trajectory[index][j]);
-            srv.request.joint_angles_branch4.push_back(planned_joint_trajectory[index][18 + j]);
-        }
+        // 发布浮动基座位置
+        geometry_msgs::Pose float_base_pose;
+        float_base_pose.position.x = floating_base_sequence[index][0];
+        float_base_pose.position.y = floating_base_sequence[index][1];
+        float_base_pose.position.z = floating_base_sequence[index][2];
+        float_base_pose.orientation.x = floating_base_sequence[index][3];
+        float_base_pose.orientation.y = floating_base_sequence[index][4];
+        float_base_pose.orientation.z = floating_base_sequence[index][5];
+        float_base_pose.orientation.w = floating_base_sequence[index][6];
+        float_base_pub.publish(float_base_pose);
 
-        if (client.call(srv))
-        {
-            ROS_INFO("Base link pose calculated: Position (x: %f, y: %f, z: %f), Orientation (x: %f, y: %f, z: %f, w: %f)", srv.response.base_link_pose.position.x, srv.response.base_link_pose.position.y, srv.response.base_link_pose.position.z, srv.response.base_link_pose.orientation.x,
-                     srv.response.base_link_pose.orientation.y, srv.response.base_link_pose.orientation.z, srv.response.base_link_pose.orientation.w);
-
-            // 发布浮动基座位姿
-            float_base_pub.publish(srv.response.base_link_pose);
-
-            // 更新 float_base_position
-            float_base_position[0] = srv.response.base_link_pose.position.x;
-            float_base_position[1] = srv.response.base_link_pose.position.y;
-            float_base_position[2] = srv.response.base_link_pose.position.z;
-            float_base_position[3] = srv.response.base_link_pose.orientation.x;
-            float_base_position[4] = srv.response.base_link_pose.orientation.y;
-            float_base_position[5] = srv.response.base_link_pose.orientation.z;
-            float_base_position[6] = srv.response.base_link_pose.orientation.w;
-        }
-        else
-        {
-            ROS_ERROR("Failed to call service get_base_link_pose");
-        }
+        // 更新浮动基座位置
+        float_base_position[0] = floating_base_sequence[index][0];
+        float_base_position[1] = floating_base_sequence[index][1];
+        float_base_position[2] = floating_base_sequence[index][2];
+        float_base_position[3] = floating_base_sequence[index][3];
+        float_base_position[4] = floating_base_sequence[index][4];
+        float_base_position[5] = floating_base_sequence[index][5];
+        float_base_position[6] = floating_base_sequence[index][6];
     };
 
     // 平移变换：沿 x/y/z 轴平移
@@ -1423,32 +1413,52 @@ int main(int argc, char **argv)
                 {
                     Motor_SendRec_Func_ALL(MOTORCOMMAND_POSITION);
 
-                    robot_control::GetBaseLinkPose srv;
+                    // robot_control::GetBaseLinkPose srv;
 
-                    for (int j = 0; j < 6; ++j)
-                    {
-                        srv.request.joint_angles_branch1.push_back(planned_joint_trajectory[trajectory_index][j]);
-                        srv.request.joint_angles_branch4.push_back(planned_joint_trajectory[trajectory_index][18 + j]);
-                    }
+                    // for (int j = 0; j < 6; ++j)
+                    // {
+                    //     srv.request.joint_angles_branch1.push_back(planned_joint_trajectory[trajectory_index][j]);
+                    //     srv.request.joint_angles_branch4.push_back(planned_joint_trajectory[trajectory_index][18 + j]);
+                    // }
 
-                    if (client.call(srv))
-                    {
-                        ROS_INFO("Base link pose calculated: Position (x: %f, y: %f, z: %f), Orientation (x: %f, y: %f, z: %f, w: %f)", srv.response.base_link_pose.position.x, srv.response.base_link_pose.position.y, srv.response.base_link_pose.position.z, srv.response.base_link_pose.orientation.x,
-                                 srv.response.base_link_pose.orientation.y, srv.response.base_link_pose.orientation.z, srv.response.base_link_pose.orientation.w);
+                    // if (client.call(srv))
+                    // {
+                    //     ROS_INFO("Base link pose calculated: Position (x: %f, y: %f, z: %f), Orientation (x: %f, y: %f, z: %f, w: %f)", srv.response.base_link_pose.position.x, srv.response.base_link_pose.position.y, srv.response.base_link_pose.position.z,
+                    //     srv.response.base_link_pose.orientation.x,
+                    //              srv.response.base_link_pose.orientation.y, srv.response.base_link_pose.orientation.z, srv.response.base_link_pose.orientation.w);
 
-                        float_base_pub.publish(srv.response.base_link_pose);
-                        float_base_position[0] = srv.response.base_link_pose.position.x;
-                        float_base_position[1] = srv.response.base_link_pose.position.y;
-                        float_base_position[2] = srv.response.base_link_pose.position.z;
-                        float_base_position[3] = srv.response.base_link_pose.orientation.x;
-                        float_base_position[4] = srv.response.base_link_pose.orientation.y;
-                        float_base_position[5] = srv.response.base_link_pose.orientation.z;
-                        float_base_position[6] = srv.response.base_link_pose.orientation.w;
-                    }
-                    else
-                    {
-                        ROS_ERROR("Failed to call service get_base_link_pose");
-                    }
+                    //     float_base_pub.publish(srv.response.base_link_pose);
+                    //     float_base_position[0] = srv.response.base_link_pose.position.x;
+                    //     float_base_position[1] = srv.response.base_link_pose.position.y;
+                    //     float_base_position[2] = srv.response.base_link_pose.position.z;
+                    //     float_base_position[3] = srv.response.base_link_pose.orientation.x;
+                    //     float_base_position[4] = srv.response.base_link_pose.orientation.y;
+                    //     float_base_position[5] = srv.response.base_link_pose.orientation.z;
+                    //     float_base_position[6] = srv.response.base_link_pose.orientation.w;
+                    // }
+                    // else
+                    // {
+                    //     ROS_ERROR("Failed to call service get_base_link_pose");
+                    // }
+                    // 发布浮动基座位置
+                    geometry_msgs::Pose float_base_pose;
+                    float_base_pose.position.x = floating_base_sequence[trajectory_index][0];
+                    float_base_pose.position.y = floating_base_sequence[trajectory_index][1];
+                    float_base_pose.position.z = floating_base_sequence[trajectory_index][2];
+                    float_base_pose.orientation.x = floating_base_sequence[trajectory_index][3];
+                    float_base_pose.orientation.y = floating_base_sequence[trajectory_index][4];
+                    float_base_pose.orientation.z = floating_base_sequence[trajectory_index][5];
+                    float_base_pose.orientation.w = floating_base_sequence[trajectory_index][6];
+                    float_base_pub.publish(float_base_pose);
+
+                    // 更新浮动基座位置
+                    float_base_position[0] = floating_base_sequence[trajectory_index][0];
+                    float_base_position[1] = floating_base_sequence[trajectory_index][1];
+                    float_base_position[2] = floating_base_sequence[trajectory_index][2];
+                    float_base_position[3] = floating_base_sequence[trajectory_index][3];
+                    float_base_position[4] = floating_base_sequence[trajectory_index][4];
+                    float_base_position[5] = floating_base_sequence[trajectory_index][5];
+                    float_base_position[6] = floating_base_sequence[trajectory_index][6];
                 }
                 else
                 {
